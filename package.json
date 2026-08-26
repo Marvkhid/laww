@@ -1,0 +1,44 @@
+{
+  "name": "law-digest",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.2",
+    "@tiptap/extension-color": "^3.30.2",
+    "@tiptap/extension-highlight": "^3.30.2",
+    "@tiptap/extension-image": "^3.30.2",
+    "@tiptap/extension-placeholder": "^3.30.2",
+    "@tiptap/extension-table": "^3.30.2",
+    "@tiptap/extension-table-cell": "^3.30.2",
+    "@tiptap/extension-table-header": "^3.30.2",
+    "@tiptap/extension-table-row": "^3.30.2",
+    "@tiptap/extension-text-style": "^3.30.2",
+    "@tiptap/pm": "^3.30.2",
+    "@tiptap/react": "^3.30.2",
+    "@tiptap/starter-kit": "^3.30.2",
+    "lucide-react": "^1.30.0",
+    "motion": "^13.1.1",
+    "next": "16.3.0",
+    "nodemailer": "^9.0.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
