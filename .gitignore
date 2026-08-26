@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# large media files
+public/*.pdf
+public/law-digest-issue.pdf
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
