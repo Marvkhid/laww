@@ -6,6 +6,47 @@ const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 const BUCKET = "article-images";
 const PDF_MAX_BYTES = 20 * 1024 * 1024; // 20MB
 
+/** Generic image upload helper — reusable by any admin entity. */
+async function uploadImageToBucket(
+  file: File,
+  folder: string,
+): Promise<{ url: string | null; error: string | null }> {
+  if (!ALLOWED_TYPES.has(file.type)) {
+    return { url: null, error: "Image must be a JPEG, PNG, WEBP, or GIF." };
+  }
+  if (file.size > MAX_BYTES) {
+    return { url: null, error: "Image must be 5MB or smaller." };
+  }
+
+  const supabase = await requireAdmin();
+  const path = `${folder}/${randomUUID()}.${extensionFor(file.type)}`;
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, buffer, { contentType: file.type, upsert: false });
+
+    if (uploadError) {
+      console.error(`Supabase Storage upload failed (bucket=${BUCKET}):`, uploadError);
+      return { url: null, error: "Could not upload the image. Please try again." };
+    }
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    return { url: data.publicUrl, error: null };
+  } catch (err) {
+    console.error(`Supabase Storage upload threw (bucket=${BUCKET}):`, err);
+    return { url: null, error: "Could not upload the image. Please try again." };
+  }
+}
+
+/** Upload a legal-update image (cover or inline). */
+export async function uploadLegalUpdateImage(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadImageToBucket(file, "legal-updates");
+}
+
 function extensionFor(mimeType: string): string {
   switch (mimeType) {
     case "image/jpeg":

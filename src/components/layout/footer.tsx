@@ -33,14 +33,6 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="https://nglawdigest.com"
-                  className="transition-colors duration-300 hover:text-digest-red"
-                >
-                  nglawdigest.com
-                </a>
-              </li>
-              <li>
-                <a
                   href="mailto:webmaster@nglawdigestblog.com"
                   className="transition-colors duration-300 hover:text-digest-red"
                 >

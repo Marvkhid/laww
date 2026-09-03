@@ -73,9 +73,7 @@ export async function BreakingLegalUpdates() {
               {items.map((update, index) => (
                 <a
                   key={`${update.id}-${index}`}
-                  href={update.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`/legal-updates/${update.slug}`}
                   className="group/item flex shrink-0 items-center px-6 transition-opacity hover:opacity-80"
                 >
                   {/* Separator dot */}

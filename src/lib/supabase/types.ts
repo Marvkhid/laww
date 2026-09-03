@@ -134,10 +134,25 @@ type ArticleContributorUpdate = Partial<ArticleContributorInsert>;
 
 export interface LegalUpdateRow {
   id: string;
+  slug: string;
   headline: string;
   summary: string | null;
   source_name: string;
-  source_url: string;
+  source_url: string | null;
+  body: JSONContent | null;
+  cover_image_url: string | null;
+  image_1_url: string | null;
+  image_1_alt: string | null;
+  image_1_position: string | null;
+  image_2_url: string | null;
+  image_2_alt: string | null;
+  image_2_position: string | null;
+  image_3_url: string | null;
+  image_3_alt: string | null;
+  image_3_position: string | null;
+  image_4_url: string | null;
+  image_4_alt: string | null;
+  image_4_position: string | null;
   practice_area_id: string | null;
   origin: LegalUpdateOrigin;
   status: LegalUpdateStatus;
@@ -147,7 +162,9 @@ export interface LegalUpdateRow {
 }
 type LegalUpdateOptionalKeys =
   | "id"
+  | "slug"
   | "summary"
+  | "body"
   | "practice_area_id"
   | "origin"
   | "status"
@@ -161,9 +178,10 @@ type LegalUpdateUpdate = Partial<LegalUpdateInsert>;
 export interface NewsletterSubscriberRow {
   id: string;
   email: string;
+  follow_up_sent: boolean;
   created_at: string;
 }
-type NewsletterSubscriberOptionalKeys = "id" | "created_at";
+type NewsletterSubscriberOptionalKeys = "id" | "created_at" | "follow_up_sent";
 type NewsletterSubscriberInsert = Omit<NewsletterSubscriberRow, NewsletterSubscriberOptionalKeys> &
   Partial<Pick<NewsletterSubscriberRow, NewsletterSubscriberOptionalKeys>>;
 type NewsletterSubscriberUpdate = Partial<NewsletterSubscriberInsert>;

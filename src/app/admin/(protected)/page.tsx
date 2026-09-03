@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ClearSubscribersButton } from "./clear-subscribers-button";
 
 export const metadata: Metadata = {
   title: "Admin — Law Digest",
@@ -34,6 +35,7 @@ export default function AdminDashboardPage() {
           </li>
         ))}
       </ul>
+      <ClearSubscribersButton />
     </div>
   );
 }

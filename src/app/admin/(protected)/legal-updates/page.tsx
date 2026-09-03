@@ -31,8 +31,8 @@ export default async function AdminLegalUpdatesPage() {
           {updates.map((update) => (
             <li key={update.id} className="flex items-center justify-between gap-4 py-3">
               <div className="min-w-0">
-                <p className="truncate font-admin text-sm text-ink">{update.headline}</p>
-                <p className="font-admin text-[10px] font-medium uppercase tracking-wide text-ink">
+                <p className="truncate text-sm font-semibold text-ink">{update.headline}</p>
+                <p className="mt-0.5 text-xs text-stone">
                   {update.source_name}
                   {update.practice_area_name ? ` · ${update.practice_area_name}` : ""}
                   {update.origin === "auto_rss" ? " · RSS" : " · Manual"}

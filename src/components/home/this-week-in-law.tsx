@@ -26,10 +26,8 @@ export async function ThisWeekInLaw() {
         <div className="mt-8 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
           {updates.map((update, index) => (
             <Reveal key={update.id} delay={index * 0.06}>
-              <a
-                href={update.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={`/legal-updates/${update.slug}`}
                 className="group block border-t-2 border-hairline pt-4 transition-border-color duration-300 hover:border-digest-red"
               >
                 <div className="flex items-center gap-2">
@@ -52,7 +50,7 @@ export async function ThisWeekInLaw() {
                     year: "numeric",
                   })}
                 </p>
-              </a>
+              </Link>
             </Reveal>
           ))}
         </div>

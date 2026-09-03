@@ -2,16 +2,42 @@
 
 import { getTransporter, getFromAddress } from "@/lib/smtp";
 import { subscribeToNewsletter } from "@/lib/supabase/public/newsletter";
+import {
+  welcomeEmailHtml,
+  adminNotificationHtml,
+} from "@/lib/newsletter-emails";
 import type { NewsletterFormState } from "./newsletter-types";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ADMIN_NOTIFICATION_RECIPIENT = "webmaster@nglawdigestblog.com";
 
-// Best-effort only: a failed admin notification must never affect the
-// subscriber's own success state (requirement 7). Errors are caught and
-// logged here so callers never need their own try/catch.
-async function sendAdminNotification(subscriberEmail: string, subscribedAt: Date): Promise<void> {
+async function sendWelcomeEmail(
+  subscriberEmail: string,
+): Promise<void> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.error("Welcome email skipped: SMTP env vars are not set.");
+    return;
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: getFromAddress(),
+      to: subscriberEmail,
+      subject: "Welcome to The Weekly Brief — Law Digest Newsletter",
+      html: welcomeEmailHtml(subscriberEmail),
+    });
+    console.log("Welcome email sent successfully:", info.messageId, "to:", subscriberEmail);
+  } catch (err) {
+    console.error("Welcome email failed to send:", err);
+  }
+}
+
+async function sendAdminNotification(
+  subscriberEmail: string,
+  subscribedAt: Date,
+): Promise<void> {
   const transporter = getTransporter();
   if (!transporter) {
     console.error("Newsletter admin notification skipped: SMTP env vars are not set.");
@@ -23,10 +49,7 @@ async function sendAdminNotification(subscriberEmail: string, subscribedAt: Date
       from: getFromAddress(),
       to: ADMIN_NOTIFICATION_RECIPIENT,
       subject: "New Law Digest Newsletter Subscriber",
-      text:
-        `A new subscriber joined the Law Digest newsletter.\n\n` +
-        `Email: ${subscriberEmail}\n` +
-        `Subscribed: ${subscribedAt.toISOString()}`,
+      html: adminNotificationHtml(subscriberEmail, subscribedAt),
     });
   } catch (err) {
     console.error("Newsletter admin notification failed to send:", err);
@@ -35,7 +58,7 @@ async function sendAdminNotification(subscriberEmail: string, subscribedAt: Date
 
 export async function subscribeToNewsletterAction(
   _prevState: NewsletterFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<NewsletterFormState> {
   const email = String(formData.get("email") ?? "")
     .trim()
@@ -55,7 +78,9 @@ export async function subscribeToNewsletterAction(
   }
 
   // Only reached for a genuinely new subscriber — never on duplicate or error.
-  await sendAdminNotification(email, new Date());
+  const subscribedAt = new Date();
+  await sendAdminNotification(email, subscribedAt);
+  await sendWelcomeEmail(email);
 
   return {
     status: "success",

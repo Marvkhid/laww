@@ -86,11 +86,13 @@ export interface Masthead {
 
 export interface LegalUpdate {
   id: string;
+  slug: string;
   headline: string;
+  summary: string | null;
   sourceName: string;
-  sourceUrl: string;
   publishedAt: string;
   practiceArea?: string;
+  body?: JSONContent | null;
 }
 
 export interface Event {

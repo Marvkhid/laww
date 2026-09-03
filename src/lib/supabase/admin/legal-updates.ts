@@ -52,18 +52,26 @@ export async function getLegalUpdateByIdForAdmin(id: string): Promise<LegalUpdat
 
 export type LegalUpdateInput = {
   headline: string;
+  slug: string;
   summary: string | null;
   source_name: string;
-  source_url: string;
+  body: string | null;
+  cover_image_url: string | null;
+  image_1_url: string | null;
+  image_1_alt: string | null;
+  image_1_position: string | null;
+  image_2_url: string | null;
+  image_2_alt: string | null;
+  image_2_position: string | null;
+  image_3_url: string | null;
+  image_3_alt: string | null;
+  image_3_position: string | null;
+  image_4_url: string | null;
+  image_4_alt: string | null;
+  image_4_position: string | null;
   practice_area_id: string | null;
   status: LegalUpdateStatus;
 };
-
-// legal_updates has no junction table (practice_area_id is a plain nullable
-// FK column, not a many-to-many link like articles/call_for_papers), so a
-// plain insert/update is atomic on its own — no migration-0004/0005-style
-// Postgres function is needed here. RLS write access already comes from
-// migration 0003's "authenticated_write_legal_updates" policy.
 
 export async function createLegalUpdate(
   input: LegalUpdateInput
@@ -71,9 +79,23 @@ export async function createLegalUpdate(
   const supabase = await requireAdmin();
   const { error } = await supabase.from("legal_updates").insert({
     headline: input.headline,
+    slug: input.slug,
     summary: input.summary,
     source_name: input.source_name,
-    source_url: input.source_url,
+    body: input.body ? JSON.parse(input.body) : null,
+    cover_image_url: input.cover_image_url,
+    image_1_url: input.image_1_url,
+    image_1_alt: input.image_1_alt,
+    image_1_position: input.image_1_position,
+    image_2_url: input.image_2_url,
+    image_2_alt: input.image_2_alt,
+    image_2_position: input.image_2_position,
+    image_3_url: input.image_3_url,
+    image_3_alt: input.image_3_alt,
+    image_3_position: input.image_3_position,
+    image_4_url: input.image_4_url,
+    image_4_alt: input.image_4_alt,
+    image_4_position: input.image_4_position,
     practice_area_id: input.practice_area_id,
     status: input.status,
     origin: "manual" satisfies LegalUpdateOrigin,
@@ -90,9 +112,6 @@ export async function updateLegalUpdate(
 ): Promise<{ error: string | null }> {
   const supabase = await requireAdmin();
 
-  // Mirrors the create/update-article function's published_at logic
-  // (migration 0004): preserve the existing published_at if the row was
-  // already published, set it fresh if newly published, clear it otherwise.
   const { data: current } = await supabase
     .from("legal_updates")
     .select("published_at")
@@ -108,9 +127,23 @@ export async function updateLegalUpdate(
     .from("legal_updates")
     .update({
       headline: input.headline,
+      slug: input.slug,
       summary: input.summary,
       source_name: input.source_name,
-      source_url: input.source_url,
+      body: input.body ? JSON.parse(input.body) : null,
+      cover_image_url: input.cover_image_url,
+      image_1_url: input.image_1_url,
+      image_1_alt: input.image_1_alt,
+      image_1_position: input.image_1_position,
+      image_2_url: input.image_2_url,
+      image_2_alt: input.image_2_alt,
+      image_2_position: input.image_2_position,
+      image_3_url: input.image_3_url,
+      image_3_alt: input.image_3_alt,
+      image_3_position: input.image_3_position,
+      image_4_url: input.image_4_url,
+      image_4_alt: input.image_4_alt,
+      image_4_position: input.image_4_position,
       practice_area_id: input.practice_area_id,
       status: input.status,
       published_at,
@@ -121,8 +154,6 @@ export async function updateLegalUpdate(
   return { error: null };
 }
 
-// Quick status change from the list page (analogous to articles'
-// setArticleStatus + StatusToggleButton, generalized to 3 states).
 export async function setLegalUpdateStatus(
   id: string,
   status: LegalUpdateStatus
