@@ -18,7 +18,7 @@ export function ContactForm() {
   const [state, formAction, isPending] = useActionState(sendContactMessage, INITIAL_STATE);
 
   const inputClass =
-    "w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink placeholder:text-stone/50 focus:border-digest-red focus:outline-none transition-colors";
+    "w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink placeholder:text-stone/75 focus:border-digest-red focus:outline-none transition-colors";
 
   return (
     <div>
@@ -111,7 +111,7 @@ export function ContactForm() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-fit bg-digest-red px-8 py-3 font-admin text-sm uppercase tracking-wide text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="w-fit bg-digest-red px-8 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {isPending ? "Sending…" : "Send Message"}
           </button>

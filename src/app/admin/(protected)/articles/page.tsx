@@ -18,7 +18,7 @@ export default async function AdminArticlesPage() {
         <h1 className="font-admin text-2xl font-semibold text-ink">Articles</h1>
         <Link
           href="/admin/articles/new"
-          className="bg-digest-red px-4 py-2 font-admin text-sm uppercase tracking-wide text-paper"
+          className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
         >
           New
         </Link>
@@ -32,7 +32,7 @@ export default async function AdminArticlesPage() {
             <li key={article.id} className="flex items-center justify-between py-3">
               <div>
                 <p className="font-admin text-sm text-ink">{article.title}</p>
-                <p className="font-admin text-[10px] font-medium uppercase tracking-wide text-ink">
+                <p className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
                   /{article.slug} ·{" "}
                   <span
                     className={article.status === "published" ? "text-digest-red" : undefined}
@@ -47,7 +47,7 @@ export default async function AdminArticlesPage() {
                 <StatusToggleButton id={article.id} status={article.status} />
                 <Link
                   href={`/admin/articles/${article.id}/edit`}
-                  className="font-admin text-xs font-medium uppercase tracking-wide text-digest-red hover:text-digest-red-deep"
+                  className="font-admin text-xs font-semibold uppercase tracking-wide text-digest-red hover:text-digest-red-deep"
                 >
                   Edit
                 </Link>

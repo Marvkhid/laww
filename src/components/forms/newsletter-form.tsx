@@ -40,12 +40,12 @@ export function NewsletterForm() {
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
           disabled={isPending}
-          className="w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink placeholder:text-stone disabled:opacity-60"
+          className="w-full border border-white/20 bg-white/10 px-4 py-3 font-admin text-sm text-paper placeholder:text-white/70 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={isPending}
-          className="whitespace-nowrap bg-purple px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper transition-colors hover:bg-purple-deep disabled:opacity-60"
+          className="whitespace-nowrap bg-paper px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-white disabled:opacity-60"
         >
           {isPending ? "Subscribing…" : "Subscribe"}
         </button>
@@ -54,7 +54,7 @@ export function NewsletterForm() {
         <p
           role="status"
           className={`mt-2 font-admin text-xs ${
-            state.status === "error" ? "text-digest-red" : "text-stone"
+            state.status === "error" ? "text-white" : "text-white/70"
           }`}
         >
           {state.message}

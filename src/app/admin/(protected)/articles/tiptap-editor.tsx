@@ -83,7 +83,7 @@ const CALLOUT_VARIANTS = [
 // --- Color palette ---
 const TEXT_COLORS = [
   { value: "#17140f", label: "Black" },
-  { value: "#a3352a", label: "Digest Red" },
+  { value: "#A51C30", label: "Digest Red" },
   { value: "#6b3a7a", label: "Purple" },
   { value: "#6e6a63", label: "Stone" },
   { value: "#ffffff", label: "White" },

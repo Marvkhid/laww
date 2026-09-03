@@ -32,7 +32,7 @@ function ImageUploadField({
   return (
     <div className="grid grid-cols-[1fr_140px] gap-3 border-t border-hairline/60 pt-3">
       <div>
-        <label htmlFor={fileKey} className="text-[10px] font-medium uppercase tracking-wide text-ink">
+        <label htmlFor={fileKey} className="text-[11px] font-semibold uppercase tracking-wide text-ink">
           Image {num}
         </label>
         {preview ? (
@@ -56,7 +56,7 @@ function ImageUploadField({
       </div>
       <div className="flex flex-col gap-2">
         <div>
-          <label htmlFor={altKey} className="text-[10px] font-medium uppercase tracking-wide text-ink">
+          <label htmlFor={altKey} className="text-[11px] font-semibold uppercase tracking-wide text-ink">
             Alt text
           </label>
           <input
@@ -69,7 +69,7 @@ function ImageUploadField({
           />
         </div>
         <div>
-          <label htmlFor={posKey} className="text-[10px] font-medium uppercase tracking-wide text-ink">
+          <label htmlFor={posKey} className="text-[11px] font-semibold uppercase tracking-wide text-ink">
             Position
           </label>
           <select
@@ -120,7 +120,7 @@ export function LegalUpdateForm({
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
       <div>
-        <label htmlFor="headline" className="text-sm font-medium text-ink">
+        <label htmlFor="headline" className="text-sm font-semibold text-ink">
           Headline
         </label>
         <input
@@ -133,7 +133,7 @@ export function LegalUpdateForm({
         />
       </div>
       <div>
-        <label htmlFor="slug" className="text-sm font-medium text-ink">
+        <label htmlFor="slug" className="text-sm font-semibold text-ink">
           Slug <span className="text-[#666]">(auto-generated if empty)</span>
         </label>
         <input
@@ -146,7 +146,7 @@ export function LegalUpdateForm({
         />
       </div>
       <div>
-        <label htmlFor="summary" className="text-sm font-medium text-ink">
+        <label htmlFor="summary" className="text-sm font-semibold text-ink">
           Summary <span className="text-[#666]">(optional)</span>
         </label>
         <textarea
@@ -158,7 +158,7 @@ export function LegalUpdateForm({
         />
       </div>
       <div>
-        <label htmlFor="source_name" className="text-sm font-medium text-ink">
+        <label htmlFor="source_name" className="text-sm font-semibold text-ink">
           Source name
         </label>
         <input
@@ -174,7 +174,7 @@ export function LegalUpdateForm({
 
       {/* Cover Image */}
       <div>
-        <label className="text-sm font-medium text-ink">
+        <label className="text-sm font-semibold text-ink">
           Cover Image <span className="text-[#666]">(optional)</span>
         </label>
         {coverPreview ? (
@@ -203,7 +203,7 @@ export function LegalUpdateForm({
 
       {/* Inline Article Images */}
       <fieldset className="flex flex-col gap-4 border border-hairline p-4">
-        <legend className="text-sm font-medium text-ink">
+        <legend className="text-sm font-semibold text-ink">
           Article Images <span className="text-[#666]">(optional, up to 4)</span>
         </legend>
         <p className="text-xs text-[#666]">
@@ -254,7 +254,7 @@ export function LegalUpdateForm({
 
       {/* Full Content */}
       <div>
-        <label className="text-sm font-medium text-ink">Full Content</label>
+        <label className="text-sm font-semibold text-ink">Full Content</label>
         <div className="mt-1">
           <TiptapEditor name="body" initialContent={initialBody} />
         </div>
@@ -262,7 +262,7 @@ export function LegalUpdateForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="practice_area_id" className="text-sm font-medium text-ink">
+          <label htmlFor="practice_area_id" className="text-sm font-semibold text-ink">
             Practice area <span className="text-[#666]">(optional)</span>
           </label>
           <select
@@ -280,7 +280,7 @@ export function LegalUpdateForm({
           </select>
         </div>
         <div>
-          <label htmlFor="status" className="text-sm font-medium text-ink">
+          <label htmlFor="status" className="text-sm font-semibold text-ink">
             Status
           </label>
           <select

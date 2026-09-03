@@ -26,7 +26,7 @@ export default function Image() {
         >
           <div
             style={{
-              backgroundColor: "#a3352a",
+              backgroundColor: "#A51C30",
               padding: "8px 16px",
               fontSize: "32px",
               fontWeight: "bold",
@@ -65,7 +65,7 @@ export default function Image() {
             bottom: "60px",
             left: "80px",
             fontSize: "18px",
-            color: "#a3352a",
+            color: "#A51C30",
             fontFamily: "sans-serif",
             letterSpacing: "2px",
             textTransform: "uppercase",

@@ -17,7 +17,7 @@ export default async function AdminHighlightsPage() {
         <h1 className="font-admin text-2xl font-semibold text-ink">Homepage Highlights</h1>
         <Link
           href="/admin/highlights/new"
-          className="bg-digest-red px-4 py-2 font-admin text-sm uppercase tracking-wide text-paper"
+          className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
         >
           New Highlight
         </Link>
@@ -35,7 +35,7 @@ export default async function AdminHighlightsPage() {
               className="flex items-center justify-between border border-hairline p-4"
             >
               <div>
-                <p className="font-admin text-sm font-medium text-ink">
+                <p className="font-admin text-sm font-semibold text-ink">
                   {highlight.title}
                 </p>
                 <p className="font-admin text-xs text-[#333]">

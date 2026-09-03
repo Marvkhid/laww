@@ -58,7 +58,7 @@ export function ArticleForm({
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
       <div>
-        <label htmlFor="title" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Title
         </label>
         <input
@@ -71,7 +71,7 @@ export function ArticleForm({
         />
       </div>
       <div>
-        <label htmlFor="slug" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
         <input
@@ -88,7 +88,7 @@ export function ArticleForm({
         </p>
       </div>
       <div>
-        <label htmlFor="dek" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="dek" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Dek <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <textarea
@@ -100,7 +100,7 @@ export function ArticleForm({
         />
       </div>
       <div>
-        <label className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Body <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <div className="mt-1">
@@ -111,7 +111,7 @@ export function ArticleForm({
         <div>
           <label
             htmlFor="page_number"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Page number <span className="normal-case text-[#333]">(optional)</span>
           </label>
@@ -126,7 +126,7 @@ export function ArticleForm({
           />
         </div>
         <div>
-          <label htmlFor="status" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="status" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Status
           </label>
           <select
@@ -143,7 +143,7 @@ export function ArticleForm({
       <div>
         <label
           htmlFor="cover_image_file"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Cover image <span className="normal-case text-[#333]">(optional)</span>
         </label>
@@ -177,7 +177,7 @@ export function ArticleForm({
 
       {/* Inline Article Images */}
       <fieldset className="flex flex-col gap-4 border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Article Images <span className="normal-case text-[#333]">(optional, up to 4)</span>
         </legend>
         <p className="font-admin text-xs text-[#333]">
@@ -190,7 +190,7 @@ export function ArticleForm({
           return (
             <div key={num} className="grid grid-cols-[1fr_140px] gap-3 border-t border-hairline/60 pt-3">
               <div>
-                <label htmlFor={`image_${num}_file`} className="font-admin text-[10px] font-medium uppercase tracking-wide text-ink">
+                <label htmlFor={`image_${num}_file`} className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
                   Image {num}
                 </label>
                 <input
@@ -204,7 +204,7 @@ export function ArticleForm({
               </div>
               <div className="flex flex-col gap-2">
                 <div>
-                  <label htmlFor={`image_${num}_alt`} className="font-admin text-[10px] font-medium uppercase tracking-wide text-ink">
+                  <label htmlFor={`image_${num}_alt`} className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
                     Alt text
                   </label>
                   <input
@@ -217,7 +217,7 @@ export function ArticleForm({
                   />
                 </div>
                 <div>
-                  <label htmlFor={posKey} className="font-admin text-[10px] font-medium uppercase tracking-wide text-ink">
+                  <label htmlFor={posKey} className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
                     Position
                   </label>
                   <select
@@ -243,7 +243,7 @@ export function ArticleForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="issue_id" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="issue_id" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Issue <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <select
@@ -263,7 +263,7 @@ export function ArticleForm({
         <div>
           <label
             htmlFor="practice_area_id"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Practice area <span className="normal-case text-[#333]">(optional)</span>
           </label>
@@ -284,7 +284,7 @@ export function ArticleForm({
       </div>
 
       <fieldset className="flex flex-col gap-2 border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Homepage placement
         </legend>
         <label className="flex items-center gap-2 font-admin text-sm text-ink">
@@ -314,7 +314,7 @@ export function ArticleForm({
       </fieldset>
 
       <fieldset className="flex flex-col gap-3 border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Contributors
         </legend>
         <p className="font-admin text-xs text-[#333]">
@@ -353,7 +353,7 @@ export function ArticleForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

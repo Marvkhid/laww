@@ -43,7 +43,7 @@ export function IssueForm({
         <div>
           <label
             htmlFor="issue_number"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Issue number
           </label>
@@ -59,7 +59,7 @@ export function IssueForm({
           />
         </div>
         <div>
-          <label htmlFor="year" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="year" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Year
           </label>
           <input
@@ -76,7 +76,7 @@ export function IssueForm({
         </div>
       </div>
       <div>
-        <label htmlFor="season" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="season" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Season
         </label>
         <input
@@ -92,7 +92,7 @@ export function IssueForm({
       <div>
         <label
           htmlFor="edition"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Edition
         </label>
@@ -109,7 +109,7 @@ export function IssueForm({
 
       {/* ── Cover Image (independent) ── */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink px-1">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink px-1">
           Issue Cover Image
         </legend>
         {imagePreview ? (
@@ -161,7 +161,7 @@ export function IssueForm({
 
       {/* ── PDF (independent) ── */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink px-1">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink px-1">
           Digital Edition PDF
         </legend>
         {pdfPreview ? (
@@ -218,7 +218,7 @@ export function IssueForm({
         <div>
           <label
             htmlFor="price_ngn"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Price (NGN)
           </label>
@@ -234,7 +234,7 @@ export function IssueForm({
         <div>
           <label
             htmlFor="price_uk"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Price (UK)
           </label>
@@ -250,7 +250,7 @@ export function IssueForm({
         <div>
           <label
             htmlFor="price_us"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Price (US)
           </label>
@@ -269,7 +269,7 @@ export function IssueForm({
       <div>
         <label
           htmlFor="published_at"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Published date <span className="normal-case text-[#333]">(optional)</span>
         </label>
@@ -286,7 +286,7 @@ export function IssueForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

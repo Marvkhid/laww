@@ -20,7 +20,7 @@ export function PracticeAreaForm({
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
       <div>
-        <label htmlFor="name" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="name" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Name
         </label>
         <input
@@ -33,7 +33,7 @@ export function PracticeAreaForm({
         />
       </div>
       <div>
-        <label htmlFor="slug" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
         <input
@@ -52,7 +52,7 @@ export function PracticeAreaForm({
       <div>
         <label
           htmlFor="description"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Description <span className="normal-case text-[#333]">(optional)</span>
         </label>
@@ -68,7 +68,7 @@ export function PracticeAreaForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

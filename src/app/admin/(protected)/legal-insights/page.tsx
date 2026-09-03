@@ -17,7 +17,7 @@ export default async function AdminLegalInsightsPage() {
         <h1 className="font-admin text-2xl font-semibold text-ink">Legal Insights</h1>
         <Link
           href="/admin/legal-insights/new"
-          className="bg-digest-red px-4 py-2 font-admin text-sm uppercase tracking-wide text-paper"
+          className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
         >
           New Insight
         </Link>
@@ -35,7 +35,7 @@ export default async function AdminLegalInsightsPage() {
               className="flex items-center justify-between border border-hairline p-4"
             >
               <div>
-                <p className="font-admin text-sm font-medium text-ink">
+                <p className="font-admin text-sm font-semibold text-ink">
                   {insight.title}
                 </p>
                 <p className="font-admin text-xs text-[#333]">

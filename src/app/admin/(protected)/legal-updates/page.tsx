@@ -18,7 +18,7 @@ export default async function AdminLegalUpdatesPage() {
         <h1 className="font-admin text-2xl font-semibold text-ink">Breaking Legal Updates</h1>
         <Link
           href="/admin/legal-updates/new"
-          className="bg-digest-red px-4 py-2 font-admin text-sm uppercase tracking-wide text-paper"
+          className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
         >
           New
         </Link>
@@ -42,7 +42,7 @@ export default async function AdminLegalUpdatesPage() {
                 <LegalUpdateStatusSelect id={update.id} status={update.status} />
                 <Link
                   href={`/admin/legal-updates/${update.id}/edit`}
-                  className="font-admin text-xs font-medium uppercase tracking-wide text-digest-red hover:text-digest-red-deep"
+                  className="font-admin text-xs font-semibold uppercase tracking-wide text-digest-red hover:text-digest-red-deep"
                 >
                   Edit
                 </Link>

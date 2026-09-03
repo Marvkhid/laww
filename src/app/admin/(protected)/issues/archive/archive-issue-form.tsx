@@ -23,7 +23,7 @@ export function ArchiveIssueForm({
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
       <div>
-        <label htmlFor="title" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Title
         </label>
         <input
@@ -37,7 +37,7 @@ export function ArchiveIssueForm({
         />
       </div>
       <div>
-        <label htmlFor="slug" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
         <input
@@ -51,7 +51,7 @@ export function ArchiveIssueForm({
         />
       </div>
       <div>
-        <label htmlFor="description" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="description" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Description <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <textarea
@@ -64,7 +64,7 @@ export function ArchiveIssueForm({
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label htmlFor="issue_number" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="issue_number" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Issue Number <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <input
@@ -77,7 +77,7 @@ export function ArchiveIssueForm({
           />
         </div>
         <div>
-          <label htmlFor="season" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="season" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Season <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <input
@@ -90,7 +90,7 @@ export function ArchiveIssueForm({
           />
         </div>
         <div>
-          <label htmlFor="year" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="year" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Year <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <input
@@ -107,7 +107,7 @@ export function ArchiveIssueForm({
 
       {/* Cover Image */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Cover Image <span className="normal-case text-[#333]">(optional)</span>
         </legend>
         {coverPreview ? (
@@ -132,7 +132,7 @@ export function ArchiveIssueForm({
 
       {/* PDF */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Digital Edition PDF <span className="normal-case text-[#333]">(optional)</span>
         </legend>
         {initial?.pdf_url ? (
@@ -161,7 +161,7 @@ export function ArchiveIssueForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

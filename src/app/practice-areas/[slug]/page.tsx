@@ -71,7 +71,7 @@ function SectionRenderer({ section, index }: { section: PracticeAreaSection; ind
         {index > 0 && (
           <div className="mt-12 flex items-center gap-4">
             <span className="h-px flex-1 bg-[#e2ddd5]" />
-            <span className="h-1.5 w-1.5 bg-[#B91C1C]" />
+            <span className="h-1.5 w-1.5 bg-[#A51C30]" />
             <span className="h-px flex-1 bg-[#e2ddd5]" />
           </div>
         )}
@@ -95,7 +95,7 @@ function SectionRenderer({ section, index }: { section: PracticeAreaSection; ind
               />
             </div>
             {imageBlock.caption && (
-              <p className="mt-3 font-admin text-xs text-[#888888]">
+              <p className="mt-3 font-admin text-xs text-stone">
                 {imageBlock.caption}
               </p>
             )}
@@ -119,7 +119,7 @@ function SectionRenderer({ section, index }: { section: PracticeAreaSection; ind
         {index > 0 && (
           <div className="mt-12 flex items-center gap-4">
             <span className="h-px flex-1 bg-[#e2ddd5]" />
-            <span className="h-1.5 w-1.5 bg-[#B91C1C]" />
+            <span className="h-1.5 w-1.5 bg-[#A51C30]" />
             <span className="h-px flex-1 bg-[#e2ddd5]" />
           </div>
         )}
@@ -157,7 +157,7 @@ function SectionRenderer({ section, index }: { section: PracticeAreaSection; ind
             />
           </div>
           {imageBlock.caption && (
-            <p className="mt-3 font-admin text-xs text-[#888888]">
+            <p className="mt-3 font-admin text-xs text-stone">
               {imageBlock.caption}
             </p>
           )}
@@ -166,7 +166,7 @@ function SectionRenderer({ section, index }: { section: PracticeAreaSection; ind
       {index > 0 && (
         <div className="mt-12 flex items-center gap-4">
           <span className="h-px flex-1 bg-[#e2ddd5]" />
-          <span className="h-1.5 w-1.5 bg-[#B91C1C]" />
+          <span className="h-1.5 w-1.5 bg-[#A51C30]" />
           <span className="h-px flex-1 bg-[#e2ddd5]" />
         </div>
       )}
@@ -178,17 +178,17 @@ function KeyStats({ stats }: { stats: PracticeAreaStat[] }) {
   return (
     <section className="border-y border-[#e2ddd5] bg-[#FAF9F6]">
       <div className="mx-auto max-w-5xl px-6 py-16">
-        <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#B91C1C]">
+        <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#A51C30]">
           Key Figures
         </p>
         <h2 className="mt-3 font-display text-2xl font-bold text-[#171717]">
           By the Numbers
         </h2>
-        <div className="mt-2 h-px w-16 bg-[#B91C1C]" />
+        <div className="mt-2 h-px w-16 bg-[#A51C30]" />
         <div className="mt-10 grid gap-8 sm:grid-cols-2 md:grid-cols-3">
           {stats.map((stat, i) => (
             <div key={i} className="text-center">
-              <p className="font-display text-4xl font-bold text-[#B91C1C]">
+              <p className="font-display text-4xl font-bold text-[#A51C30]">
                 {stat.value}
               </p>
               <p className="mt-2 font-admin text-sm font-semibold uppercase tracking-wide text-[#171717]">
@@ -210,24 +210,24 @@ function KeyStats({ stats }: { stats: PracticeAreaStat[] }) {
 function NotableCases({ cases }: { cases: PracticeAreaNotableCase[] }) {
   return (
     <section className="mx-auto max-w-5xl px-6 py-16">
-      <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#B91C1C]">
+      <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#A51C30]">
         Case Law
       </p>
       <h2 className="mt-3 font-display text-2xl font-bold text-[#171717]">
         Notable Cases
       </h2>
-      <div className="mt-2 h-px w-16 bg-[#B91C1C]" />
+      <div className="mt-2 h-px w-16 bg-[#A51C30]" />
 
       <div className="mt-10 space-y-8">
         {cases.map((c, i) => (
           <div
             key={i}
-            className="border-l-4 border-[#B91C1C] pl-8"
+            className="border-l-4 border-[#A51C30] pl-8"
           >
             <h3 className="font-display text-xl font-bold text-[#171717]">
               {c.name}
             </h3>
-            <p className="mt-1 font-admin text-xs font-semibold uppercase tracking-wider text-[#B91C1C]">
+            <p className="mt-1 font-admin text-xs font-semibold uppercase tracking-wider text-[#A51C30]">
               {c.jurisdiction}
             </p>
             <p className="mt-3 font-body text-base leading-relaxed text-[#333333]">
@@ -282,7 +282,7 @@ export default async function PracticeAreaPage({
             <div className="absolute inset-0 bg-gradient-to-t from-[#171717]/85 via-[#171717]/40 to-transparent" />
             <div className="absolute inset-0 flex flex-col justify-end">
               <div className="mx-auto w-full max-w-5xl px-6 pb-14">
-                <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#B91C1C]">
+                <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#A51C30]">
                   Practice Area
                 </p>
                 <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
@@ -296,7 +296,7 @@ export default async function PracticeAreaPage({
               </div>
             </div>
           </div>
-          <div className="h-1 w-full bg-[#B91C1C]" />
+          <div className="h-1 w-full bg-[#A51C30]" />
         </header>
       </Reveal>
 
@@ -308,7 +308,7 @@ export default async function PracticeAreaPage({
           </p>
           <div className="mt-12 flex items-center gap-4">
             <span className="h-px flex-1 bg-[#e2ddd5]" />
-            <span className="h-2 w-2 bg-[#B91C1C]" />
+            <span className="h-2 w-2 bg-[#A51C30]" />
             <span className="h-px flex-1 bg-[#e2ddd5]" />
           </div>
         </section>
@@ -358,18 +358,18 @@ export default async function PracticeAreaPage({
         <Reveal>
           <section className="mx-auto max-w-5xl px-6 py-16">
             <div className="border-t border-[#e2ddd5] pt-16">
-              <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#B91C1C]">
+              <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#A51C30]">
                 Further Reading
               </p>
               <h2 className="mt-3 font-display text-2xl font-bold text-[#171717]">
                 Key Journals &amp; Publications
               </h2>
-              <div className="mt-2 h-px w-16 bg-[#B91C1C]" />
+              <div className="mt-2 h-px w-16 bg-[#A51C30]" />
               <div className="mt-8 flex flex-wrap gap-3">
                 {editorial.keyJournals.map((journal, i) => (
                   <span
                     key={i}
-                    className="border border-[#e2ddd5] bg-[#FAF9F6] px-4 py-2 font-admin text-sm text-[#333333] transition-colors hover:border-[#B91C1C] hover:text-[#B91C1C]"
+                    className="border border-[#e2ddd5] bg-[#FAF9F6] px-4 py-2 font-admin text-sm text-[#333333] transition-colors hover:border-[#A51C30] hover:text-[#A51C30]"
                   >
                     {journal}
                   </span>
@@ -384,7 +384,7 @@ export default async function PracticeAreaPage({
       {editorial?.closingStatement && (
         <Reveal>
           <section className="mx-auto max-w-3xl px-6 py-16">
-            <blockquote className="border-l-4 border-[#B91C1C] pl-8">
+            <blockquote className="border-l-4 border-[#A51C30] pl-8">
               <p className="font-display text-xl italic leading-relaxed text-[#171717] md:text-2xl">
                 {editorial.closingStatement}
               </p>
@@ -398,13 +398,13 @@ export default async function PracticeAreaPage({
         <Reveal>
           <section className="border-t border-[#e2ddd5] bg-[#FAF9F6]">
             <div className="mx-auto max-w-5xl px-6 py-16">
-              <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#B91C1C]">
+              <p className="font-admin text-[11px] font-semibold uppercase tracking-[0.25em] text-[#A51C30]">
                 From the Archive
               </p>
               <h2 className="mt-3 font-display text-3xl font-bold text-[#171717]">
                 Related Articles
               </h2>
-              <div className="mt-2 h-px w-16 bg-[#B91C1C]" />
+              <div className="mt-2 h-px w-16 bg-[#A51C30]" />
 
               <ul className="mt-10 divide-y divide-[#e2ddd5]">
                 {related.map((article) => (
@@ -415,7 +415,7 @@ export default async function PracticeAreaPage({
                     >
                       <PageNumberBadge page={article.page} />
                       <div className="flex-1">
-                        <h3 className="font-display text-xl font-bold text-[#171717] transition-colors group-hover:text-[#B91C1C]">
+                        <h3 className="font-display text-xl font-bold text-[#171717] transition-colors group-hover:text-[#A51C30]">
                           {article.title}
                         </h3>
                         {article.dek && (
@@ -453,7 +453,7 @@ export default async function PracticeAreaPage({
           <div className="flex items-center gap-4 border-t border-[#e2ddd5] pt-8">
             <Link
               href="/practice-areas"
-              className="font-admin text-sm font-medium text-[#B91C1C] transition-colors hover:text-[#991B1B]"
+              className="font-admin text-sm font-medium text-[#A51C30] transition-colors hover:text-[#8A1728]"
             >
               ← Back to all Practice Areas
             </Link>

@@ -119,7 +119,7 @@ export function IssuesArchiveStrip({ issues }: { issues: IssueArchive[] }) {
                   )}
                 </div>
                 {issue.issueNumber ? (
-                  <p className="mt-1 text-center font-admin text-[8px] uppercase tracking-wide text-stone/50 group-hover:text-ink transition-colors">
+                  <p className="mt-1 text-center font-admin text-[10px] font-medium uppercase tracking-wide text-stone/80 group-hover:text-ink transition-colors">
                     #{issue.issueNumber}
                   </p>
                 ) : null}

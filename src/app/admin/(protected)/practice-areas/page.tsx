@@ -17,7 +17,7 @@ export default async function AdminPracticeAreasPage() {
         <h1 className="font-admin text-2xl font-semibold text-ink">Practice Areas</h1>
         <Link
           href="/admin/practice-areas/new"
-          className="bg-digest-red px-4 py-2 font-admin text-sm uppercase tracking-wide text-paper"
+          className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
         >
           New
         </Link>
@@ -31,14 +31,14 @@ export default async function AdminPracticeAreasPage() {
             <li key={area.id} className="flex items-center justify-between py-3">
               <div>
                 <p className="font-admin text-sm text-ink">{area.name}</p>
-                <p className="font-admin text-[10px] font-medium uppercase tracking-wide text-ink">
+                <p className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
                   /{area.slug}
                 </p>
               </div>
               <div className="flex items-center gap-4">
                 <Link
                   href={`/admin/practice-areas/${area.id}/edit`}
-                  className="font-admin text-xs font-medium uppercase tracking-wide text-digest-red hover:text-digest-red-deep"
+                  className="font-admin text-xs font-semibold uppercase tracking-wide text-digest-red hover:text-digest-red-deep"
                 >
                   Edit
                 </Link>

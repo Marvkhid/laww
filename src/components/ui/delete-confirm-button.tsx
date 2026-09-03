@@ -14,7 +14,7 @@ export function DeleteConfirmButton({
   return (
     <button
       type="submit"
-      className="font-admin text-xs font-medium uppercase tracking-wide text-digest-red hover:text-digest-red-deep transition-opacity"
+      className="font-admin text-xs font-semibold uppercase tracking-wide text-digest-red hover:text-digest-red-deep transition-opacity"
       onClick={(e) => {
         if (!confirm(confirmMessage)) {
           e.preventDefault();

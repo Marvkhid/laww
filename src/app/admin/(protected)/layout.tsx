@@ -27,7 +27,7 @@ export default async function ProtectedAdminLayout({
           <form action={logout}>
             <button
               type="submit"
-              className="rounded border border-hairline px-4 py-2 font-admin text-[11px] font-medium uppercase tracking-[0.15em] text-stone transition-all duration-200 hover:border-digest-red hover:text-digest-red"
+              className="rounded border border-hairline px-4 py-2 font-admin text-[11px] font-semibold uppercase tracking-[0.15em] text-ink transition-all duration-200 hover:border-digest-red hover:text-digest-red"
             >
               Sign out
             </button>

@@ -25,7 +25,7 @@ export function SponsorForm({
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
       <div>
-        <label htmlFor="name" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="name" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Name
         </label>
         <input
@@ -40,7 +40,7 @@ export function SponsorForm({
 
       {/* Logo Image Upload */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink px-1">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink px-1">
           Logo Image
         </legend>
         {logoPreview ? (
@@ -85,7 +85,7 @@ export function SponsorForm({
 
       {/* Banner Image Upload */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink px-1">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink px-1">
           Banner Ad Image <span className="normal-case text-[#333]">(optional)</span>
         </legend>
         {imagePreview ? (
@@ -131,7 +131,7 @@ export function SponsorForm({
       <div>
         <label
           htmlFor="website_url"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Website URL <span className="normal-case text-[#333]">(optional)</span>
         </label>
@@ -146,7 +146,7 @@ export function SponsorForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="tier" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="tier" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Tier <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <input
@@ -159,7 +159,7 @@ export function SponsorForm({
           />
         </div>
         <div>
-          <label htmlFor="placement" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="placement" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Placement
           </label>
           <select
@@ -179,7 +179,7 @@ export function SponsorForm({
         <div>
           <label
             htmlFor="display_order"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Display order
           </label>
@@ -195,7 +195,7 @@ export function SponsorForm({
         <div>
           <label
             htmlFor="sponsor_page_number"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Page Number <span className="normal-case text-[#333]">(optional)</span>
           </label>
@@ -224,7 +224,7 @@ export function SponsorForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

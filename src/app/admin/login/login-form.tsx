@@ -9,7 +9,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div>
-        <label htmlFor="email" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="email" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Email
         </label>
         <input
@@ -22,7 +22,7 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <label htmlFor="password" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="password" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Password
         </label>
         <input
@@ -38,7 +38,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Signing in…" : "Sign in"}
       </button>

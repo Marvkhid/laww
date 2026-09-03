@@ -17,7 +17,7 @@ export default async function AdminArchivePage() {
         <h1 className="font-admin text-2xl font-semibold text-ink">Issues Archive</h1>
         <Link
           href="/admin/issues/archive/new"
-          className="bg-digest-red px-4 py-2 font-admin text-sm uppercase tracking-wide text-paper"
+          className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
         >
           New Archived Issue
         </Link>
@@ -35,7 +35,7 @@ export default async function AdminArchivePage() {
               className="flex items-center justify-between border border-hairline p-4"
             >
               <div>
-                <p className="font-admin text-sm font-medium text-ink">
+                <p className="font-admin text-sm font-semibold text-ink">
                   {issue.title}
                 </p>
                 <p className="font-admin text-xs text-[#333]">

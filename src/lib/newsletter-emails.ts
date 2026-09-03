@@ -7,7 +7,7 @@ const BRAND = {
   ink: "#171717",
   stone: "#6b6560",
   hairline: "#e2ddd5",
-  red: "#B91C1C",
+  red: "#A51C30",
 };
 
 function wrapper(children: string): string {

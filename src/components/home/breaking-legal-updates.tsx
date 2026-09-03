@@ -88,7 +88,7 @@ export async function BreakingLegalUpdates() {
                   </span>
 
                   {/* Source + time */}
-                  <span className="ml-3 whitespace-nowrap font-utility text-[10px] uppercase tracking-wide text-white/50">
+                  <span className="ml-3 whitespace-nowrap font-utility text-[10px] font-medium uppercase tracking-wide text-white/75">
                     {update.sourceName} · {relativeTime(update.publishedAt)}
                   </span>
 

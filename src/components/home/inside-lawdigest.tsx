@@ -4,18 +4,18 @@ import { Reveal } from "@/components/motion/reveal";
 
 export function InsideLawDigest() {
   return (
-    <section className="border-t border-hairline text-paper" style={{ backgroundColor: "#2D1015" }}>
+    <section className="border-t border-hairline bg-digest-red text-paper">
       <div className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
           <div className="grid gap-12 md:grid-cols-2 md:items-center">
             <div>
-              <p className="font-utility text-[11px] uppercase tracking-[0.2em] text-[#D4A0A7]">
+              <p className="font-utility text-[11px] uppercase tracking-[0.2em] text-white/60">
                 § Inside Law Digest
               </p>
-              <h2 className="mt-3 font-display text-3xl italic text-paper md:text-4xl">
+              <h2 className="mt-3 font-display text-3xl italic text-white md:text-4xl">
                 Africa&apos;s Premier Law Journal
               </h2>
-              <div className="mt-6 space-y-4 font-body text-base leading-relaxed text-white/85">
+              <div className="mt-6 space-y-4 font-body text-base italic leading-relaxed text-white/90">
                 <p>
                   Law Digest is a quarterly international publication published in the UK and
                   distributed across the US, London, Ghana, South Africa, Canada, Nigeria, and
@@ -34,13 +34,13 @@ export function InsideLawDigest() {
               <div className="mt-8 flex items-center gap-6">
                 <Link
                   href="/about"
-                  className="group border-b-2 border-[#D4A0A7] pb-1 font-utility text-[11px] uppercase tracking-wide text-[#D4A0A7] transition-all duration-300 hover:border-white hover:text-white"
+                  className="group border-b-2 border-white pb-1 font-utility text-[11px] uppercase tracking-wide text-white transition-all duration-300 hover:border-white/50 hover:text-white/80"
                 >
                   Learn more about us →
                 </Link>
                 <Link
                   href="/contributors"
-                  className="group border-b-2 border-white/20 pb-1 font-utility text-[11px] uppercase tracking-wide text-white/60 transition-all duration-300 hover:border-[#D4A0A7] hover:text-[#D4A0A7]"
+                  className="group border-b-2 border-white/30 pb-1 font-utility text-[11px] uppercase tracking-wide text-white/70 transition-all duration-300 hover:border-white hover:text-white"
                 >
                   Meet our contributors →
                 </Link>
@@ -57,15 +57,15 @@ export function InsideLawDigest() {
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="border border-white/[0.08] bg-white/[0.04] p-5 transition-all duration-300 hover:border-[#D4A0A7]/40 hover:bg-white/[0.08]"
+                    className="border border-white/[0.12] bg-white/[0.06] p-5 transition-all duration-300 hover:border-white/40 hover:bg-white/[0.12]"
                   >
-                    <p className="font-utility text-[10px] uppercase tracking-[0.2em] text-[#D4A0A7]/70">
+                    <p className="font-utility text-[10px] uppercase tracking-[0.2em] text-white/75">
                       {stat.label}
                     </p>
                     <p className="mt-2 font-display text-2xl italic text-paper">
                       {stat.value}
                     </p>
-                    <p className="mt-1 font-utility text-[10px] uppercase tracking-wide text-white/40">
+                    <p className="mt-1 font-utility text-[10px] font-medium uppercase tracking-wide text-white/65">
                       {stat.sublabel}
                     </p>
                   </div>

@@ -17,7 +17,7 @@ export default async function AdminEventsPage() {
         <h1 className="font-admin text-2xl font-semibold text-ink">Events</h1>
         <Link
           href="/admin/events/new"
-          className="bg-digest-red px-4 py-2 font-admin text-sm uppercase tracking-wide text-paper"
+          className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
         >
           New Event
         </Link>
@@ -35,7 +35,7 @@ export default async function AdminEventsPage() {
               className="flex items-center justify-between border border-hairline p-4"
             >
               <div>
-                <p className="font-admin text-sm font-medium text-ink">
+                <p className="font-admin text-sm font-semibold text-ink">
                   {event.title}
                 </p>
                 <p className="font-admin text-xs text-[#333]">
@@ -48,7 +48,7 @@ export default async function AdminEventsPage() {
               <div className="flex items-center gap-4">
                 <Link
                   href={`/admin/events/${event.id}/edit`}
-                  className="font-admin text-xs font-medium uppercase tracking-wide text-digest-red hover:text-digest-red-deep transition-opacity"
+                  className="font-admin text-xs font-semibold uppercase tracking-wide text-digest-red hover:text-digest-red-deep transition-opacity"
                 >
                   Edit
                 </Link>

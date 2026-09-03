@@ -25,7 +25,7 @@ export function HighlightForm({
 
       {/* Image upload — REQUIRED */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink px-1">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink px-1">
           Image <span className="text-digest-red">*</span>
         </legend>
         {initial?.image_url ? (
@@ -54,7 +54,7 @@ export function HighlightForm({
 
       {/* Image Position */}
       <div>
-        <label className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Image Position
         </label>
         <div className="mt-2 flex gap-4">
@@ -86,7 +86,7 @@ export function HighlightForm({
 
       {/* Title — OPTIONAL */}
       <div>
-        <label htmlFor="title" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Title <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <input
@@ -101,7 +101,7 @@ export function HighlightForm({
 
       {/* Content — OPTIONAL */}
       <div>
-        <label htmlFor="content" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="content" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Content <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <textarea
@@ -116,7 +116,7 @@ export function HighlightForm({
 
       {/* Caption — OPTIONAL */}
       <div>
-        <label htmlFor="caption" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="caption" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Caption <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <input
@@ -132,7 +132,7 @@ export function HighlightForm({
       <div className="grid grid-cols-2 gap-4">
         {/* Category — OPTIONAL */}
         <div>
-          <label htmlFor="category" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="category" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Category <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <input
@@ -145,7 +145,7 @@ export function HighlightForm({
           />
         </div>
         <div>
-          <label htmlFor="display_order" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="display_order" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Display Order
           </label>
           <input
@@ -175,7 +175,7 @@ export function HighlightForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving..." : submitLabel}
       </button>

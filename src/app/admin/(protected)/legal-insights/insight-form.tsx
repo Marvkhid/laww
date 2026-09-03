@@ -24,7 +24,7 @@ export function InsightForm({
       {entityId ? <input type="hidden" name="entity_id" value={entityId} /> : null}
 
       <div>
-        <label htmlFor="title" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Title
         </label>
         <input
@@ -39,7 +39,7 @@ export function InsightForm({
       </div>
 
       <div>
-        <label htmlFor="content" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="content" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Content / Answer
         </label>
         <textarea
@@ -54,7 +54,7 @@ export function InsightForm({
       </div>
 
       <div>
-        <label htmlFor="description" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="description" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Short Description <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <input
@@ -69,7 +69,7 @@ export function InsightForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="category" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="category" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Category
           </label>
           <select
@@ -87,7 +87,7 @@ export function InsightForm({
           </select>
         </div>
         <div>
-          <label htmlFor="display_order" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="display_order" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Display Order
           </label>
           <input
@@ -104,7 +104,7 @@ export function InsightForm({
 
       {/* Image upload */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink px-1">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink px-1">
           Image <span className="normal-case">(optional)</span>
         </legend>
         {initial?.image_url ? (
@@ -145,7 +145,7 @@ export function InsightForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving..." : submitLabel}
       </button>

@@ -30,7 +30,7 @@ export function LegalUpdateStatusSelect({
           router.refresh();
         });
       }}
-      className="border border-hairline bg-white px-2 py-1.5 font-admin text-[10px] uppercase tracking-wide text-ink disabled:opacity-60"
+      className="border border-hairline bg-white px-2 py-1.5 font-admin text-xs font-semibold uppercase tracking-wide text-ink disabled:opacity-60"
     >
       <option value="pending_review">Pending review</option>
       <option value="published">Published</option>

@@ -27,7 +27,7 @@ export async function IssueShowcase() {
               <a
                 href={issueMeta.pdfUrl}
                 download
-                className="inline-block bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper transition-opacity hover:opacity-80"
+                className="inline-block bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper transition-opacity hover:opacity-80"
               >
                 Download PDF
               </a>
@@ -35,7 +35,7 @@ export async function IssueShowcase() {
               <a
                 href="/law-digest-issue.pdf"
                 download
-                className="inline-block bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper transition-opacity hover:opacity-80"
+                className="inline-block bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper transition-opacity hover:opacity-80"
               >
                 Download PDF
               </a>

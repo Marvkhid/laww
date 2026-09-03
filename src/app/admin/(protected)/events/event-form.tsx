@@ -32,7 +32,7 @@ export function EventForm({
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
       <div>
-        <label htmlFor="title" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Event Title
         </label>
         <input
@@ -45,7 +45,7 @@ export function EventForm({
         />
       </div>
       <div>
-        <label htmlFor="slug" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
         <input
@@ -58,7 +58,7 @@ export function EventForm({
         />
       </div>
       <div>
-        <label htmlFor="description" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="description" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Description <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <textarea
@@ -71,7 +71,7 @@ export function EventForm({
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label htmlFor="event_date" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="event_date" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Event Date <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <input
@@ -83,7 +83,7 @@ export function EventForm({
           />
         </div>
         <div>
-          <label htmlFor="event_page_number" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+          <label htmlFor="event_page_number" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
             Page Number <span className="normal-case text-[#333]">(optional)</span>
           </label>
           <input
@@ -111,7 +111,7 @@ export function EventForm({
 
       {/* Cover Image */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Cover Image <span className="normal-case text-[#333]">(optional)</span>
         </legend>
         {coverPreview ? (
@@ -136,7 +136,7 @@ export function EventForm({
 
       {/* Gallery Images */}
       <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Gallery Images <span className="normal-case text-[#333]">(optional)</span>
         </legend>
         {existingImages.length > 0 ? (
@@ -195,7 +195,7 @@ export function EventForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

@@ -31,7 +31,7 @@ export function DeleteContributorButton({
           router.refresh();
         });
       }}
-      className="font-admin text-xs font-medium uppercase tracking-wide text-digest-red hover:text-digest-red-deep disabled:opacity-60"
+      className="font-admin text-xs font-semibold uppercase tracking-wide text-digest-red hover:text-digest-red-deep disabled:opacity-60"
     >
       {isPending ? "Deleting…" : "Delete"}
     </button>

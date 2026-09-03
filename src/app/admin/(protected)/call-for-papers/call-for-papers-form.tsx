@@ -31,7 +31,7 @@ export function CallForPapersForm({
         <div>
           <label
             htmlFor="issue_number"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Issue number
           </label>
@@ -49,7 +49,7 @@ export function CallForPapersForm({
         <div>
           <label
             htmlFor="word_limit"
-            className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
           >
             Word limit
           </label>
@@ -68,7 +68,7 @@ export function CallForPapersForm({
       <div>
         <label
           htmlFor="issue_month"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Issue month
         </label>
@@ -85,7 +85,7 @@ export function CallForPapersForm({
       <div>
         <label
           htmlFor="deadline"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Deadline
         </label>
@@ -101,7 +101,7 @@ export function CallForPapersForm({
       <div>
         <label
           htmlFor="contact_email"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Contact email
         </label>
@@ -116,7 +116,7 @@ export function CallForPapersForm({
       </div>
 
       <fieldset className="flex flex-col gap-2 border border-hairline p-4">
-        <legend className="font-admin text-xs font-medium uppercase tracking-wide text-ink">Topics</legend>
+        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">Topics</legend>
         {practiceAreas.map((area) => (
           <label key={area.id} className="flex items-center gap-2 font-admin text-sm text-ink">
             <input
@@ -134,7 +134,7 @@ export function CallForPapersForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>

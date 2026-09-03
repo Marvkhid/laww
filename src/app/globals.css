@@ -5,9 +5,9 @@
   --color-ink: #171717;
   --color-paper: #F3F0EA;
   --color-paper-warm: #FAF9F6;
-  --color-digest-red: #B91C1C;
-  --color-digest-red-deep: #991B1B;
-  --color-stone: #6b6560;
+  --color-digest-red: #A51C30;
+  --color-digest-red-deep: #8A1728;
+  --color-stone: #56504A;
   --color-hairline: #e2ddd5;
   --color-purple: #6b3a7a;
   --color-purple-deep: #4a1a5c;
@@ -594,11 +594,11 @@ html {
 
 /* === Links === */
 [data-admin] a {
-  color: #B91C1C !important;
+  color: #A51C30 !important;
 }
 
 [data-admin] a:hover {
-  color: #991B1B !important;
+  color: #8A1728 !important;
 }
 
 /* === Form inputs === */
@@ -622,7 +622,7 @@ html {
 [data-admin] input:focus,
 [data-admin] textarea:focus,
 [data-admin] select:focus {
-  border-color: #B91C1C !important;
+  border-color: #A51C30 !important;
   box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.15) !important;
   outline: none !important;
 }
@@ -641,13 +641,13 @@ html {
 }
 
 [data-admin] button[type="submit"] {
-  background-color: #B91C1C !important;
+  background-color: #A51C30 !important;
   color: #FFFFFF !important;
   font-weight: 600 !important;
 }
 
 [data-admin] button[type="submit"]:hover {
-  background-color: #991B1B !important;
+  background-color: #8A1728 !important;
 }
 
 /* === Labels === */
@@ -700,13 +700,13 @@ html {
 
 /* === Status text === */
 [data-admin] .text-digest-red {
-  color: #B91C1C !important;
+  color: #A51C30 !important;
 }
 
 /* === Error messages === */
 [data-admin] [role="alert"],
 [data-admin] .error {
-  color: #B91C1C !important;
+  color: #A51C30 !important;
 }
 
 /* === Badge / status / optional labels === */
@@ -743,11 +743,11 @@ html {
 
 [data-admin] .ProseMirror blockquote {
   color: #444444 !important;
-  border-left-color: #B91C1C !important;
+  border-left-color: #A51C30 !important;
 }
 
 [data-admin] .ProseMirror a {
-  color: #B91C1C !important;
+  color: #A51C30 !important;
 }
 
 [data-admin] .ProseMirror table {
@@ -780,7 +780,7 @@ html {
 
 [data-admin] .ProseMirror-menubar button.is-active,
 [data-admin] .ProseMirror-toolbar button.is-active {
-  background-color: #B91C1C !important;
+  background-color: #A51C30 !important;
   color: #FFFFFF !important;
 }
 

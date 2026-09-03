@@ -24,7 +24,7 @@ export function ContributorForm({
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
       <div>
-        <label htmlFor="name" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="name" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Name
         </label>
         <input
@@ -37,7 +37,7 @@ export function ContributorForm({
         />
       </div>
       <div>
-        <label htmlFor="slug" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
         <input
@@ -54,7 +54,7 @@ export function ContributorForm({
         </p>
       </div>
       <div>
-        <label htmlFor="role" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="role" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Role
         </label>
         <input
@@ -70,7 +70,7 @@ export function ContributorForm({
       <div>
         <label
           htmlFor="credentials"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Credentials <span className="normal-case text-[#333]">(optional)</span>
         </label>
@@ -84,7 +84,7 @@ export function ContributorForm({
         />
       </div>
       <div>
-        <label htmlFor="bio" className="font-admin text-xs font-medium uppercase tracking-wide text-ink">
+        <label htmlFor="bio" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Bio <span className="normal-case text-[#333]">(optional)</span>
         </label>
         <textarea
@@ -98,7 +98,7 @@ export function ContributorForm({
       <div>
         <label
           htmlFor="photo_file"
-          className="font-admin text-xs font-medium uppercase tracking-wide text-ink"
+          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
         >
           Profile Photo <span className="normal-case text-[#333]">(optional)</span>
         </label>
@@ -155,7 +155,7 @@ export function ContributorForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm uppercase tracking-wide text-paper disabled:opacity-60"
+        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
       >
         {isPending ? "Saving…" : submitLabel}
       </button>
