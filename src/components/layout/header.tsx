@@ -19,7 +19,7 @@ export async function Header() {
             </span>
           ) : null}
           <span className="absolute right-0 hidden font-admin text-[10px] font-semibold uppercase tracking-widest text-stone sm:inline">
-            {issueMeta ? `${issueMeta.season} ${issueMeta.year}` : "Legal Insights"}
+            {issueMeta ? `${issueMeta.season} ${issueMeta.year}` : "Legal Questions of the Day"}
           </span>
         </div>
       </div>

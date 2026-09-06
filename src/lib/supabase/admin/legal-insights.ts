@@ -7,6 +7,8 @@ export type LegalInsightInput = {
   description: string | null;
   category: string;
   image_url: string | null;
+  answer_options: string[];
+  correct_option: number | null;
   published: boolean;
   display_order: number;
 };
@@ -18,8 +20,11 @@ export async function listLegalInsightsForAdmin(): Promise<LegalInsightRow[]> {
     .select("*")
     .order("display_order", { ascending: true });
 
-  if (error || !data) return [];
-  return data as LegalInsightRow[];
+  if (error) {
+    console.error("listLegalInsightsForAdmin error:", error);
+    return [];
+  }
+  return (data ?? []) as LegalInsightRow[];
 }
 
 export async function getLegalInsightByIdForAdmin(id: string): Promise<LegalInsightRow | null> {
@@ -30,8 +35,11 @@ export async function getLegalInsightByIdForAdmin(id: string): Promise<LegalInsi
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !data) return null;
-  return data as LegalInsightRow;
+  if (error) {
+    console.error("getLegalInsightByIdForAdmin error:", error);
+    return null;
+  }
+  return (data as LegalInsightRow) ?? null;
 }
 
 export async function createLegalInsight(input: LegalInsightInput): Promise<{ error: string | null }> {
@@ -40,7 +48,7 @@ export async function createLegalInsight(input: LegalInsightInput): Promise<{ er
 
   if (error) {
     console.error("createLegalInsight error:", error);
-    return { error: "Could not create the legal insight. Please try again." };
+    return { error: "Could not save. Please try again." };
   }
   return { error: null };
 }
@@ -51,7 +59,7 @@ export async function updateLegalInsight(id: string, input: LegalInsightInput): 
 
   if (error) {
     console.error("updateLegalInsight error:", error);
-    return { error: "Could not update the legal insight. Please try again." };
+    return { error: "Could not save. Please try again." };
   }
   return { error: null };
 }
@@ -60,6 +68,9 @@ export async function deleteLegalInsight(id: string): Promise<{ error: string | 
   const supabase = await requireAdmin();
   const { error } = await supabase.from("legal_insights").delete().eq("id", id);
 
-  if (error) return { error: "Could not delete the legal insight. Please try again." };
+  if (error) {
+    console.error("deleteLegalInsight error:", error);
+    return { error: "Could not delete. Please try again." };
+  }
   return { error: null };
 }

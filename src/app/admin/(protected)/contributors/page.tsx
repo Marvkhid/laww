@@ -4,7 +4,7 @@ import { listContributorsForAdmin } from "@/lib/supabase/admin/contributors";
 import { DeleteContributorButton } from "@/app/admin/(protected)/contributors/delete-button";
 
 export const metadata: Metadata = {
-  title: "Contributors — Admin",
+  title: "Editorial Board — Admin",
   robots: { index: false, follow: false },
 };
 
@@ -14,7 +14,7 @@ export default async function AdminContributorsPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-admin text-2xl font-semibold text-ink">Contributors</h1>
+        <h1 className="font-admin text-2xl font-semibold text-ink">Editorial Board</h1>
         <Link
           href="/admin/contributors/new"
           className="bg-digest-red px-4 py-2 font-admin text-sm font-semibold uppercase tracking-wide text-paper"
@@ -24,7 +24,7 @@ export default async function AdminContributorsPage() {
       </div>
 
       {contributors.length === 0 ? (
-        <p className="mt-6 font-admin text-sm text-[#333]">No contributors yet.</p>
+        <p className="mt-6 font-admin text-sm text-[#333]">No members yet.</p>
       ) : (
         <ul className="mt-6 divide-y divide-hairline border-y border-hairline">
           {contributors.map((person) => (

@@ -8,8 +8,8 @@ import { Reveal } from "@/components/motion/reveal";
 import { Gavel } from "@/components/ui/editorial-illustration";
 
 export const metadata: Metadata = {
-  title: "Contributors — Law Digest",
-  description: "Law Digest contributors and editorial board.",
+  title: "Editorial Board — Law Digest",
+  description: "The Law Digest Editorial Board and contributors.",
 };
 
 export default async function ContributorsPage() {
@@ -23,7 +23,7 @@ export default async function ContributorsPage() {
     <div className="mx-auto max-w-6xl px-6 py-16">
       <Reveal>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <SectionHeading eyebrow="Contributors" title="This issue's contributors" />
+          <SectionHeading eyebrow="Editorial Board" title="This issue's contributors" />
           <Gavel className="h-16 w-16 shrink-0 opacity-20" />
         </div>
         <ul className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">

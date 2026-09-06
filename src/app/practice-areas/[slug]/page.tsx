@@ -90,7 +90,7 @@ function SectionRenderer({ section, index }: { section: PracticeAreaSection; ind
                 src={imageBlock.url}
                 alt={imageBlock.alt}
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="(max-width: 768px) 100vw, 45vw"
               />
             </div>
@@ -152,7 +152,7 @@ function SectionRenderer({ section, index }: { section: PracticeAreaSection; ind
               src={imageBlock.url}
               alt={imageBlock.alt}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 768px) 100vw, 45vw"
             />
           </div>
@@ -275,7 +275,7 @@ export default async function PracticeAreaPage({
               }
               alt={editorial?.heroAlt ?? area.name}
               fill
-              className="object-cover"
+              className="object-contain"
               priority
               sizes="100vw"
             />

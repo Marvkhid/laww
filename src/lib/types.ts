@@ -140,8 +140,26 @@ export interface LegalInsight {
   description?: string | null;
   category: string;
   imageUrl?: string | null;
+  answerOptions: string[];
+  correctOption: number | null;
   published: boolean;
   displayOrder: number;
+}
+
+export interface LawyerQAPairView {
+  question: string;
+  answer: string;
+}
+
+export interface LawyerInTheNews {
+  id: string;
+  slug: string;
+  lawyerName: string;
+  lawyerTitle?: string | null;
+  intro?: string | null;
+  coverImageUrl?: string | null;
+  coverImageAlt?: string | null;
+  qaPairs: LawyerQAPairView[];
 }
 
 export interface HomepageHighlight {

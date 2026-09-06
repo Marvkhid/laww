@@ -5,6 +5,7 @@ import { getContributors } from "@/lib/supabase/queries/contributors";
 import { getPracticeAreas } from "@/lib/supabase/queries/practice-areas";
 import { getCurrentIssue } from "@/lib/supabase/queries/issues";
 import { getPublishedLegalUpdates } from "@/lib/supabase/queries/legal-updates";
+import { listPublishedLawyerNews } from "@/lib/supabase/queries/lawyer-news";
 import { SITE_URL } from "@/lib/constants";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -15,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/contributors`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/issues`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/legal-updates`, changeFrequency: "daily", priority: 0.7 },
+    { url: `${SITE_URL}/lawyer-in-the-news`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/about`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${SITE_URL}/contact`, changeFrequency: "monthly", priority: 0.3 },
   ];
@@ -24,12 +26,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // than failing the whole sitemap.
   try {
     const supabase = createSupabaseServerClient();
-    const [articles, contributors, practiceAreas, issue, legalUpdates] = await Promise.all([
+    const [articles, contributors, practiceAreas, issue, legalUpdates, interviews] = await Promise.all([
       getArticles(supabase),
       getContributors(supabase),
       getPracticeAreas(supabase),
       getCurrentIssue(supabase),
       getPublishedLegalUpdates(supabase, 100),
+      listPublishedLawyerNews(supabase),
     ]);
 
     const dynamicRoutes: MetadataRoute.Sitemap = [
@@ -50,6 +53,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
       ...legalUpdates.map((update) => ({
         url: `${SITE_URL}/legal-updates/${update.slug}`,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
+      ...interviews.map((interview) => ({
+        url: `${SITE_URL}/lawyer-in-the-news/${interview.slug}`,
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),

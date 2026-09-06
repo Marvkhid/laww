@@ -3,6 +3,10 @@ import type { LegalInsightRow } from "@/lib/supabase/types";
 import type { LegalInsight } from "@/lib/types";
 
 function mapRow(row: LegalInsightRow): LegalInsight {
+  const options = Array.isArray(row.answer_options)
+    ? (row.answer_options as string[]).filter((opt) => typeof opt === "string" && opt.length > 0)
+    : [];
+
   return {
     id: row.id,
     title: row.title,
@@ -10,6 +14,8 @@ function mapRow(row: LegalInsightRow): LegalInsight {
     description: row.description,
     category: row.category,
     imageUrl: row.image_url,
+    answerOptions: options.length > 0 ? options : [row.content],
+    correctOption: typeof row.correct_option === "number" ? row.correct_option : null,
     published: row.published,
     displayOrder: row.display_order,
   };

@@ -51,7 +51,7 @@ function InlineArticleImage({
           alt={alt}
           loading="lazy"
           decoding="async"
-          className="h-auto w-full object-cover"
+          className="h-auto w-full object-contain"
         />
       </div>
       {image.alt ? (
@@ -154,7 +154,7 @@ function ArticleBodyWithImages({
               alt={img.alt ?? `${articleTitle} — Image ${i + 4}`}
               loading="lazy"
               decoding="async"
-              className="h-auto w-full object-cover"
+              className="h-auto w-full object-contain"
             />
           </div>
           {img.alt ? (
@@ -202,7 +202,12 @@ export async function generateStaticParams() {
     const supabase = createSupabaseServerClient();
     const { getArticles } = await import("@/lib/supabase/queries/articles");
     const articles = await getArticles(supabase);
-    return articles.map((article) => ({ slug: article.slug }));
+    // Skip slugs that are invalid as build output paths (e.g. contain "\"
+    // or ":" which Windows cannot use in directory names). Those pages are
+    // still served dynamically — one bad DB row must not break the build.
+    return articles
+      .filter((article) => /^[a-z0-9-]+$/i.test(decodeURIComponent(article.slug)))
+      .map((article) => ({ slug: article.slug }));
   } catch {
     return [];
   }
@@ -460,7 +465,7 @@ export default async function ArticlePage({
                             <img
                               src={rel.coverImageUrl}
                               alt={rel.imageAlt}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                             />
                           </div>
                         ) : null}

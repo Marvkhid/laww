@@ -61,7 +61,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/contributors" className="transition-colors duration-300 hover:text-digest-red">
-                  Contributors
+                  Editorial Board
                 </Link>
               </li>
               <li>

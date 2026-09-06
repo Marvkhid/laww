@@ -285,6 +285,8 @@ export interface LegalInsightRow {
   description: string | null;
   category: string;
   image_url: string | null;
+  answer_options: string[];
+  correct_option: number | null;
   published: boolean;
   display_order: number;
   created_at: string;
@@ -293,6 +295,65 @@ export interface LegalInsightRow {
 type LegalInsightInsert = Omit<LegalInsightRow, "id" | "created_at" | "updated_at"> &
   Partial<Pick<LegalInsightRow, "id" | "created_at" | "updated_at">>;
 type LegalInsightUpdate = Partial<LegalInsightInsert>;
+
+export interface LawyerQAPair {
+  question: string;
+  answer: string;
+}
+
+export type LawyerNewsStatus = "pending_review" | "published" | "archived";
+
+export interface LawyerInTheNewsRow {
+  id: string;
+  slug: string;
+  lawyer_name: string;
+  lawyer_title: string | null;
+  intro: string | null;
+  cover_image_url: string | null;
+  cover_image_alt: string | null;
+  image_1_url: string | null;
+  image_1_alt: string | null;
+  image_1_position: string | null;
+  image_2_url: string | null;
+  image_2_alt: string | null;
+  image_2_position: string | null;
+  image_3_url: string | null;
+  image_3_alt: string | null;
+  image_3_position: string | null;
+  image_4_url: string | null;
+  image_4_alt: string | null;
+  image_4_position: string | null;
+  qa_pairs: LawyerQAPair[];
+  status: LawyerNewsStatus;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+type LawyerNewsOptionalKeys =
+  | "id"
+  | "lawyer_title"
+  | "intro"
+  | "cover_image_url"
+  | "cover_image_alt"
+  | "image_1_url"
+  | "image_1_alt"
+  | "image_1_position"
+  | "image_2_url"
+  | "image_2_alt"
+  | "image_2_position"
+  | "image_3_url"
+  | "image_3_alt"
+  | "image_3_position"
+  | "image_4_url"
+  | "image_4_alt"
+  | "image_4_position"
+  | "status"
+  | "published_at"
+  | "created_at"
+  | "updated_at";
+type LawyerNewsInsert = Omit<LawyerInTheNewsRow, LawyerNewsOptionalKeys> &
+  Partial<Pick<LawyerInTheNewsRow, LawyerNewsOptionalKeys>>;
+type LawyerNewsUpdate = Partial<LawyerNewsInsert>;
 
 export interface HomepageHighlightRow {
   id: string;
@@ -391,6 +452,12 @@ export interface Database {
         Row: LegalInsightRow;
         Insert: LegalInsightInsert;
         Update: LegalInsightUpdate;
+        Relationships: [];
+      };
+      lawyer_in_the_news: {
+        Row: LawyerInTheNewsRow;
+        Insert: LawyerNewsInsert;
+        Update: LawyerNewsUpdate;
         Relationships: [];
       };
       homepage_highlights: {

@@ -41,7 +41,7 @@ export default async function IssuesPage() {
                   alt={issueMeta.coverImageAlt}
                   fill
                   sizes="200px"
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  className="object-contain transition-transform duration-700 group-hover:scale-105"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-hairline/60 p-4">
@@ -83,7 +83,7 @@ export default async function IssuesPage() {
                         alt={issue.title}
                         fill
                         sizes="(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="object-contain transition-transform duration-700 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-hairline/60 p-4">

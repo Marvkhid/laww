@@ -117,7 +117,7 @@ export function EventForm({
         {coverPreview ? (
           <div className="mt-2 aspect-[16/10] w-full max-w-xs overflow-hidden border border-hairline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-full w-full object-cover" />
+            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
           </div>
         ) : null}
         <input
@@ -144,7 +144,7 @@ export function EventForm({
             {existingImages.map((img) => (
               <div key={img.id} className="relative aspect-square overflow-hidden border border-hairline">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.image_url} alt={img.caption ?? "Gallery"} className="h-full w-full object-cover" />
+                <img src={img.image_url} alt={img.caption ?? "Gallery"} className="h-auto max-h-40 w-full object-contain" />
                 <button
                   type="button"
                   onClick={() => setRemoveImageIds((prev) => [...prev, img.id])}
@@ -166,7 +166,7 @@ export function EventForm({
             {galleryPreviews.map((src, i) => (
               <div key={i} className="aspect-square overflow-hidden border border-hairline">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={`New gallery ${i + 1}`} className="h-full w-full object-cover" />
+                <img src={src} alt={`New gallery ${i + 1}`} className="h-auto max-h-40 w-full object-contain" />
               </div>
             ))}
           </div>

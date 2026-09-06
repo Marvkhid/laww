@@ -25,7 +25,7 @@ export function ArticleInlineImage({
           alt={alt}
           loading="lazy"
           decoding="async"
-          className="h-auto w-full object-cover"
+          className="h-auto w-full object-contain"
         />
       </div>
       {image.alt ? (

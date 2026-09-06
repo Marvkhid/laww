@@ -12,7 +12,9 @@ import { uploadLegalInsightImage } from "@/lib/supabase/admin/storage";
 
 export type FormState = { error: string | null };
 
-async function readInput(formData: FormData): Promise<{ input: LegalInsightInput | null; error: string | null }> {
+async function readInput(
+  formData: FormData
+): Promise<{ input: LegalInsightInput | null; error: string | null }> {
   const optional = (key: string) => {
     const raw = String(formData.get(key) ?? "").trim();
     return raw.length > 0 ? raw : null;
@@ -23,11 +25,31 @@ async function readInput(formData: FormData): Promise<{ input: LegalInsightInput
   const category = String(formData.get("category") ?? "general").trim();
 
   if (!title) {
-    return { input: null, error: "Title is required." };
+    return { input: null, error: "Question is required." };
   }
   if (!content) {
-    return { input: null, error: "Content is required." };
+    return { input: null, error: "Explanation is required." };
   }
+
+  // Answer options — collected from option_0..option_5 fields.
+  const options: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const raw = String(formData.get(`option_${i}`) ?? "").trim();
+    if (raw.length > 0) options.push(raw);
+  }
+  if (options.length < 2) {
+    return { input: null, error: "Provide at least two answer options." };
+  }
+
+  const correctRaw = String(formData.get("correct_option") ?? "").trim();
+  const correctIndex = Number(correctRaw);
+  const correct_option =
+    correctRaw.length > 0 &&
+    Number.isInteger(correctIndex) &&
+    correctIndex >= 0 &&
+    correctIndex < options.length
+      ? correctIndex
+      : null;
 
   // Image upload
   let image_url: string | null = optional("existing_image_url");
@@ -48,6 +70,8 @@ async function readInput(formData: FormData): Promise<{ input: LegalInsightInput
       description: optional("description"),
       category,
       image_url,
+      answer_options: options,
+      correct_option,
       published: formData.get("published") === "on",
       display_order,
     },

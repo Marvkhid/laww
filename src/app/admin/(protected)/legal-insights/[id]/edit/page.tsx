@@ -5,7 +5,7 @@ import { updateLegalInsightAction } from "../../actions";
 import { InsightForm } from "../../insight-form";
 
 export const metadata: Metadata = {
-  title: "Edit Legal Insight — Admin",
+  title: "Edit Legal Question — Admin",
 };
 
 export default async function EditInsightPage({
@@ -24,7 +24,7 @@ export default async function EditInsightPage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Legal Insight</h1>
+      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Legal Question</h1>
       <div className="mt-6">
         <InsightForm action={boundAction} initial={insight} submitLabel="Save changes" entityId={id} />
       </div>

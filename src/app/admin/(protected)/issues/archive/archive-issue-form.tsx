@@ -113,7 +113,7 @@ export function ArchiveIssueForm({
         {coverPreview ? (
           <div className="mt-2 aspect-[3/4] w-full max-w-[200px] overflow-hidden border border-hairline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-full w-full object-cover" />
+            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
           </div>
         ) : null}
         <input

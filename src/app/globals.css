@@ -354,9 +354,15 @@ html {
   padding: 0;
 }
 
+/* FULL IMAGE VISIBILITY: never crop uploaded editorial images. The figure
+   box keeps the editorial 4/3 proportion, but the <img> itself renders the
+   complete picture with object-fit: contain — empty space around the image
+   is preferred over cutting any part of it. */
 .article-inline-figure img {
-  aspect-ratio: 4/3;
-  object-fit: cover;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: var(--color-hairline);
 }
 
 .article-inline-figure figcaption {
@@ -550,142 +556,139 @@ html {
    ───────────────────────────────────────────────────────────────────────── */
 
 .ProseMirror .selectedCell {
-  background: rgba(163, 53, 42, 0.08);
+  background: rgba(165, 28, 48, 0.08);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
+/* ═════════════════════════════════════════════════════════════════════════
    ADMIN DASHBOARD — GLOBAL DESIGN SYSTEM
-   Forces dark, readable text + Inter font across the entire admin.
-   Scoped to [data-admin] so it never leaks into the public site.
-   ───────────────────────────────────────────────────────────────────────── */
+   Dark, readable Inter text across the entire admin. Scoped to [data-admin].
 
-/* === GLOBAL RESET: force dark Inter text on everything in admin === */
-[data-admin],
-[data-admin] *,
-[data-admin] *::before,
-[data-admin] *::after {
-  font-family: var(--font-ui), system-ui, -apple-system, sans-serif !important;
-  color: #171717 !important;
+   IMPORTANT: all rules use :where([data-admin] …) so they carry ZERO
+   specificity — they act as guaranteed-readable DEFAULTS while Tailwind
+   utilities (text-paper, text-stone, hover:bg-ink, hover:text-paper, …)
+   still win. The old blanket "[data-admin] * { color: #171717 !important }"
+   rule defeated hover:text-paper and made dark tiles unreadable on hover
+   (e.g. Clear Subscribers). Do NOT reintroduce !important color forcing.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* === Baseline: dark Inter text inherits everywhere in admin === */
+:where([data-admin]) {
+  color: #171717;
+  font-family: var(--font-ui), system-ui, -apple-system, sans-serif;
 }
 
-/* === Headings: dark + bold === */
-[data-admin] h1,
-[data-admin] h2,
-[data-admin] h3,
-[data-admin] h4,
-[data-admin] h5,
-[data-admin] h6 {
-  color: #171717 !important;
-  font-weight: 700 !important;
-  font-style: normal !important;
+:where([data-admin]) *,
+:where([data-admin]) *::before,
+:where([data-admin]) *::after {
+  font-family: var(--font-ui), system-ui, -apple-system, sans-serif;
 }
 
-/* === Paragraphs & text === */
-[data-admin] p,
-[data-admin] span,
-[data-admin] div,
-[data-admin] li,
-[data-admin] td,
-[data-admin] th,
-[data-admin] label,
-[data-admin] legend {
-  color: #171717 !important;
+/* === Headings: dark + bold by default === */
+:where([data-admin] h1),
+:where([data-admin] h2),
+:where([data-admin] h3),
+:where([data-admin] h4),
+:where([data-admin] h5),
+:where([data-admin] h6) {
+  color: #171717;
+  font-weight: 700;
+  font-style: normal;
 }
 
-/* === Links === */
-[data-admin] a {
-  color: #A51C30 !important;
+/* === Paragraphs & text: inherit dark ink by default === */
+:where([data-admin] p),
+:where([data-admin] span),
+:where([data-admin] div),
+:where([data-admin] li) {
+  color: inherit;
 }
 
-[data-admin] a:hover {
-  color: #8A1728 !important;
+/* === Links: brand red by default, utilities can override (dark tiles) === */
+:where([data-admin] a) {
+  color: #A51C30;
 }
 
-/* === Form inputs === */
-[data-admin] input[type="text"],
-[data-admin] input[type="email"],
-[data-admin] input[type="url"],
-[data-admin] input[type="number"],
-[data-admin] input[type="date"],
-[data-admin] input[type="search"],
-[data-admin] input[type="password"],
-[data-admin] input[type="tel"],
-[data-admin] textarea,
-[data-admin] select {
-  color: #171717 !important;
-  border-color: #b5b0a8 !important;
-  background-color: #FFFFFF !important;
-  font-weight: 400 !important;
+/* === Form inputs: white bg, dark typed text, visible borders === */
+:where([data-admin]) input[type="text"],
+:where([data-admin]) input[type="email"],
+:where([data-admin]) input[type="url"],
+:where([data-admin]) input[type="number"],
+:where([data-admin]) input[type="date"],
+:where([data-admin]) input[type="search"],
+:where([data-admin]) input[type="password"],
+:where([data-admin]) input[type="tel"],
+:where([data-admin]) textarea,
+:where([data-admin]) select {
+  color: #171717;
+  border-color: #b5b0a8;
+  background-color: #ffffff;
+  font-weight: 400;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-[data-admin] input:focus,
-[data-admin] textarea:focus,
-[data-admin] select:focus {
-  border-color: #A51C30 !important;
-  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.15) !important;
-  outline: none !important;
+:where([data-admin]) input:focus,
+:where([data-admin]) textarea:focus,
+:where([data-admin]) select:focus {
+  border-color: #A51C30;
+  box-shadow: 0 0 0 2px rgba(165, 28, 48, 0.15);
+  outline: none;
 }
 
-/* === Placeholder text — readable gray === */
+/* === Placeholder text — readable gray (needs !important to beat UA styles) === */
 [data-admin] input::placeholder,
 [data-admin] textarea::placeholder {
-  color: #666666 !important;
+  color: #5f5a54 !important;
   opacity: 1 !important;
 }
 
-/* === Buttons === */
-[data-admin] button {
-  font-weight: 500 !important;
+/* === Buttons: safe 600 weight default (Inter has no 500 file — 500 renders thin) === */
+:where([data-admin]) button {
+  font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-[data-admin] button[type="submit"] {
-  background-color: #A51C30 !important;
-  color: #FFFFFF !important;
-  font-weight: 600 !important;
+/* === Submit buttons: brand red with white text unless explicitly styled === */
+:where([data-admin]) button[type="submit"] {
+  background-color: #A51C30;
+  color: #ffffff;
+  font-weight: 600;
 }
 
-[data-admin] button[type="submit"]:hover {
-  background-color: #8A1728 !important;
+:where([data-admin]) button[type="submit"]:hover {
+  background-color: #8A1728;
+  color: #ffffff;
 }
 
-/* === Labels === */
-[data-admin] label,
-[data-admin] legend {
-  color: #171717 !important;
-  font-weight: 600 !important;
+/* === Labels & legends === */
+:where([data-admin] label),
+:where([data-admin] legend) {
+  color: #171717;
+  font-weight: 600;
   font-size: 0.875rem;
   letter-spacing: 0.01em;
 }
 
-/* === Fieldsets === */
-[data-admin] fieldset {
-  border-color: #b5b0a8 !important;
-}
-
-[data-admin] fieldset legend {
-  color: #171717 !important;
-  font-weight: 600 !important;
+:where([data-admin]) fieldset {
+  border-color: #b5b0a8;
 }
 
 /* === Tables === */
-[data-admin] table {
-  border-color: #e2ddd5 !important;
+:where([data-admin]) table {
+  border-color: #e2ddd5;
 }
 
-[data-admin] th {
-  background-color: #f0ece6 !important;
-  color: #171717 !important;
-  font-weight: 600 !important;
+:where([data-admin] th) {
+  background-color: #f0ece6;
+  color: #171717;
+  font-weight: 600;
 }
 
-[data-admin] td {
-  color: #171717 !important;
+:where([data-admin] td) {
+  color: #171717;
 }
 
 /* === Select dropdown arrow === */
-[data-admin] select {
+:where([data-admin]) select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23171717' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -693,108 +696,96 @@ html {
   padding-right: 2rem;
 }
 
-/* === File inputs === */
-[data-admin] input[type="file"] {
-  color: #171717 !important;
-}
-
-/* === Status text === */
-[data-admin] .text-digest-red {
-  color: #A51C30 !important;
+/* === File inputs: full-width, readable === */
+:where([data-admin]) input[type="file"] {
+  color: #171717;
 }
 
 /* === Error messages === */
-[data-admin] [role="alert"],
-[data-admin] .error {
-  color: #A51C30 !important;
-}
-
-/* === Badge / status / optional labels === */
-[data-admin] .badge,
-[data-admin] .status,
-[data-admin] .tag {
-  color: #171717 !important;
+:where([data-admin] [role="alert"]),
+:where([data-admin] .error) {
+  color: #A51C30;
+  font-weight: 600;
 }
 
 /* === Rich text editor (Tiptap / ProseMirror) === */
-[data-admin] .ProseMirror {
-  color: #171717 !important;
-  font-family: var(--font-body), serif !important;
+:where([data-admin] .ProseMirror) {
+  color: #171717;
+  font-family: var(--font-body), serif;
   min-height: 300px;
 }
 
-[data-admin] .ProseMirror p {
-  color: #171717 !important;
+:where([data-admin] .ProseMirror p) {
+  color: #171717;
 }
 
 [data-admin] .ProseMirror p.is-editor-empty:first-child::before {
-  color: #888888 !important;
+  color: #6b6660 !important;
   content: attr(data-placeholder);
   float: left;
   pointer-events: none;
   height: 0;
 }
 
-[data-admin] .ProseMirror h1,
-[data-admin] .ProseMirror h2,
-[data-admin] .ProseMirror h3 {
-  color: #171717 !important;
+:where([data-admin] .ProseMirror h1),
+:where([data-admin] .ProseMirror h2),
+:where([data-admin] .ProseMirror h3) {
+  color: #171717;
 }
 
-[data-admin] .ProseMirror blockquote {
-  color: #444444 !important;
-  border-left-color: #A51C30 !important;
+:where([data-admin] .ProseMirror blockquote) {
+  color: #3d3a36;
+  border-left-color: #A51C30;
 }
 
-[data-admin] .ProseMirror a {
-  color: #A51C30 !important;
+:where([data-admin] .ProseMirror a) {
+  color: #A51C30;
 }
 
-[data-admin] .ProseMirror table {
-  border-color: #b5b0a8 !important;
+:where([data-admin] .ProseMirror table) {
+  border-color: #b5b0a8;
 }
 
-[data-admin] .ProseMirror th,
-[data-admin] .ProseMirror td {
-  color: #171717 !important;
-  border-color: #b5b0a8 !important;
+:where([data-admin] .ProseMirror th),
+:where([data-admin] .ProseMirror td) {
+  color: #171717;
+  border-color: #b5b0a8;
 }
 
 /* === Tiptap toolbar buttons === */
-[data-admin] .ProseMirror-menubar,
-[data-admin] .ProseMirror-toolbar {
-  background-color: #f5f3ef !important;
-  border-color: #e2ddd5 !important;
+:where([data-admin] .ProseMirror-menubar),
+:where([data-admin] .ProseMirror-toolbar) {
+  background-color: #f5f3ef;
+  border-color: #e2ddd5;
 }
 
-[data-admin] .ProseMirror-menubar button,
-[data-admin] .ProseMirror-toolbar button {
-  color: #171717 !important;
+:where([data-admin] .ProseMirror-menubar button),
+:where([data-admin] .ProseMirror-toolbar button) {
+  color: #171717;
 }
 
-[data-admin] .ProseMirror-menubar button:hover,
-[data-admin] .ProseMirror-toolbar button:hover {
-  background-color: #e8e4de !important;
-  color: #171717 !important;
+:where([data-admin] .ProseMirror-menubar button:hover),
+:where([data-admin] .ProseMirror-toolbar button:hover) {
+  background-color: #e8e4de;
+  color: #171717;
 }
 
-[data-admin] .ProseMirror-menubar button.is-active,
-[data-admin] .ProseMirror-toolbar button.is-active {
-  background-color: #A51C30 !important;
-  color: #FFFFFF !important;
+:where([data-admin] .ProseMirror-menubar button.is-active),
+:where([data-admin] .ProseMirror-toolbar button.is-active) {
+  background-color: #A51C30;
+  color: #ffffff;
 }
 
-/* === Red buttons with white text — override forced dark text === */
-[data-admin] .text-paper,
+/* === Red buttons always keep white text (guard against inheritance) === */
 [data-admin] button.bg-digest-red,
 [data-admin] a.bg-digest-red,
 [data-admin] [role="button"].bg-digest-red {
-  color: #FFFFFF !important;
+  color: #ffffff !important;
 }
 
 [data-admin] button.bg-digest-red:hover,
 [data-admin] a.bg-digest-red:hover {
-  color: #FFFFFF !important;
+  color: #ffffff !important;
 }
 
 /* === font-admin class: font only, no forced color (for dark bars) === */

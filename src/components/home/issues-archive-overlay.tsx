@@ -105,7 +105,7 @@ export function IssuesArchiveOverlay({ issues }: { issues: IssueArchive[] }) {
                       alt={issue.title ?? `Issue ${issue.issueNumber}`}
                       fill
                       sizes="91px"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-contain transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-hairline/30 p-2">

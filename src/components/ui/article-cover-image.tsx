@@ -1,5 +1,10 @@
 import { PlaceholderImage } from "@/components/ui/placeholder-image";
 
+/**
+ * Editorial cover image. FULL IMAGE VISIBILITY: whatever aspect ratio the
+ * admin uploads is preserved — the frame keeps the requested aspect class,
+ * but the image itself uses object-contain so nothing is ever cropped.
+ */
 export function ArticleCoverImage({
   src,
   alt,
@@ -21,7 +26,7 @@ export function ArticleCoverImage({
         alt={alt}
         loading="lazy"
         decoding="async"
-        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        className="h-full w-full object-contain"
       />
     </div>
   );

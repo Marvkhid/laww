@@ -54,7 +54,7 @@ export default async function IssuePage({ params }: PageProps<"/issues/[slug]">)
                 alt={issueMeta.coverImageAlt}
                 fill
                 sizes="240px"
-                className="object-cover transition-transform duration-700 hover:scale-105"
+                className="object-contain transition-transform duration-700 hover:scale-105"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-hairline/60 p-4">

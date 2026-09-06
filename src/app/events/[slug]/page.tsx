@@ -92,7 +92,7 @@ export default async function EventPage({
               alt={event.title}
               fill
               sizes="100vw"
-              className="object-cover"
+              className="object-contain"
               priority
             />
           </div>
@@ -116,7 +116,7 @@ export default async function EventPage({
                         alt={img.caption ?? `${event.title} — Photo ${index + 1}`}
                         fill
                         sizes="(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="object-contain transition-transform duration-700 group-hover:scale-105"
                       />
                     </div>
                     {img.caption ? (

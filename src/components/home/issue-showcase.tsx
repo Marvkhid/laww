@@ -59,7 +59,7 @@ export async function IssueShowcase() {
                 alt={issueMeta.coverImageAlt}
                 fill
                 sizes="(min-width: 768px) 280px, 100vw"
-                className="object-cover transition-transform duration-700 hover:scale-105"
+                className="object-contain transition-transform duration-700 hover:scale-105"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-hairline/20 p-4">

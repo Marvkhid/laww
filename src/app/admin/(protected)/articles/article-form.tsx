@@ -150,7 +150,7 @@ export function ArticleForm({
         {coverPreview ? (
           <div className="mt-2 aspect-[16/10] w-full max-w-xs overflow-hidden border border-hairline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-full w-full object-cover" />
+            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
           </div>
         ) : null}
         <input
@@ -315,7 +315,7 @@ export function ArticleForm({
 
       <fieldset className="flex flex-col gap-3 border border-hairline p-4">
         <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Contributors
+          Authors
         </legend>
         <p className="font-admin text-xs text-[#333]">
           Check who&rsquo;s credited. The number sets byline order (1 = first author) — only

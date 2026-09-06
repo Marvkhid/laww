@@ -14,7 +14,7 @@ export async function Contributors() {
     <section className="border-t border-hairline">
       <div className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
-          <SectionHeading eyebrow="Contributors" title="Who wrote this issue" />
+          <SectionHeading eyebrow="Editorial Board" title="Who wrote this issue" />
           <ul className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
             {contributors.map((person) => (
               <li key={person.slug} className="group flex items-center gap-3">

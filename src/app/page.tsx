@@ -1,4 +1,5 @@
 import { CoverHero } from "@/components/home/cover-hero";
+import { CoverStory } from "@/components/home/cover-story";
 import { InThisIssue } from "@/components/home/in-this-issue";
 import { FeaturedStories } from "@/components/home/featured-stories";
 import { LatestStories } from "@/components/home/latest-stories";
@@ -12,7 +13,7 @@ import { IssuesArchiveStrip } from "@/components/home/issues-archive-strip-serve
 import { Newsletter } from "@/components/home/newsletter";
 import { AdPlacement } from "@/components/home/ad-placement";
 import { InsideLawDigest } from "@/components/home/inside-lawdigest";
-import { LegalKnowledgeServer } from "@/components/home/legal-knowledge-server";
+import { LegalQuizServer } from "@/components/home/legal-quiz-server";
 import { ThisWeekInLaw } from "@/components/home/this-week-in-law";
 import { HomepageHighlightsServer } from "@/components/home/homepage-highlights-server";
 
@@ -21,6 +22,9 @@ export default function Home() {
     <>
       {/* 1. Hero / Featured Story */}
       <CoverHero />
+
+      {/* 1b. Cover Story — Lawyer in the News interview */}
+      <CoverStory />
 
       {/* 2. Featured Stories */}
       <FeaturedStories />
@@ -31,8 +35,8 @@ export default function Home() {
       {/* 4. Editorial Insights / Blog */}
       <EditorialInsights />
 
-      {/* 5. Interactive Legal Knowledge (Admin-managed) */}
-      <LegalKnowledgeServer />
+      {/* 5. Interactive Legal Questions of the Day (Admin-managed quiz) */}
+      <LegalQuizServer />
 
       {/* 6. Homepage Highlights (Admin-managed) */}
       <HomepageHighlightsServer />

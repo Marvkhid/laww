@@ -38,7 +38,7 @@ function ImageUploadField({
         {preview ? (
           <div className="mt-1 aspect-[16/10] w-full max-w-[200px] overflow-hidden border border-hairline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt={`Preview ${num}`} className="h-full w-full object-cover" />
+            <img src={preview} alt={`Preview ${num}`} className="h-auto max-h-40 w-full object-contain" />
           </div>
         ) : null}
         <input
@@ -180,7 +180,7 @@ export function LegalUpdateForm({
         {coverPreview ? (
           <div className="mt-2 aspect-[16/9] w-full max-w-sm overflow-hidden border border-hairline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-full w-full object-cover" />
+            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
           </div>
         ) : null}
         <input

@@ -47,6 +47,13 @@ export async function uploadLegalUpdateImage(
   return uploadImageToBucket(file, "legal-updates");
 }
 
+/** Upload a lawyer-in-the-news image (cover or inline). */
+export async function uploadLawyerNewsImage(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadImageToBucket(file, "lawyer-news");
+}
+
 function extensionFor(mimeType: string): string {
   switch (mimeType) {
     case "image/jpeg":

@@ -42,7 +42,7 @@ export function InsideLawDigest() {
                   href="/contributors"
                   className="group border-b-2 border-white/30 pb-1 font-utility text-[11px] uppercase tracking-wide text-white/70 transition-all duration-300 hover:border-white hover:text-white"
                 >
-                  Meet our contributors →
+                  Meet our Editorial Board →
                 </Link>
               </div>
             </div>

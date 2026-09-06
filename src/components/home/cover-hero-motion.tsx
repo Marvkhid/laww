@@ -81,7 +81,7 @@ export function CoverHeroMotion({
         className="mt-5"
       >
         <Link
-          href={`/articles/${slug}`}
+          href={slug}
           className="group inline-flex items-center gap-2 border-b border-digest-red pb-0.5 font-utility text-[10px] uppercase tracking-[0.15em] text-digest-red transition-all duration-300 hover:gap-3"
         >
           Read the cover story

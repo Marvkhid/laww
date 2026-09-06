@@ -8,7 +8,11 @@ export function ClearSubscribersButton() {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="mt-6 border border-hairline bg-paper-warm px-5 py-4 transition-colors hover:bg-ink">
+    <div className="mt-6 border border-hairline bg-paper-warm px-5 py-4">
+      <p className="text-sm font-semibold text-ink">Newsletter subscribers</p>
+      <p className="mt-1 text-xs text-[#5f5a54]">
+        Permanently deletes every newsletter subscriber. This cannot be undone.
+      </p>
       <button
         type="button"
         disabled={isPending}
@@ -19,12 +23,14 @@ export function ClearSubscribersButton() {
             setResult(msg);
           });
         }}
-        className="font-admin text-sm font-semibold text-ink transition-colors hover:text-paper disabled:opacity-60"
+        className="mt-3 bg-digest-red px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-digest-red-deep disabled:opacity-60"
       >
         {isPending ? "Clearing…" : "Clear Subscribers"}
       </button>
       {result && (
-        <p className="mt-2 font-admin text-xs text-stone">{result}</p>
+        <p className="mt-2 text-xs font-semibold text-ink" role="status">
+          {result}
+        </p>
       )}
     </div>
   );

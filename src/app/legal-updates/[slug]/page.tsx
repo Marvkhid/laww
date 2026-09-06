@@ -39,7 +39,7 @@ function InlineLegalImage({
           alt={alt}
           loading="lazy"
           decoding="async"
-          className="h-auto w-full object-cover"
+          className="h-auto w-full object-contain"
         />
       </div>
       {image.alt ? (
@@ -123,7 +123,7 @@ function LegalUpdateBodyWithImages({
               alt={img.alt ?? `${articleTitle} — Image ${i + 4}`}
               loading="lazy"
               decoding="async"
-              className="h-auto w-full object-cover"
+              className="h-auto w-full object-contain"
             />
           </div>
           {img.alt ? (
