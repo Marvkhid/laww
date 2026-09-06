@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { NAV_LINKS } from "@/lib/constants";
+import { ModalMotion } from "@/components/motion/modal-motion";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -69,13 +70,16 @@ export function MobileNav() {
         {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
       </button>
 
-      {open ? (
+      <ModalMotion
+        isOpen={open}
+        className="absolute inset-x-0 top-full z-50"
+      >
         <div
           ref={panelRef}
           id="mobile-nav-panel"
           role="dialog"
           aria-label="Navigation menu"
-          className="absolute inset-x-0 top-full z-50 border-t border-hairline bg-paper-warm shadow-lg"
+          className="border-t border-hairline bg-paper-warm shadow-lg"
         >
           <nav aria-label="Mobile" className="flex justify-center px-6 py-6">
             <ul className="flex w-full max-w-sm flex-col items-center gap-0">
@@ -93,7 +97,7 @@ export function MobileNav() {
             </ul>
           </nav>
         </div>
-      ) : null}
+      </ModalMotion>
     </div>
   );
 }

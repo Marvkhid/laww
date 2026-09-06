@@ -9,7 +9,7 @@ export function InsideLawDigest() {
         <Reveal>
           <div className="grid gap-12 md:grid-cols-2 md:items-center">
             <div>
-              <p className="font-utility text-[11px] uppercase tracking-[0.2em] text-white/60">
+              <p className="font-utility text-[11px] uppercase tracking-[0.2em] text-white/75">
                 § Inside Law Digest
               </p>
               <h2 className="mt-3 font-display text-3xl italic text-white md:text-4xl">

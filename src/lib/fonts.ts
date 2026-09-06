@@ -29,17 +29,13 @@ export const sourceSerif4 = localFont({
   display: "swap",
 });
 
-// UI — nav, buttons, form chrome. Never used for reading text.
-// Inter: a clean, modern sans-serif optimized for screen readability.
-// Excellent for UI elements, navigation, and form controls.
-export const inter = localFont({
-  src: [
-    { path: "../fonts/inter/Inter-Regular.ttf", weight: "400", style: "normal" },
-    { path: "../fonts/inter/Inter-SemiBold.ttf", weight: "600", style: "normal" },
-  ],
-  variable: "--font-ui",
-  display: "swap",
-});
+// UI — REMOVED. The Inter webfont (previously mounted here as --font-ui) was
+// dropped site-wide in favor of the clean system UI stack defined directly on
+// --font-ui in globals.css. layout.tsx no longer mounts `inter`, and the TTFs
+// were deleted. Every `font-admin` usage now resolves to the system stack.
+// `inter` is kept as a named export only so any stale import fails loudly at
+// build time instead of silently rendering an unstyled variable.
+export const inter = undefined as never;
 
 // Utility — bylines, dates, page-number badges, category labels.
 // IBM Plex Mono: a professional monospace font for utility text.

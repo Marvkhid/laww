@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getPublishedLawyerNews } from "@/lib/supabase/queries/lawyer-news";
 import { Reveal } from "@/components/motion/reveal";
+import { StaggerReveal, StaggerItem } from "@/components/motion/stagger-reveal";
 
 const HOMEPAGE_QA_COUNT = 3;
 
@@ -42,10 +43,11 @@ export async function CoverStory() {
                 </p>
               ) : null}
 
-              {/* First 3 Q&As */}
-              <div className="mt-8 flex flex-col gap-6">
+              {/* First 3 Q&As — staggered entrance */}
+              <StaggerReveal className="mt-8 flex flex-col gap-6" staggerDelay={0.1}>
                 {homepageQa.map((pair, i) => (
-                  <Link key={i} href={href} className="group block">
+                  <StaggerItem key={i}>
+                    <Link href={href} className="group block">
                     <p className="font-display text-lg font-bold italic text-ink transition-colors group-hover:text-digest-red">
                       <span className="mr-2 font-utility text-xs not-italic text-digest-red">
                         Q{i + 1}.
@@ -56,8 +58,9 @@ export async function CoverStory() {
                       {pair.answer}
                     </p>
                   </Link>
+                  </StaggerItem>
                 ))}
-              </div>
+              </StaggerReveal>
 
               {hasMore ? (
                 <Link

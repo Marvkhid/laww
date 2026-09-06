@@ -76,7 +76,7 @@ export function IssuesArchiveOverlay({ issues }: { issues: IssueArchive[] }) {
         </button>
 
         {/* Section label */}
-        <p className="relative mb-2 text-center font-admin text-[10px] font-medium uppercase tracking-[0.2em] text-stone/60">
+        <p className="relative mb-2 text-center font-admin text-[11px] font-semibold uppercase tracking-[0.2em] text-stone/80">
           Issues Archive
         </p>
 

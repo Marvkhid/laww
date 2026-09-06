@@ -339,25 +339,6 @@ export default async function AboutPage() {
         </section>
       </Reveal>
 
-      {/* Owner */}
-      <Reveal delay={0.26}>
-        <section className="mb-20 border-t border-hairline pt-12">
-          <div className="max-w-3xl">
-            <h2 className="font-utility text-[11px] uppercase tracking-[0.2em] text-digest-red">
-              Founded by
-            </h2>
-            <p className="mt-4 font-display text-2xl italic text-ink">
-              Mr. Tayo Adeyemi
-            </p>
-            <p className="mt-3 font-body text-base leading-relaxed text-stone">
-              Law Digest was founded by Mr. Tayo Adeyemi with the vision of creating a publication
-              that would set a new standard for legal journalism in Africa — combining rigorous
-              analysis with premium editorial design and production quality.
-            </p>
-          </div>
-        </section>
-      </Reveal>
-
       {/* Editorial Board */}
       {editorialBoard.length > 0 ? (
         <Reveal delay={0.28}>

@@ -5,6 +5,7 @@ import { getCurrentIssue } from "@/lib/supabase/queries/issues";
 import { getCoverStory } from "@/lib/supabase/queries/articles";
 import { getPublishedLawyerNews } from "@/lib/supabase/queries/lawyer-news";
 import { CoverHeroMotion } from "@/components/home/cover-hero-motion";
+import { ImageReveal } from "@/components/motion/image-reveal";
 
 export async function CoverHero() {
   const supabase = createSupabaseServerClient();
@@ -23,14 +24,16 @@ export async function CoverHero() {
         <div className="relative mx-auto max-w-6xl">
           <div className="relative w-full overflow-hidden md:aspect-[21/9]">
             {lawyerNews.coverImageUrl ? (
-              <Image
-                src={lawyerNews.coverImageUrl}
-                alt={lawyerNews.coverImageAlt ?? lawyerNews.lawyerName}
-                fill
-                priority
-                sizes="100vw"
-                className="object-contain"
-              />
+              <ImageReveal className="absolute inset-0">
+                <Image
+                  src={lawyerNews.coverImageUrl}
+                  alt={lawyerNews.coverImageAlt ?? lawyerNews.lawyerName}
+                  fill
+                  priority
+                  sizes="100vw"
+                  className="object-contain"
+                />
+              </ImageReveal>
             ) : (
               <div className="flex aspect-[16/9] w-full items-center justify-center bg-hairline/40">
                 <span className="font-utility text-xs uppercase tracking-wide text-stone">

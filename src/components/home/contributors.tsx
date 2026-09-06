@@ -3,6 +3,7 @@ import { getContributors } from "@/lib/supabase/queries/contributors";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { ContributorAvatar } from "@/components/ui/contributor-avatar";
 import { Reveal } from "@/components/motion/reveal";
+import { StaggerReveal, StaggerItem } from "@/components/motion/stagger-reveal";
 
 export async function Contributors() {
   const supabase = createSupabaseServerClient();
@@ -15,9 +16,9 @@ export async function Contributors() {
       <div className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
           <SectionHeading eyebrow="Editorial Board" title="Who wrote this issue" />
-          <ul className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+          <StaggerReveal className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
             {contributors.map((person) => (
-              <li key={person.slug} className="group flex items-center gap-3">
+              <StaggerItem key={person.slug} className="group flex items-center gap-3">
                 <ContributorAvatar
                   name={person.name}
                   photoUrl={person.photoUrl}
@@ -32,9 +33,9 @@ export async function Contributors() {
                     {person.role}
                   </p>
                 </div>
-              </li>
+              </StaggerItem>
             ))}
-          </ul>
+          </StaggerReveal>
         </Reveal>
       </div>
     </section>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { merriweather, sourceSerif4, inter, ibmPlexMono } from "@/lib/fonts";
+import { merriweather, sourceSerif4, ibmPlexMono } from "@/lib/fonts";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CookieConsent } from "@/components/layout/cookie-consent";
@@ -54,7 +54,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${merriweather.variable} ${sourceSerif4.variable} ${inter.variable} ${ibmPlexMono.variable} antialiased`}
+      data-scroll-behavior="smooth"
+      className={`${merriweather.variable} ${sourceSerif4.variable} ${ibmPlexMono.variable} antialiased`}
     >
       <body className="flex min-h-screen flex-col bg-paper text-ink">
         <a

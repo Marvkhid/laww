@@ -93,7 +93,7 @@ export async function BreakingLegalUpdates() {
                   </span>
 
                   {update.practiceArea ? (
-                    <span className="ml-2 whitespace-nowrap rounded-sm border border-white/20 px-1.5 py-0.5 font-utility text-[9px] uppercase tracking-wider text-white/60">
+                    <span className="ml-2 whitespace-nowrap rounded-sm border border-white/20 px-1.5 py-0.5 font-utility text-[10px] uppercase tracking-wider text-white/75">
                       § {update.practiceArea}
                     </span>
                   ) : null}

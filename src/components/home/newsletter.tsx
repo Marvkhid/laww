@@ -13,7 +13,7 @@ export function Newsletter() {
                 <p className="font-utility text-[11px] uppercase tracking-[0.2em] text-white/70">
                   Newsletter
                 </p>
-                <OpenBook className="h-16 w-16 shrink-0 text-white/20" />
+                <OpenBook className="h-16 w-16 shrink-0 text-white/40" />
               </div>
               <h2 className="mt-3 font-display text-3xl italic text-paper md:text-4xl">
                 The Weekly Brief

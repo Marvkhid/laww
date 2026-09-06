@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { ModalMotion, ModalPanelMotion } from "@/components/motion/modal-motion";
 import type { LegalInsight } from "@/lib/types";
 
 export function LegalQuiz({ questions }: { questions: LegalInsight[] }) {
@@ -157,14 +158,20 @@ export function LegalQuiz({ questions }: { questions: LegalInsight[] }) {
       </div>
 
       {/* ── Game Over popup ─────────────────────────────────────── */}
-      {gameOver ? (
+      <ModalMotion
+        isOpen={gameOver}
+        className="fixed inset-0 z-[150] flex items-center justify-center bg-ink/60 p-6"
+      >
         <div
-          className="fixed inset-0 z-[150] flex items-center justify-center bg-ink/60 p-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="quiz-game-over"
+          className="w-full max-w-md"
         >
-          <div className="w-full max-w-md border border-hairline bg-paper p-8 text-center shadow-2xl">
+          <ModalPanelMotion
+            isOpen={gameOver}
+            className="w-full max-w-md border border-hairline bg-paper p-8 text-center shadow-2xl"
+          >
             <p className="font-utility text-[11px] font-semibold uppercase tracking-[0.2em] text-digest-red">
               Game Over
             </p>
@@ -202,9 +209,9 @@ export function LegalQuiz({ questions }: { questions: LegalInsight[] }) {
                 Try again
               </button>
             </div>
-          </div>
+          </ModalPanelMotion>
         </div>
-      ) : null}
+      </ModalMotion>
     </section>
   );
 }

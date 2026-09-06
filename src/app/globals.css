@@ -12,8 +12,16 @@
   --color-purple: #6b3a7a;
   --color-purple-deep: #4a1a5c;
 
-  /* Font families are set by next/font/local CSS variables on <html>. */
-  /* Do NOT redefine them here — circular @theme references break Tailwind v4. */
+  /* UI font — the clean, native system stack. The previous Inter webfont
+     was removed site-wide; `font-admin` / --font-ui now resolve to the
+     system UI fonts, with no download and zero layout difference. */
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+/* Font families: --font-display/-body/-utility come from next/font/local
+   variables on <html>; --font-ui is the system stack defined above. */
+/* Do NOT redefine the next/font variables here — circular @theme references
+   break Tailwind v4. */
 
   /* Near-zero radius — sharp edges read more editorial than soft ones. */
   --radius-none: 0px;
@@ -215,7 +223,7 @@ html {
 /* Article prose — magazine-quality typography
    Display: Merriweather (authoritative serif for headings)
    Body: Source Serif 4 (highly readable serif for long-form reading)
-   UI: Inter (clean sans-serif for navigation/forms)
+   UI: system sans stack (clean, native, no webfont download)
    Utility: IBM Plex Mono (professional monospace for labels/badges)
 */
 .prose-article {
@@ -561,7 +569,7 @@ html {
 
 /* ═════════════════════════════════════════════════════════════════════════
    ADMIN DASHBOARD — GLOBAL DESIGN SYSTEM
-   Dark, readable Inter text across the entire admin. Scoped to [data-admin].
+   Dark, readable system-stack text across the entire admin. Scoped to [data-admin].
 
    IMPORTANT: all rules use :where([data-admin] …) so they carry ZERO
    specificity — they act as guaranteed-readable DEFAULTS while Tailwind
@@ -571,16 +579,16 @@ html {
    (e.g. Clear Subscribers). Do NOT reintroduce !important color forcing.
    ═════════════════════════════════════════════════════════════════════════ */
 
-/* === Baseline: dark Inter text inherits everywhere in admin === */
+/* === Baseline: dark system-stack text inherits everywhere in admin === */
 :where([data-admin]) {
   color: #171717;
-  font-family: var(--font-ui), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-ui);
 }
 
 :where([data-admin]) *,
 :where([data-admin]) *::before,
 :where([data-admin]) *::after {
-  font-family: var(--font-ui), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-ui);
 }
 
 /* === Headings: dark + bold by default === */
@@ -608,21 +616,28 @@ html {
   color: #A51C30;
 }
 
-/* === Form inputs: white bg, dark typed text, visible borders === */
-:where([data-admin]) input[type="text"],
-:where([data-admin]) input[type="email"],
-:where([data-admin]) input[type="url"],
-:where([data-admin]) input[type="number"],
-:where([data-admin]) input[type="date"],
-:where([data-admin]) input[type="search"],
-:where([data-admin]) input[type="password"],
-:where([data-admin]) input[type="tel"],
-:where([data-admin]) textarea,
-:where([data-admin]) select {
-  color: #171717;
-  border-color: #b5b0a8;
-  background-color: #ffffff;
+/* === Form inputs: white bg, near-black typed text, visible borders ===
+   These use REAL selectors with !important on purpose: input VALUES must be
+   readable no matter what. -webkit-text-fill-color guards against any
+   webkit/autofill quirk; color-scheme: light blocks dark-mode UA restyling. */
+[data-admin] input[type="text"],
+[data-admin] input[type="email"],
+[data-admin] input[type="url"],
+[data-admin] input[type="number"],
+[data-admin] input[type="date"],
+[data-admin] input[type="search"],
+[data-admin] input[type="password"],
+[data-admin] input[type="tel"],
+[data-admin] input[type="file"],
+[data-admin] textarea,
+[data-admin] select {
+  color: #1a1a1a !important;
+  -webkit-text-fill-color: #1a1a1a;
+  opacity: 1 !important;
+  border-color: #a8a29a !important;
+  background-color: #ffffff !important;
   font-weight: 400;
+  color-scheme: light;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -634,14 +649,17 @@ html {
   outline: none;
 }
 
-/* === Placeholder text — readable gray (needs !important to beat UA styles) === */
+/* === Placeholder text — slightly lighter than values, but still clearly
+   readable. Values are #1a1a1a, placeholders #6b6560: visibly distinct. === */
 [data-admin] input::placeholder,
 [data-admin] textarea::placeholder {
-  color: #5f5a54 !important;
+  color: #6b6560 !important;
+  -webkit-text-fill-color: #6b6560;
   opacity: 1 !important;
+  font-weight: 400 !important;
 }
 
-/* === Buttons: safe 600 weight default (Inter has no 500 file — 500 renders thin) === */
+/* === Buttons: 600 weight default (readable, matches loaded system weights) === */
 :where([data-admin]) button {
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -687,6 +705,13 @@ html {
   color: #171717;
 }
 
+/* === Dropdown list items — dark text on white, readable on every OS === */
+[data-admin] select option,
+[data-admin] select optgroup {
+  color: #1a1a1a !important;
+  background-color: #ffffff !important;
+}
+
 /* === Select dropdown arrow === */
 :where([data-admin]) select {
   appearance: none;
@@ -709,9 +734,9 @@ html {
 }
 
 /* === Rich text editor (Tiptap / ProseMirror) === */
-:where([data-admin] .ProseMirror) {
-  color: #171717;
-  font-family: var(--font-body), serif;
+[data-admin] .ProseMirror {
+  color: #1a1a1a !important;
+  font-family: var(--font-body), serif !important;
   min-height: 300px;
 }
 
@@ -790,7 +815,7 @@ html {
 
 /* === font-admin class: font only, no forced color (for dark bars) === */
 .font-admin {
-  font-family: var(--font-ui), system-ui, -apple-system, sans-serif !important;
+  font-family: var(--font-ui) !important;
 }
 
 /* Practice area names: ensure deep dark text */
@@ -799,4 +824,99 @@ html {
 }
 .practice-area-item:hover {
   color: #FFFFFF !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MICRO-INTERACTIONS — restrained, GPU-friendly, site-wide polish.
+   Transform/opacity/box-shadow only; no layout properties animate.
+   All respect prefers-reduced-motion via the global reduce block above.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Buttons: gentle press-down on click, soft rise on hover. */
+button,
+.btn-press {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+button:not(:disabled):active,
+.btn-press:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Primary red CTAs get a soft brand glow on hover. */
+.bg-digest-red:not(:disabled):hover {
+  box-shadow: 0 4px 20px -4px rgba(165, 28, 48, 0.45);
+}
+
+/* Cards & tiles: gentle lift with an ambient red-tinted shadow. */
+.hover-lift {
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 32px -12px rgba(23, 23, 23, 0.18),
+    0 4px 16px -6px rgba(165, 28, 48, 0.12);
+}
+
+/* Illuminated border sweep for prominent interactive frames. */
+.glow-border {
+  position: relative;
+  transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 0 1px rgba(165, 28, 48, 0.55);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-border:hover::after {
+  opacity: 1;
+}
+
+/* Link underline grow — editorial links that draw their underline. */
+.link-draw {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.link-draw:hover {
+  background-size: 100% 1px;
+}
+
+/* Respect reduced motion for all of the above. */
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  .btn-press:not(:disabled):active,
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  .bg-digest-red:not(:disabled):hover {
+    box-shadow: none;
+  }
+
+  .hover-lift,
+  .glow-border,
+  .glow-border::after,
+  .link-draw {
+    transition: none;
+  }
 }

@@ -330,7 +330,7 @@ export default async function PracticeAreaPage({
                 &ldquo;{editorial.pullQuote.text}&rdquo;
               </p>
               {editorial.pullQuote.attribution && (
-                <p className="mt-6 font-admin text-sm text-white/60">
+                <p className="mt-6 font-admin text-sm text-white/75">
                   — {editorial.pullQuote.attribution}
                 </p>
               )}
