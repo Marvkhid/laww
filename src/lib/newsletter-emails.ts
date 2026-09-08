@@ -77,7 +77,7 @@ export function welcomeEmailHtml(subscriberEmail: string): string {
     </p>
     <p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:${BRAND.stone};">
       If you have any questions, simply reply to this email or visit us at
-      <a href="${SITE_URL}" style="color:${BRAND.purple};text-decoration:underline;">nglawdigest.com</a>.
+      <a href="${SITE_URL}" style="color:${BRAND.purple};text-decoration:underline;">nglawdigestblog.com</a>.
     </p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
       <tr>
@@ -90,7 +90,7 @@ export function welcomeEmailHtml(subscriberEmail: string): string {
     </table>
     <hr style="border:none;border-top:1px solid ${BRAND.hairline};margin:0 0 16px;" />
     <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${BRAND.stone};line-height:1.6;">
-      You&rsquo;re receiving this because you subscribed at <strong>nglawdigest.com</strong>.
+      You&rsquo;re receiving this because you subscribed at <strong>nglawdigestblog.com</strong>.
       <br />
       <a href="${unsubscribeUrl}" style="color:${BRAND.red};text-decoration:underline;">Unsubscribe from this newsletter</a>
     </p>

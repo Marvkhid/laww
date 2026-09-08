@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
+import { SITE_URL } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
     <p style="color:#6b6560;font-size:16px;line-height:1.6;">
       You will no longer receive emails from The Weekly Brief.
       <br/><br/>
-      <a href="https://nglawdigest.com" style="color:#6b3a7a;text-decoration:underline;">Return to Law Digest</a>
+      <a href="${SITE_URL}" style="color:#6b3a7a;text-decoration:underline;">Return to Law Digest</a>
     </p>
   </div>
 </body>

@@ -1,4 +1,4 @@
-export const SITE_URL = "https://nglawdigest.com";
+export const SITE_URL = "https://nglawdigestblog.com";
 
 export const NAV_LINKS = [
   { href: "/articles", label: "Latest" },

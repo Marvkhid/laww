@@ -8,165 +8,14 @@ import {
   getRelatedArticles,
 } from "@/lib/supabase/queries/articles";
 import { getCurrentIssue } from "@/lib/supabase/queries/issues";
-import { PageNumberBadge } from "@/components/ui/page-number-badge";
 import { Byline } from "@/components/ui/byline";
 import { ArticleCoverImage } from "@/components/ui/article-cover-image";
-import { RichText, RichTextBlock } from "@/components/ui/rich-text";
-import { ShareControls } from "@/components/ui/share-controls";
 import { ContributorAvatar } from "@/components/ui/contributor-avatar";
 import { Reveal } from "@/components/motion/reveal";
 import { SocialShareIcons } from "@/components/ui/social-share-icons";
 import { SITE_URL } from "@/lib/constants";
+import { EditorialBody } from "@/components/editorial/editorial-body";
 import type { ArticleImage } from "@/lib/types";
-import type { JSONContent } from "@tiptap/core";
-
-/**
- * Single inline article image with CSS float for editorial layout.
- */
-function InlineArticleImage({
-  image,
-  index,
-  articleTitle,
-}: {
-  image: ArticleImage;
-  index: number;
-  articleTitle: string;
-}) {
-  if (!image.url) return null;
-  const alt = image.alt ?? `${articleTitle} — Image ${index + 1}`;
-  const position = image.position ?? "";
-  const isRight = position.includes("right");
-  const isLeft = position.includes("left");
-
-  return (
-    <figure
-      className={`article-inline-figure ${
-        isRight ? "article-inline-right" : isLeft ? "article-inline-left" : "article-inline-center"
-      }`}
-    >
-      <div className="overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image.url}
-          alt={alt}
-          loading="lazy"
-          decoding="async"
-          className="h-auto w-full object-contain"
-        />
-      </div>
-      {image.alt ? (
-        <figcaption className="mt-2 font-utility text-[10px] uppercase tracking-wide text-stone">
-          {image.alt}
-        </figcaption>
-      ) : null}
-    </figure>
-  );
-}
-
-/**
- * Renders article body text with inline images distributed throughout the text flow.
- * Images float left or right on desktop, stacking above text on mobile.
- * The body's top-level blocks are split into segments and images are interleaved.
- */
-function ArticleBodyWithImages({
-  body,
-  images,
-  articleTitle,
-}: {
-  body: JSONContent;
-  images: ArticleImage[];
-  articleTitle: string;
-}) {
-  // Separate center images from floatable ones
-  const floatable = images.filter((img) => {
-    if (!img.url) return false;
-    const pos = (img.position ?? "").toLowerCase();
-    return pos.includes("right") || pos.includes("left");
-  });
-  const centerImages = images.filter((img) => {
-    if (!img.url) return false;
-    const pos = (img.position ?? "").toLowerCase();
-    return !pos.includes("right") && !pos.includes("left");
-  });
-
-  // Get the top-level block nodes from the Tiptap document
-  const blocks = body.content ?? [];
-
-  if (floatable.length === 0 && centerImages.length === 0) {
-    // No images — just render the body
-    return (
-      <div className="article-editorial-body">
-        <RichText content={body} />
-      </div>
-    );
-  }
-
-  // Split blocks into segments for interleaving floatable images.
-  // We want image1 after ~1/5 of blocks, image2 after ~2/5, etc.
-  const totalFloatable = floatable.length;
-  const segments: JSONContent[][] = [];
-  const imagesPerSegment: (ArticleImage | null)[] = [];
-
-  // Create segments with one image each
-  const blocksPerSegment = Math.max(1, Math.ceil(blocks.length / (totalFloatable + 1)));
-  let blockIndex = 0;
-
-  for (let imgIdx = 0; imgIdx < totalFloatable; imgIdx++) {
-    // Take blocks for this segment
-    const end = Math.min(blockIndex + blocksPerSegment, blocks.length);
-    segments.push(blocks.slice(blockIndex, end));
-    imagesPerSegment.push(floatable[imgIdx]);
-    blockIndex = end;
-  }
-  // Remaining blocks go in the final segment
-  segments.push(blocks.slice(blockIndex));
-  imagesPerSegment.push(null);
-
-  let globalImgIdx = 0;
-
-  return (
-    <div className="article-editorial-body">
-      {segments.map((segment, segIdx) => (
-        <div key={segIdx} className="article-editorial-segment">
-          {/* Render this block of text */}
-          {segment.map((block, blockIdx) => (
-            <RichTextBlock key={`${segIdx}-${blockIdx}`} node={block} />
-          ))}
-
-          {/* Render the image that follows this segment (if any) */}
-          {imagesPerSegment[segIdx] ? (
-            <InlineArticleImage
-              image={imagesPerSegment[segIdx]!}
-              index={globalImgIdx++}
-              articleTitle={articleTitle}
-            />
-          ) : null}
-        </div>
-      ))}
-
-      {/* Center images render as full-width breaks at the end */}
-      {centerImages.map((img, i) => (
-        <figure key={`c${i}`} className="article-inline-figure article-inline-center">
-          <div className="overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={img.url!}
-              alt={img.alt ?? `${articleTitle} — Image ${i + 4}`}
-              loading="lazy"
-              decoding="async"
-              className="h-auto w-full object-contain"
-            />
-          </div>
-          {img.alt ? (
-            <figcaption className="mt-2 font-utility text-[10px] uppercase tracking-wide text-stone">
-              {img.alt}
-            </figcaption>
-          ) : null}
-        </figure>
-      ))}
-    </div>
-  );
-}
 
 // Rough word count from Tiptap JSON body
 function estimateReadingTime(body: unknown): number | null {
@@ -215,7 +64,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/articles/[slug]">): Promise<Metadata> {
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const article = await getArticleBySlug(supabase, slug);
@@ -259,7 +110,9 @@ export async function generateMetadata({
 
 export default async function ArticlePage({
   params,
-}: PageProps<"/articles/[slug]">) {
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const [article, issueMeta] = await Promise.all([
@@ -347,10 +200,14 @@ export default async function ArticlePage({
             {/* Article body */}
             <div className="mt-10">
               {article.body ? (
-                <ArticleBodyWithImages
-                  body={article.body}
-                  images={article.images ?? []}
-                  articleTitle={article.title}
+                <EditorialBody
+                  blocks={article.body?.content ?? []}
+                  images={(article.images ?? []).map((img: ArticleImage) => ({
+                    url: img.url,
+                    alt: img.alt,
+                    position: img.position,
+                  }))}
+                  title={article.title}
                 />
               ) : (
                 <div className="border border-hairline bg-paper-warm p-6">

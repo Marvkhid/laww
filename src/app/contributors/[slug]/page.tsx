@@ -19,7 +19,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/contributors/[slug]">): Promise<Metadata> {
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const person = await getContributorBySlug(supabase, slug);
@@ -29,7 +31,9 @@ export async function generateMetadata({
 
 export default async function ContributorPage({
   params,
-}: PageProps<"/contributors/[slug]">) {
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const [person, byThisContributor] = await Promise.all([

@@ -333,6 +333,25 @@ function renderBlock(node: JSONContent, key: number): ReactNode {
     case "tabNode":
       // Individual tabNode should not be rendered standalone — handled by tabsNode
       return null;
+    case "image": {
+      const src = node.attrs?.src;
+      const alt = node.attrs?.alt ?? "";
+      if (typeof src !== "string" || !src) return null;
+      return (
+        <figure key={key} className="my-8">
+          <div className="overflow-hidden border border-hairline bg-hairline/10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={alt}
+              loading="lazy"
+              decoding="async"
+              className="h-auto w-full object-contain"
+            />
+          </div>
+        </figure>
+      );
+    }
     default:
       return null;
   }

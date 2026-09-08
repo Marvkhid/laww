@@ -20,7 +20,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/issues/[slug]">): Promise<Metadata> {
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const issueMeta = await getCurrentIssue(supabase);
@@ -31,7 +33,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function IssuePage({ params }: PageProps<"/issues/[slug]">) {
+export default async function IssuePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const [issueMeta, articles] = await Promise.all([

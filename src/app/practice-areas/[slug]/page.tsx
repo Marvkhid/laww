@@ -27,7 +27,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/practice-areas/[slug]">): Promise<Metadata> {
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const areas = await getPracticeAreas(supabase);
@@ -244,7 +246,9 @@ function NotableCases({ cases }: { cases: PracticeAreaNotableCase[] }) {
 
 export default async function PracticeAreaPage({
   params,
-}: PageProps<"/practice-areas/[slug]">) {
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const [areas, allArticles] = await Promise.all([

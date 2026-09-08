@@ -71,7 +71,7 @@ export default function Image() {
             textTransform: "uppercase",
           }}
         >
-          nglawdigest.com
+          nglawdigestblog.com
         </div>
       </div>
     ),

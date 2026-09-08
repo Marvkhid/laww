@@ -345,82 +345,30 @@ html {
   background: linear-gradient(to right, transparent, var(--color-hairline), transparent);
 }
 
-/* Article editorial body layout with float-based images */
-.article-editorial-body {
-  position: relative;
+/* ═══════════════════════════════════════════════════════════════════════
+   EDITORIAL COMPOSITION — image + text as one editorial unit.
+   Alternating grid layout: image left / right, full-width overflow,
+   responsive stacking on mobile.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.editorial-body {
+  /* wrapper for the editorial composition */
 }
 
-/* Each segment contains text blocks + one floating image */
-.article-editorial-segment {
-  position: relative;
-  overflow: hidden; /* contains the floated image within this segment */
+.editorial-section {
+  /* each unit or text section */
 }
 
-/* Inline article figures - float-based editorial layout */
-.article-inline-figure {
+.editorial-figure {
   margin: 0;
-  padding: 0;
 }
 
-/* FULL IMAGE VISIBILITY: never crop uploaded editorial images. The figure
-   box keeps the editorial 4/3 proportion, but the <img> itself renders the
-   complete picture with object-fit: contain — empty space around the image
-   is preferred over cutting any part of it. */
-.article-inline-figure img {
+.editorial-figure img {
   width: 100%;
   height: auto;
   object-fit: contain;
   background: var(--color-hairline);
-}
-
-.article-inline-figure figcaption {
-  margin-top: 0.5rem;
-}
-
-/* Float right images */
-.article-inline-right {
-  float: right;
-  width: 38%;
-  max-width: 280px;
-  margin-left: 1.25rem;
-  margin-bottom: 1rem;
-  margin-top: 0.25rem;
-  shape-outside: border-box;
-}
-
-/* Float left images */
-.article-inline-left {
-  float: left;
-  width: 38%;
-  max-width: 280px;
-  margin-right: 1.25rem;
-  margin-bottom: 1rem;
-  margin-top: 0.25rem;
-  shape-outside: border-box;
-}
-
-/* Center images - full width with margin */
-.article-inline-center {
-  width: 100%;
-  margin: 2rem 0;
-  clear: both;
-}
-
-/* Responsive: on mobile, images stack above text */
-@media (max-width: 767px) {
-  .article-inline-right,
-  .article-inline-left {
-    float: none;
-    width: 100%;
-    max-width: none;
-    margin-left: 0;
-    margin-right: 0;
-    margin-bottom: 1.5rem;
-  }
-
-  .article-editorial-segment {
-    overflow: visible;
-  }
+  display: block;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -565,6 +513,15 @@ html {
 
 .ProseMirror .selectedCell {
   background: rgba(165, 28, 48, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LOW-CONTRAST FIXES — clearly readable text everywhere.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Admin helper text — bump #666 → #555 for better readability */
+:where([data-admin]) .text-\[\#666\] {
+  color: #555 !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════

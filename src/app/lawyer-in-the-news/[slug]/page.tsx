@@ -4,123 +4,12 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import {
   getPublishedLawyerNewsBySlug,
-  type LawyerInlineImage,
 } from "@/lib/supabase/queries/lawyer-news";
 import { Reveal } from "@/components/motion/reveal";
 import { SITE_URL } from "@/lib/constants";
-
-/** Inline figure with the shared editorial float classes (never crops). */
-function InlineLawyerImage({
-  image,
-  index,
-  title,
-}: {
-  image: LawyerInlineImage;
-  index: number;
-  title: string;
-}) {
-  if (!image.url) return null;
-  const alt = image.alt ?? `${title} — Image ${index + 1}`;
-  const position = image.position ?? "";
-  const isRight = position.includes("right");
-  const isLeft = position.includes("left");
-
-  return (
-    <figure
-      className={`article-inline-figure ${
-        isRight ? "article-inline-right" : isLeft ? "article-inline-left" : "article-inline-center"
-      }`}
-    >
-      <div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image.url}
-          alt={alt}
-          loading="lazy"
-          decoding="async"
-          className="h-auto w-full object-contain"
-        />
-      </div>
-      {image.alt ? (
-        <figcaption className="mt-2 font-utility text-[10px] uppercase tracking-wide text-stone">
-          {image.alt}
-        </figcaption>
-      ) : null}
-    </figure>
-  );
-}
-
-/** Distributes floating images evenly across the Q&A list. */
-function QAWithImages({
-  qaPairs,
-  images,
-  title,
-}: {
-  qaPairs: { question: string; answer: string }[];
-  images: LawyerInlineImage[];
-  title: string;
-}) {
-  const floatable = images.filter((img) => {
-    if (!img.url) return false;
-    const pos = (img.position ?? "").toLowerCase();
-    return pos.includes("right") || pos.includes("left");
-  });
-  const centerImages = images.filter((img) => {
-    if (!img.url) return false;
-    const pos = (img.position ?? "").toLowerCase();
-    return !pos.includes("right") && !pos.includes("left");
-  });
-
-  if (floatable.length === 0 && centerImages.length === 0) {
-    return (
-      <div className="flex flex-col gap-10">
-        {qaPairs.map((pair, i) => (
-          <QABlock key={i} pair={pair} index={i} />
-        ))}
-      </div>
-    );
-  }
-
-  const segments: (typeof qaPairs)[] = [];
-  const imagesPerSegment: (LawyerInlineImage | null)[] = [];
-  const pairsPerSegment = Math.max(1, Math.ceil(qaPairs.length / (floatable.length + 1)));
-  let pairIndex = 0;
-
-  for (let imgIdx = 0; imgIdx < floatable.length; imgIdx++) {
-    const end = Math.min(pairIndex + pairsPerSegment, qaPairs.length);
-    segments.push(qaPairs.slice(pairIndex, end));
-    imagesPerSegment.push(floatable[imgIdx]);
-    pairIndex = end;
-  }
-  segments.push(qaPairs.slice(pairIndex));
-  imagesPerSegment.push(null);
-
-  let globalImgIdx = 0;
-
-  return (
-    <>
-      {segments.map((segment, segIdx) => (
-        <div key={segIdx} className="article-editorial-segment">
-          <div className="flex flex-col gap-10">
-            {segment.map((pair, i) => (
-              <QABlock key={i} pair={pair} index={i} />
-            ))}
-          </div>
-          {imagesPerSegment[segIdx] ? (
-            <InlineLawyerImage
-              image={imagesPerSegment[segIdx]!}
-              index={globalImgIdx++}
-              title={title}
-            />
-          ) : null}
-        </div>
-      ))}
-      {centerImages.map((img, i) => (
-        <InlineLawyerImage key={`c${i}`} image={img} index={i} title={title} />
-      ))}
-    </>
-  );
-}
+import { EditorialBody } from "@/components/editorial/editorial-body";
+import type { JSONContent } from "@tiptap/core";
+import { RichTextBlock } from "@/components/ui/rich-text";
 
 function QABlock({ pair, index }: { pair: { question: string; answer: string }; index: number }) {
   return (
@@ -134,6 +23,27 @@ function QABlock({ pair, index }: { pair: { question: string; answer: string }; 
       <p className="mt-3 font-body text-base leading-relaxed text-ink/90">{pair.answer}</p>
     </div>
   );
+}
+
+function qaToBlock(pair: { question: string; answer: string }, i: number): JSONContent {
+  return {
+    type: "qaPair",
+    attrs: { question: pair.question, answer: pair.answer, index: i },
+    content: [{ type: "text", text: pair.question + " " + pair.answer }],
+  };
+}
+
+function qaRenderBlock(node: JSONContent, index: number) {
+  if (node.type === "qaPair") {
+    return (
+      <QABlock
+        key={index}
+        pair={{ question: node.attrs?.question ?? "", answer: node.attrs?.answer ?? "" }}
+        index={node.attrs?.index ?? index}
+      />
+    );
+  }
+  return <RichTextBlock node={node} index={index} />;
 }
 
 export async function generateMetadata({
@@ -234,11 +144,16 @@ export default async function LawyerNewsPage({
 
       {/* All Q&As with editorial image distribution */}
       <Reveal delay={0.1}>
-        <div className="article-editorial-body mt-10">
-          <QAWithImages
-            qaPairs={story.qaPairs}
-            images={story.inlineImages}
+        <div className="mt-10">
+          <EditorialBody
+            blocks={story.qaPairs.map((pair, i) => qaToBlock(pair, i))}
+            images={story.inlineImages.map((img) => ({
+              url: img.url,
+              alt: img.alt,
+              position: img.position,
+            }))}
             title={story.lawyerName}
+            renderBlock={qaRenderBlock}
           />
         </div>
       </Reveal>

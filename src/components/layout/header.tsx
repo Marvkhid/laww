@@ -18,7 +18,7 @@ export async function Header() {
               Issue {issueMeta.issueNumber}
             </span>
           ) : null}
-          <span className="absolute right-0 hidden font-admin text-[10px] font-semibold uppercase tracking-widest text-stone sm:inline">
+          <span className="absolute right-0 hidden font-admin text-[10px] font-semibold uppercase tracking-widest text-paper/70 sm:inline">
             {issueMeta ? `${issueMeta.season} ${issueMeta.year}` : "Legal Questions of the Day"}
           </span>
         </div>

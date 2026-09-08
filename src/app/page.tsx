@@ -56,6 +56,9 @@ export default function Home() {
       {/* 11. Issue Showcase / PDF */}
       <IssueShowcase />
 
+      {/* 11b. Call for Papers — latest issue's submission call */}
+      <CallForPapers />
+
       {/* 12. Sponsors */}
       <Sponsors />
 
