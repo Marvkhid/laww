@@ -5,6 +5,9 @@ import { Byline } from "@/components/ui/byline";
 import { ArticleCoverImage } from "@/components/ui/article-cover-image";
 
 export function ArticleCard({ article }: { article: Article }) {
+  // Defensive: skip rendering if slug is somehow still empty after mapRow fallback
+  if (!article.slug) return null;
+
   return (
     <Link href={`/articles/${article.slug}`} className="group block">
       {/* Image section with editorial hover */}

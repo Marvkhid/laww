@@ -66,6 +66,11 @@ async function attachPracticeAreaNames(
 }
 
 function mapRow(row: ArticleRow, author: Author, practiceAreaName: string | undefined): Article {
+  // Ensure every article has a valid slug — fall back to title-based slug if empty.
+  // This prevents 404s when clicking articles that were created before the
+  // auto-slug system or somehow ended up with an empty slug in the database.
+  const slug = row.slug || row.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 120) || row.id;
+
   // Collect inline images — only include ones that have a URL
   const images: Article["images"] = [];
   const imageSlots = [
@@ -82,7 +87,7 @@ function mapRow(row: ArticleRow, author: Author, practiceAreaName: string | unde
 
   return {
     id: row.id,
-    slug: row.slug,
+    slug,
     title: row.title,
     author,
     page: row.page_number ?? 0,
