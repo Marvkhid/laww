@@ -5,7 +5,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { Handshake } from "@/components/ui/editorial-illustration";
 
 export const metadata: Metadata = {
-  title: "Contact — Law Digest",
+  title: "Contact",
   description: "Get in touch with the Law Digest editorial, advertising, and subscriptions team.",
   alternates: { canonical: "/contact" },
 };

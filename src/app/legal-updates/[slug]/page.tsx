@@ -31,7 +31,7 @@ export async function generateMetadata({
       title: update.headline,
       description,
       url: canonicalUrl,
-      siteName: "Law Digest",
+      siteName: "NG Law Digest",
       images: [{ url: ogImage, width: 1200, height: 630, alt: update.headline }],
     },
     twitter: {

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLegalInsightByIdForAdmin } from "@/lib/supabase/admin/legal-insights";
 import { updateLegalInsightAction } from "../../actions";
 import { InsightForm } from "../../insight-form";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Legal Question — Admin",
@@ -24,7 +25,8 @@ export default async function EditInsightPage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Legal Question</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">Edit Legal Question</h1>
       <div className="mt-6">
         <InsightForm action={boundAction} initial={insight} submitLabel="Save changes" entityId={id} />
       </div>

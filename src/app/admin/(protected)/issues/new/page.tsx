@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IssueForm } from "@/app/admin/(protected)/issues/issue-form";
 import { createIssueAction } from "@/app/admin/(protected)/issues/actions";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "New Issue — Admin",
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 export default function NewIssuePage() {
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">New Issue</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">New Issue</h1>
       <p className="mt-2 max-w-lg font-admin text-sm text-[#333]">
         Heads up: the public site always shows whichever issue has the highest issue number
         as the current one. Creating an issue numbered higher than the existing one will make

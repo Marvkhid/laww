@@ -75,7 +75,7 @@ export async function generateMetadata({
   const canonicalUrl = `${SITE_URL}/articles/${article.slug}`;
   const description = article.dek
     ? article.dek
-    : `By ${article.author.name}, Law Digest, p. ${article.page}.`;
+    : `By ${article.author.name}, NG Law Digest, p. ${article.page}.`;
   const ogImage = article.coverImageUrl || `${SITE_URL}/images/og-default.jpg`;
 
   return {
@@ -89,7 +89,7 @@ export async function generateMetadata({
       title: article.title,
       description,
       url: canonicalUrl,
-      siteName: "Law Digest",
+      siteName: "NG Law Digest",
       images: [
         {
           url: ogImage,
@@ -135,8 +135,38 @@ export default async function ArticlePage({
       : Promise.resolve([]),
   ]);
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.dek ?? undefined,
+    image: article.coverImageUrl ?? undefined,
+    url: articleUrl,
+    mainEntityOfPage: articleUrl,
+    author: {
+      "@type": "Person",
+      name: article.author.name,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "NG Law Digest",
+      url: SITE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/images/og-default.jpg`,
+      },
+    },
+    datePublished: undefined,
+    dateModified: undefined,
+  };
+
   return (
-    <article className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <article className="mx-auto max-w-6xl px-6 py-12 md:py-16">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-6">
         <ol className="flex flex-wrap items-center gap-1.5 font-utility text-[10px] uppercase tracking-[0.12em] text-stone">
@@ -366,5 +396,6 @@ export default async function ArticlePage({
         </aside>
       </div>
     </article>
+    </>
   );
 }

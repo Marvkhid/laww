@@ -12,6 +12,7 @@
  * - Responsive: side-by-side on desktop, stacked on mobile.
  * - Preserves original content order.
  */
+import { Fragment } from "react";
 import { RichTextBlock } from "@/components/ui/rich-text";
 import type { JSONContent } from "@tiptap/core";
 import type { ReactNode } from "react";
@@ -200,11 +201,15 @@ export function EditorialBody({
               <div key={`t${i}`} className="editorial-section my-10">
                 {i === 0 ? (
                   <div className="prose-article">
-                    {seg.blocks.map((b, j) => render(b, j))}
+                    {seg.blocks.map((b, j) => (
+                      <Fragment key={`t${i}-b${j}`}>{render(b, j)}</Fragment>
+                    ))}
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    {seg.blocks.map((b, j) => render(b, j))}
+                    {seg.blocks.map((b, j) => (
+                      <Fragment key={`t${i}-b${j}`}>{render(b, j)}</Fragment>
+                    ))}
                   </div>
                 )}
               </div>
@@ -222,7 +227,9 @@ export function EditorialBody({
 
             const textCol = (
               <div className="space-y-5">
-                {unitBlocks.map((b, j) => render(b, j))}
+                {unitBlocks.map((b, j) => (
+                  <Fragment key={`u${i}-b${j}`}>{render(b, j)}</Fragment>
+                ))}
               </div>
             );
 

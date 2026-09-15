@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listLegalUpdatesForAdmin } from "@/lib/supabase/admin/legal-updates";
 import { DeleteLegalUpdateButton } from "@/app/admin/(protected)/legal-updates/delete-button";
 import { LegalUpdateStatusSelect } from "@/app/admin/(protected)/legal-updates/status-select";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Breaking Legal Updates — Admin",
@@ -14,7 +15,8 @@ export default async function AdminLegalUpdatesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Breaking Legal Updates</h1>
         <Link
           href="/admin/legal-updates/new"

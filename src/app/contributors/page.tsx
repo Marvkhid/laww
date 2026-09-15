@@ -8,7 +8,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { Gavel } from "@/components/ui/editorial-illustration";
 
 export const metadata: Metadata = {
-  title: "Editorial Board — Law Digest",
+  title: "Editorial Board",
   description: "The Law Digest Editorial Board and contributors.",
 };
 

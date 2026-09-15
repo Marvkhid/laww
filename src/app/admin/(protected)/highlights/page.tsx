@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listHighlightsForAdmin } from "@/lib/supabase/admin/homepage-highlights";
 import { deleteHighlightAction } from "./actions";
 import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Homepage Highlights — Admin",
@@ -13,7 +14,8 @@ export default async function AdminHighlightsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mb-8 mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Homepage Highlights</h1>
         <Link
           href="/admin/highlights/new"

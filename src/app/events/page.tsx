@@ -7,7 +7,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 
 export const metadata: Metadata = {
-  title: "Events — Law Digest",
+  title: "Events",
   description: "Law Digest events, conferences, and gatherings.",
   alternates: { canonical: "/events" },
 };

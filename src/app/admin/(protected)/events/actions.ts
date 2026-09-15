@@ -11,6 +11,7 @@ import {
   type EventInput,
 } from "@/lib/supabase/admin/events";
 import { uploadEventImage } from "@/lib/supabase/admin/storage";
+import { slugify } from "@/lib/slugify";
 
 export type FormState = { error: string | null };
 
@@ -20,12 +21,13 @@ async function readEventInput(formData: FormData): Promise<{ input: EventInput |
     return raw.length > 0 ? raw : null;
   };
 
-  const slug = String(formData.get("slug") ?? "").trim();
+  const slugRaw = String(formData.get("slug") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
 
-  if (!slug || !title) {
-    return { input: null, error: "Slug and title are both required." };
+  if (!title) {
+    return { input: null, error: "Title is required." };
   }
+  const slug = slugRaw.length > 0 ? slugRaw : slugify(title);
 
   // Cover image upload
   let cover_image_url: string | null = optional("existing_cover_image_url");

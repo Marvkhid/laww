@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLawyerNewsByIdForAdmin } from "@/lib/supabase/admin/lawyer-news";
 import { LawyerNewsForm } from "../../lawyer-news-form";
 import { updateLawyerNewsAction } from "../../actions";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Interview — Lawyer in the News — Admin",
@@ -22,7 +23,8 @@ export default async function EditLawyerNewsPage({
 
   return (
     <div>
-      <h1 className="mb-8 font-admin text-2xl font-semibold text-ink">
+      <AdminBackButton />
+      <h1 className="mb-8 mt-4 font-admin text-2xl font-semibold text-ink">
         Edit — {entry.lawyer_name}
       </h1>
       <LawyerNewsForm action={boundAction} initial={entry} submitLabel="Save Changes" />

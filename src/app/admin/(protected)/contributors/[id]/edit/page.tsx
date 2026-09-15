@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getContributorByIdForAdmin } from "@/lib/supabase/admin/contributors";
 import { updateContributorAction } from "@/app/admin/(protected)/contributors/actions";
 import { ContributorForm } from "@/app/admin/(protected)/contributors/contributor-form";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Contributor — Admin",
@@ -25,7 +26,8 @@ export default async function EditContributorPage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Contributor</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">Edit Contributor</h1>
       <div className="mt-6">
         <ContributorForm action={boundAction} initial={contributor} submitLabel="Save changes" />
       </div>

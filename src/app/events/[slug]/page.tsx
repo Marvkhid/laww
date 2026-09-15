@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getEventBySlug, getEvents } from "@/lib/supabase/queries/events";
 import { Reveal } from "@/components/motion/reveal";
+import { SITE_URL } from "@/lib/constants";
 
 export async function generateStaticParams() {
   try {
@@ -26,9 +27,28 @@ export async function generateMetadata({
   const event = await getEventBySlug(supabase, slug);
   if (!event) return {};
 
+  const description = event.description ?? `NG Law Digest event: ${event.title}`;
+  const canonicalUrl = `${SITE_URL}/events/${event.slug}`;
+  const ogImage = event.coverImageUrl || `${SITE_URL}/images/og-default.jpg`;
+
   return {
-    title: `${event.title} — Law Digest`,
-    description: event.description ?? `Law Digest event: ${event.title}`,
+    title: event.title,
+    description,
+    alternates: { canonical: `/events/${event.slug}` },
+    openGraph: {
+      type: "article",
+      title: event.title,
+      description,
+      url: canonicalUrl,
+      siteName: "NG Law Digest",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: event.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: event.title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 

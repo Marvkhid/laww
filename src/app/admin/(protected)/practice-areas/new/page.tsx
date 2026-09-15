@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PracticeAreaForm } from "@/app/admin/(protected)/practice-areas/practice-area-form";
 import { createPracticeAreaAction } from "@/app/admin/(protected)/practice-areas/actions";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "New Practice Area — Admin",
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 export default function NewPracticeAreaPage() {
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">New Practice Area</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">New Practice Area</h1>
       <div className="mt-6">
         <PracticeAreaForm action={createPracticeAreaAction} submitLabel="Create" />
       </div>

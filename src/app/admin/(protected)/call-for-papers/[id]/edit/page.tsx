@@ -7,6 +7,7 @@ import {
 import { updateCallForPapersAction } from "@/app/admin/(protected)/call-for-papers/actions";
 import { CallForPapersForm } from "@/app/admin/(protected)/call-for-papers/call-for-papers-form";
 import { listPracticeAreasForAdmin } from "@/lib/supabase/admin/practice-areas";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Call for Papers — Admin",
@@ -33,7 +34,8 @@ export default async function EditCallForPapersPage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Call for Papers</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">Edit Call for Papers</h1>
       <div className="mt-6">
         <CallForPapersForm
           action={boundAction}

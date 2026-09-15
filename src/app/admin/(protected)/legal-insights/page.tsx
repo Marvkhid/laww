@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listLegalInsightsForAdmin } from "@/lib/supabase/admin/legal-insights";
 import { deleteLegalInsightAction } from "./actions";
 import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Legal Questions of the Day — Admin",
@@ -13,7 +14,8 @@ export default async function AdminLegalInsightsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mb-8 mt-4 flex items-center justify-between">
         <div>
           <h1 className="font-admin text-2xl font-semibold text-ink">
             Legal Questions of the Day

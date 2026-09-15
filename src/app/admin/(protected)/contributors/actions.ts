@@ -9,6 +9,7 @@ import {
   type ContributorInput,
 } from "@/lib/supabase/admin/contributors";
 import { uploadContributorPhoto } from "@/lib/supabase/admin/storage";
+import { slugify } from "@/lib/slugify";
 
 export type FormState = { error: string | null };
 
@@ -27,9 +28,12 @@ async function readInput(formData: FormData): Promise<ContributorInput> {
     photo_url = url;
   }
 
+  const name = String(formData.get("name") ?? "").trim();
+  const slugRaw = String(formData.get("slug") ?? "").trim();
+
   return {
-    slug: String(formData.get("slug") ?? "").trim(),
-    name: String(formData.get("name") ?? "").trim(),
+    slug: slugRaw.length > 0 ? slugRaw : slugify(name),
+    name,
     credentials: optional("credentials"),
     role: String(formData.get("role") ?? "").trim(),
     bio: optional("bio"),
@@ -44,8 +48,8 @@ export async function createContributorAction(
 ): Promise<FormState> {
   const input = await readInput(formData);
 
-  if (!input.slug || !input.name || !input.role) {
-    return { error: "Slug, name, and role are all required." };
+  if (!input.name || !input.role) {
+    return { error: "Name and role are both required." };
   }
 
   const { error } = await createContributor(input);
@@ -64,8 +68,8 @@ export async function updateContributorAction(
 ): Promise<FormState> {
   const input = await readInput(formData);
 
-  if (!input.slug || !input.name || !input.role) {
-    return { error: "Slug, name, and role are all required." };
+  if (!input.name || !input.role) {
+    return { error: "Name and role are both required." };
   }
 
   const { error } = await updateContributor(id, input);

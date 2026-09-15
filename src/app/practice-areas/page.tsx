@@ -7,7 +7,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { LegalScales } from "@/components/ui/editorial-illustration";
 
 export const metadata: Metadata = {
-  title: "Practice Areas — Law Digest",
+  title: "Practice Areas",
   description: "Law Digest coverage areas.",
 };
 

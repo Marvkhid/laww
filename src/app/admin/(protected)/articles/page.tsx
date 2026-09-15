@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listArticlesForAdmin } from "@/lib/supabase/admin/articles";
 import { DeleteArticleButton } from "@/app/admin/(protected)/articles/delete-button";
 import { StatusToggleButton } from "@/app/admin/(protected)/articles/status-toggle-button";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Articles — Admin",
@@ -14,7 +15,8 @@ export default async function AdminArticlesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Articles</h1>
         <Link
           href="/admin/articles/new"

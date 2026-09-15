@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useCallback } from "react";
 import type { IssuesArchiveRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/issues/archive/actions";
+import { slugify } from "@/lib/slugify";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -19,6 +20,17 @@ export function ArchiveIssueForm({
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
+  const [slugManualOverride, setSlugManualOverride] = useState(false);
+
+  const onTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!slugManualOverride && !initial?.slug) {
+        const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+        if (slugInput) slugInput.value = slugify(e.target.value);
+      }
+    },
+    [slugManualOverride, initial?.slug],
+  );
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
@@ -33,6 +45,7 @@ export function ArchiveIssueForm({
           required
           defaultValue={initial?.title}
           placeholder="e.g. Issue 38 — Spring 2026"
+          onChange={onTitleChange}
           className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
         />
       </div>
@@ -40,15 +53,29 @@ export function ArchiveIssueForm({
         <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
-        <input
-          id="slug"
+        {initial?.slug ? (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              readOnly
+              defaultValue={initial.slug}
+              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+            />
+            <input type="hidden" name="slug" value={initial.slug} />
+          </>
+        ) : (
+          <input
+            id="slug"
           name="slug"
           type="text"
           required
-          defaultValue={initial?.slug}
-          placeholder="e.g. issue-38-spring-2026"
+          placeholder="auto-generated-from-title"
+          onChange={() => setSlugManualOverride(true)}
           className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
+          />
+        )}
       </div>
       <div>
         <label htmlFor="description" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">

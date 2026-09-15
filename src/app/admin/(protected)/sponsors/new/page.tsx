@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SponsorForm } from "@/app/admin/(protected)/sponsors/sponsor-form";
 import { createSponsorAction } from "@/app/admin/(protected)/sponsors/actions";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "New Sponsor — Admin",
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 export default function NewSponsorPage() {
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">New Sponsor</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">New Sponsor</h1>
       <div className="mt-6">
         <SponsorForm action={createSponsorAction} submitLabel="Create" />
       </div>

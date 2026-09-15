@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listCallForPapersForAdmin } from "@/lib/supabase/admin/call-for-papers";
 import { DeleteCallForPapersButton } from "@/app/admin/(protected)/call-for-papers/delete-button";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Call for Papers — Admin",
@@ -13,7 +14,8 @@ export default async function AdminCallForPapersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Call for Papers</h1>
         <Link
           href="/admin/call-for-papers/new"

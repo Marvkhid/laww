@@ -10,7 +10,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { OpenBook } from "@/components/ui/editorial-illustration";
 
 export const metadata: Metadata = {
-  title: "Articles — Law Digest",
+  title: "Articles",
   description: "All articles from the current issue of Law Digest.",
 };
 

@@ -9,7 +9,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { Gavel } from "@/components/ui/editorial-illustration";
 
 export const metadata: Metadata = {
-  title: "Issues — Law Digest",
+  title: "Issues",
   description: "Browse Law Digest issues and the archive.",
 };
 

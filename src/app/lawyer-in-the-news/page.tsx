@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 
 export const metadata: Metadata = {
-  title: "Lawyer in the News — Law Digest",
+  title: "Lawyer in the News",
   description: "Exclusive interviews with the lawyers making headlines.",
 };
 

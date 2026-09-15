@@ -134,16 +134,37 @@ export function LegalUpdateForm({
       </div>
       <div>
         <label htmlFor="slug" className="text-sm font-semibold text-ink">
-          Slug <span className="text-[#666]">(auto-generated if empty)</span>
+          Slug
         </label>
-        <input
-          id="slug"
-          name="slug"
-          type="text"
-          defaultValue={initial?.slug}
-          placeholder="auto-generated-from-headline"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
-        />
+        {initial?.slug ? (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              readOnly
+              defaultValue={initial.slug}
+              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 text-sm text-stone"
+            />
+            <input type="hidden" name="slug" value={initial.slug} />
+            <p className="mt-1 text-xs text-[#666]">
+              Existing slug — preserved to keep the public URL stable.
+            </p>
+          </>
+        ) : (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              placeholder="auto-generated-from-headline"
+              className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+            />
+            <p className="mt-1 text-xs text-[#666]">
+              Auto-generated from the headline if left empty.
+            </p>
+          </>
+        )}
       </div>
       <div>
         <label htmlFor="summary" className="text-sm font-semibold text-ink">

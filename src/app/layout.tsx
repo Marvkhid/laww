@@ -15,11 +15,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Law Digest — Africa's Premier Law Journal",
-    template: "%s — Law Digest",
+    default: "NG Law Digest — Nigerian Legal News, Updates & Insights",
+    template: "%s — NG Law Digest",
   },
   description:
-    "Law Digest is Africa's premier law journal, covering legal practice, policy, and commentary across Nigeria and beyond.",
+    "NG Law Digest is Nigeria's leading legal publication, covering legal practice, policy updates, and in-depth analysis across Nigeria and beyond.",
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: "/",
@@ -28,25 +28,48 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: SITE_URL,
-    siteName: "Law Digest",
-    title: "Law Digest — Africa's Premier Law Journal",
+    siteName: "NG Law Digest",
+    title: "NG Law Digest — Nigerian Legal News, Updates & Insights",
     description:
-      "Law Digest is Africa's premier law journal, covering legal practice, policy, and commentary across Nigeria and beyond.",
+      "NG Law Digest is Nigeria's leading legal publication, covering legal practice, policy updates, and in-depth analysis across Nigeria and beyond.",
     images: [
       {
         url: "/images/og-default.jpg",
         width: 1200,
         height: 630,
-        alt: "Law Digest — Africa's Premier Law Journal",
+        alt: "NG Law Digest — Nigerian Legal News, Updates & Insights",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Law Digest — Africa's Premier Law Journal",
+    title: "NG Law Digest — Nigerian Legal News, Updates & Insights",
     description:
-      "Law Digest is Africa's premier law journal, covering legal practice, policy, and commentary across Nigeria and beyond.",
+      "NG Law Digest is Nigeria's leading legal publication, covering legal practice, policy updates, and in-depth analysis across Nigeria and beyond.",
     images: ["/images/og-default.jpg"],
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "NG Law Digest",
+  url: SITE_URL,
+  description:
+    "Nigeria's leading legal publication covering legal practice, policy updates, and in-depth analysis.",
+  publisher: {
+    "@type": "Organization",
+    name: "NG Law Digest",
+    url: SITE_URL,
+    logo: {
+      "@type": "ImageObject",
+      url: `${SITE_URL}/images/og-default.jpg`,
+    },
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_URL}/search?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
   },
 };
 
@@ -61,6 +84,12 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${merriweather.variable} ${sourceSerif4.variable} ${ibmPlexMono.variable} antialiased`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="flex min-h-screen flex-col bg-paper text-ink">
         <a
           href="#main-content"

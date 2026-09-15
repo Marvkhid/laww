@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getPracticeAreas } from "@/lib/supabase/queries/practice-areas";
 import { getArticles } from "@/lib/supabase/queries/articles";
+import { SITE_URL } from "@/lib/constants";
 import {
   getPracticeAreaEditorial,
   type PracticeAreaSection,
@@ -38,11 +39,20 @@ export async function generateMetadata({
 
   const editorial = getPracticeAreaEditorial(slug);
   const description =
-    editorial?.intro?.slice(0, 160) ?? area.description?.slice(0, 160) ?? `Coverage of ${area.name} by Law Digest.`;
+    editorial?.intro?.slice(0, 160) ?? area.description?.slice(0, 160) ?? `Coverage of ${area.name} by NG Law Digest.`;
+  const canonicalUrl = `${SITE_URL}/practice-areas/${area.slug}`;
 
   return {
-    title: `${area.name} — Law Digest`,
+    title: area.name,
     description,
+    alternates: { canonical: `/practice-areas/${area.slug}` },
+    openGraph: {
+      type: "website",
+      title: area.name,
+      description,
+      url: canonicalUrl,
+      siteName: "NG Law Digest",
+    },
   };
 }
 

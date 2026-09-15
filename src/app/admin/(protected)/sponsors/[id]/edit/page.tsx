@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getSponsorByIdForAdmin } from "@/lib/supabase/admin/sponsors";
 import { updateSponsorAction } from "@/app/admin/(protected)/sponsors/actions";
 import { SponsorForm } from "@/app/admin/(protected)/sponsors/sponsor-form";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Sponsor — Admin",
@@ -25,7 +26,8 @@ export default async function EditSponsorPage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Sponsor</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">Edit Sponsor</h1>
       <div className="mt-6">
         <SponsorForm action={boundAction} initial={sponsor} submitLabel="Save changes" />
       </div>

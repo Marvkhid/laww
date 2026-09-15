@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useCallback } from "react";
 import type { ArticleRow, IssueRow, PracticeAreaRow, ContributorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/articles/actions";
 import { TiptapEditor } from "@/app/admin/(protected)/articles/tiptap-editor";
+import { slugify } from "@/lib/slugify";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -54,6 +55,17 @@ export function ArticleForm({
   const [state, formAction, isPending] = useActionState(action, { error: null });
   const selections = initialContributorSelections ?? new Map<string, number>();
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
+  const [slugManualOverride, setSlugManualOverride] = useState(false);
+
+  const onTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!slugManualOverride && !initial?.slug) {
+        const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+        if (slugInput) slugInput.value = slugify(e.target.value);
+      }
+    },
+    [slugManualOverride, initial?.slug],
+  );
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
@@ -67,6 +79,7 @@ export function ArticleForm({
           type="text"
           required
           defaultValue={initial?.title}
+          onChange={onTitleChange}
           className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
         />
       </div>
@@ -74,18 +87,37 @@ export function ArticleForm({
         <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
-        <input
-          id="slug"
-          name="slug"
-          type="text"
-          required
-          defaultValue={initial?.slug}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
-        <p className="mt-1 font-admin text-xs text-[#333]">
-          Sets the public URL at /articles/[slug] — edited directly, not generated from the
-          title.
-        </p>
+        {initial?.slug ? (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              readOnly
+              defaultValue={initial.slug}
+              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+            />
+            <input type="hidden" name="slug" value={initial.slug} />
+            <p className="mt-1 font-admin text-xs text-[#333]">
+              Existing slug — preserved to keep the public URL stable.
+            </p>
+          </>
+        ) : (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              required
+              placeholder="auto-generated-from-title"
+              onChange={() => setSlugManualOverride(true)}
+              className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            />
+            <p className="mt-1 font-admin text-xs text-[#333]">
+              Auto-generated from the title. Edit manually only if needed.
+            </p>
+          </>
+        )}
       </div>
       <div>
         <label htmlFor="dek" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">

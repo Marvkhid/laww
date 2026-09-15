@@ -4,6 +4,7 @@ import { getEventByIdForAdmin, getEventImagesForAdmin } from "@/lib/supabase/adm
 import { EventForm } from "@/app/admin/(protected)/events/event-form";
 import { updateEventAction, deleteEventAction } from "@/app/admin/(protected)/events/actions";
 import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Event — Admin",
@@ -24,7 +25,8 @@ export default async function EditEventPage({
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mb-8 mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Edit Event</h1>
         <form
           action={async () => {

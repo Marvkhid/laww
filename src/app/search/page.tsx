@@ -3,7 +3,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { SearchInput } from "@/components/forms/search-input";
 
 export const metadata: Metadata = {
-  title: "Search — Law Digest",
+  title: "Search",
   description: "Search Law Digest.",
 };
 

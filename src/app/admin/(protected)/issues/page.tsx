@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listIssuesForAdmin, countArticlesForIssue } from "@/lib/supabase/admin/issues";
 import { DeleteIssueButton } from "@/app/admin/(protected)/issues/delete-button";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Issues — Admin",
@@ -15,7 +16,8 @@ export default async function AdminIssuesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Issues</h1>
         <Link
           href="/admin/issues/new"

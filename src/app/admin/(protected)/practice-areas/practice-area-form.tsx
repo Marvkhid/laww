@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useCallback } from "react";
 import type { PracticeAreaRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/practice-areas/actions";
+import { slugify } from "@/lib/slugify";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -16,6 +17,17 @@ export function PracticeAreaForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const [slugManualOverride, setSlugManualOverride] = useState(false);
+
+  const onNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!slugManualOverride && !initial?.slug) {
+        const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+        if (slugInput) slugInput.value = slugify(e.target.value);
+      }
+    },
+    [slugManualOverride, initial?.slug],
+  );
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
@@ -29,6 +41,7 @@ export function PracticeAreaForm({
           type="text"
           required
           defaultValue={initial?.name}
+          onChange={onNameChange}
           className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
         />
       </div>
@@ -36,18 +49,37 @@ export function PracticeAreaForm({
         <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
-        <input
-          id="slug"
-          name="slug"
-          type="text"
-          required
-          defaultValue={initial?.slug}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
-        <p className="mt-1 font-admin text-xs text-[#333]">
-          Sets the public URL at /practice-areas/[slug] — edited directly, not generated from
-          the name.
-        </p>
+        {initial?.slug ? (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              readOnly
+              defaultValue={initial.slug}
+              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+            />
+            <input type="hidden" name="slug" value={initial.slug} />
+            <p className="mt-1 font-admin text-xs text-[#333]">
+              Existing slug — preserved to keep the public URL stable.
+            </p>
+          </>
+        ) : (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              required
+              placeholder="auto-generated-from-name"
+              onChange={() => setSlugManualOverride(true)}
+              className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            />
+            <p className="mt-1 font-admin text-xs text-[#333]">
+              Auto-generated from the name. Edit manually only if needed.
+            </p>
+          </>
+        )}
       </div>
       <div>
         <label

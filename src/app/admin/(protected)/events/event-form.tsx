@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useCallback } from "react";
 import type { EventRow, EventImageRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/events/actions";
+import { slugify } from "@/lib/slugify";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -24,6 +25,17 @@ export function EventForm({
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [removeImageIds, setRemoveImageIds] = useState<string[]>([]);
+  const [slugManualOverride, setSlugManualOverride] = useState(false);
+
+  const onTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!slugManualOverride && !initial?.slug) {
+        const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+        if (slugInput) slugInput.value = slugify(e.target.value);
+      }
+    },
+    [slugManualOverride, initial?.slug],
+  );
 
   const existingImages = (initialImages ?? []).filter(
     (img) => !removeImageIds.includes(img.id)
@@ -41,6 +53,7 @@ export function EventForm({
           type="text"
           required
           defaultValue={initial?.title}
+          onChange={onTitleChange}
           className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
         />
       </div>
@@ -48,14 +61,29 @@ export function EventForm({
         <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
           Slug
         </label>
-        <input
-          id="slug"
-          name="slug"
-          type="text"
-          required
-          defaultValue={initial?.slug}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
+        {initial?.slug ? (
+          <>
+            <input
+              id="slug"
+              name="slug"
+              type="text"
+              readOnly
+              defaultValue={initial.slug}
+              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+            />
+            <input type="hidden" name="slug" value={initial.slug} />
+          </>
+        ) : (
+          <input
+            id="slug"
+            name="slug"
+            type="text"
+            required
+            placeholder="auto-generated-from-title"
+            onChange={() => setSlugManualOverride(true)}
+            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          />
+        )}
       </div>
       <div>
         <label htmlFor="description" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">

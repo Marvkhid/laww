@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getContributorBySlug, getContributors } from "@/lib/supabase/queries/contributors";
 import { getArticlesByContributorSlug } from "@/lib/supabase/queries/articles";
+import { SITE_URL } from "@/lib/constants";
 import { PageNumberBadge } from "@/components/ui/page-number-badge";
 import { ContributorAvatar } from "@/components/ui/contributor-avatar";
 import { Reveal } from "@/components/motion/reveal";
@@ -26,7 +27,21 @@ export async function generateMetadata({
   const supabase = createSupabaseServerClient();
   const person = await getContributorBySlug(supabase, slug);
   if (!person) return {};
-  return { title: `${person.name} — Law Digest`, description: person.role };
+  const description = person.bio?.slice(0, 160) ?? `${person.name} — ${person.role} at NG Law Digest.`;
+  const canonicalUrl = `${SITE_URL}/contributors/${person.slug}`;
+
+  return {
+    title: person.name,
+    description,
+    alternates: { canonical: `/contributors/${person.slug}` },
+    openGraph: {
+      type: "profile",
+      title: person.name,
+      description,
+      url: canonicalUrl,
+      siteName: "NG Law Digest",
+    },
+  };
 }
 
 export default async function ContributorPage({

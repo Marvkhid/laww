@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listPracticeAreasForAdmin } from "@/lib/supabase/admin/practice-areas";
 import { DeletePracticeAreaButton } from "@/app/admin/(protected)/practice-areas/delete-button";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Practice Areas — Admin",
@@ -13,7 +14,8 @@ export default async function AdminPracticeAreasPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Practice Areas</h1>
         <Link
           href="/admin/practice-areas/new"

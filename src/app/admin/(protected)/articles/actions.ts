@@ -12,6 +12,7 @@ import {
 } from "@/lib/supabase/admin/articles";
 import type { JSONContent } from "@tiptap/core";
 import { uploadArticleCoverImage } from "@/lib/supabase/admin/storage";
+import { slugify } from "@/lib/slugify";
 
 export type FormState = { error: string | null };
 
@@ -80,14 +81,15 @@ async function readArticleInput(
     return raw.length > 0 ? raw : null;
   };
 
-  const slug = String(formData.get("slug") ?? "").trim();
+  const slugRaw = String(formData.get("slug") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
   const status = String(formData.get("status") ?? "draft");
   const pageNumberRaw = String(formData.get("page_number") ?? "").trim();
 
-  if (!slug || !title) {
-    return { input: null, error: "Slug and title are both required." };
+  if (!title) {
+    return { input: null, error: "Title is required." };
   }
+  const slug = slugRaw.length > 0 ? slugRaw : slugify(title);
   if (status !== "draft" && status !== "published") {
     return { input: null, error: "Status must be draft or published." };
   }

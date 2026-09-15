@@ -7,13 +7,16 @@ import {
   updatePracticeArea,
   deletePracticeArea,
 } from "@/lib/supabase/admin/practice-areas";
+import { slugify } from "@/lib/slugify";
 
 export type FormState = { error: string | null };
 
 function readInput(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const slugRaw = String(formData.get("slug") ?? "").trim();
   return {
-    slug: String(formData.get("slug") ?? "").trim(),
-    name: String(formData.get("name") ?? "").trim(),
+    slug: slugRaw.length > 0 ? slugRaw : slugify(name),
+    name,
     description: (() => {
       const raw = String(formData.get("description") ?? "").trim();
       return raw.length > 0 ? raw : null;
@@ -27,8 +30,8 @@ export async function createPracticeAreaAction(
 ): Promise<FormState> {
   const input = readInput(formData);
 
-  if (!input.slug || !input.name) {
-    return { error: "Slug and name are both required." };
+  if (!input.name) {
+    return { error: "Name is required." };
   }
 
   const { error } = await createPracticeArea(input);
@@ -46,8 +49,8 @@ export async function updatePracticeAreaAction(
 ): Promise<FormState> {
   const input = readInput(formData);
 
-  if (!input.slug || !input.name) {
-    return { error: "Slug and name are both required." };
+  if (!input.name) {
+    return { error: "Name is required." };
   }
 
   const { error } = await updatePracticeArea(id, input);

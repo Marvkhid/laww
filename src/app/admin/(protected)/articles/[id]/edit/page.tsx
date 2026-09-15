@@ -9,6 +9,7 @@ import { ArticleForm } from "@/app/admin/(protected)/articles/article-form";
 import { listIssuesForAdmin } from "@/lib/supabase/admin/issues";
 import { listPracticeAreasForAdmin } from "@/lib/supabase/admin/practice-areas";
 import { listContributorsForAdmin } from "@/lib/supabase/admin/contributors";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Article — Admin",
@@ -40,7 +41,8 @@ export default async function EditArticlePage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Article</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">Edit Article</h1>
       <div className="mt-6">
         <ArticleForm
           action={boundAction}

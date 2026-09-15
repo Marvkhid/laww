@@ -12,18 +12,11 @@ import {
 import { uploadLegalUpdateImage } from "@/lib/supabase/admin/storage";
 import type { LegalUpdateStatus } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
+import { slugify } from "@/lib/slugify";
 
 export type FormState = { error: string | null };
 
 const VALID_STATUSES: LegalUpdateStatus[] = ["pending_review", "published", "rejected"];
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 120);
-}
 
 function isEmptyDoc(doc: JSONContent): boolean {
   const content = doc.content ?? [];

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseAuthServerClient } from "@/lib/supabase/server-client";
 import { logout } from "@/app/admin/actions";
@@ -23,7 +24,7 @@ export default async function ProtectedAdminLayout({
     <div data-admin className="min-h-screen bg-paper-warm">
       <header className="border-b border-hairline">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <p className="font-admin text-lg font-semibold text-ink">Digest Admin</p>
+          <Link href="/admin" className="font-admin text-lg font-semibold text-ink transition-colors hover:text-digest-red">Digest Admin</Link>
           <form action={logout}>
             <button
               type="submit"

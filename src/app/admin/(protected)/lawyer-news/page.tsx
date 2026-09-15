@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listLawyerNewsForAdmin } from "@/lib/supabase/admin/lawyer-news";
 import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
 import { deleteLawyerNewsAction } from "./actions";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Lawyer in the News — Admin",
@@ -13,7 +14,8 @@ export default async function AdminLawyerNewsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <AdminBackButton />
+      <div className="mb-8 mt-4 flex items-center justify-between">
         <div>
           <h1 className="font-admin text-2xl font-semibold text-ink">Lawyer in the News</h1>
           <p className="mt-1 text-xs text-[#666]">

@@ -10,18 +10,11 @@ import {
 } from "@/lib/supabase/admin/lawyer-news";
 import { uploadLawyerNewsImage } from "@/lib/supabase/admin/storage";
 import type { LawyerNewsStatus } from "@/lib/supabase/types";
+import { slugify } from "@/lib/slugify";
 
 export type FormState = { error: string | null };
 
 const VALID_STATUSES: LawyerNewsStatus[] = ["pending_review", "published", "archived"];
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 120);
-}
 
 /** Read a file upload or fall back to the existing URL. */
 async function readImageUpload(

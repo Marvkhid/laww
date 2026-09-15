@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getCurrentIssue } from "@/lib/supabase/queries/issues";
 import { getArticles } from "@/lib/supabase/queries/articles";
+import { SITE_URL } from "@/lib/constants";
 import { PageNumberBadge } from "@/components/ui/page-number-badge";
 import { Byline } from "@/components/ui/byline";
 import { Reveal } from "@/components/motion/reveal";
@@ -27,9 +28,20 @@ export async function generateMetadata({
   const supabase = createSupabaseServerClient();
   const issueMeta = await getCurrentIssue(supabase);
   if (!issueMeta || slug !== `issue-${issueMeta.issueNumber}`) return {};
+  const description = `NG Law Digest Issue ${issueMeta.issueNumber}, ${issueMeta.season} ${issueMeta.year}, ${issueMeta.edition}.`;
+  const canonicalUrl = `${SITE_URL}/issues/${slug}`;
+
   return {
-    title: `Issue ${issueMeta.issueNumber} — Law Digest`,
-    description: `Law Digest Issue ${issueMeta.issueNumber}, ${issueMeta.season} ${issueMeta.year}, ${issueMeta.edition}.`,
+    title: `Issue ${issueMeta.issueNumber} — ${issueMeta.season} ${issueMeta.year}`,
+    description,
+    alternates: { canonical: `/issues/${slug}` },
+    openGraph: {
+      type: "website",
+      title: `Issue ${issueMeta.issueNumber} — ${issueMeta.season} ${issueMeta.year}`,
+      description,
+      url: canonicalUrl,
+      siteName: "NG Law Digest",
+    },
   };
 }
 

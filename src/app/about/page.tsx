@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 
 export const metadata: Metadata = {
-  title: "About — Law Digest",
+  title: "About",
   description:
     "Law Digest is Africa's premier law journal — legal practice, policy, and commentary across Nigeria and beyond. Learn about our mission, editorial team, and vision.",
   alternates: { canonical: "/about" },

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getIssueByIdForAdmin } from "@/lib/supabase/admin/issues";
 import { updateIssueAction } from "@/app/admin/(protected)/issues/actions";
 import { IssueForm } from "@/app/admin/(protected)/issues/issue-form";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Issue — Admin",
@@ -25,7 +26,8 @@ export default async function EditIssuePage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Issue {issue.issue_number}</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">Edit Issue {issue.issue_number}</h1>
       <div className="mt-6">
         <IssueForm action={boundAction} initial={issue} submitLabel="Save changes" />
       </div>

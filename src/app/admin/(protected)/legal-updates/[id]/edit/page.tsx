@@ -4,6 +4,7 @@ import { getLegalUpdateByIdForAdmin } from "@/lib/supabase/admin/legal-updates";
 import { listPracticeAreasForAdmin } from "@/lib/supabase/admin/practice-areas";
 import { updateLegalUpdateAction } from "@/app/admin/(protected)/legal-updates/actions";
 import { LegalUpdateForm } from "@/app/admin/(protected)/legal-updates/legal-update-form";
+import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
   title: "Edit Legal Update — Admin",
@@ -29,7 +30,8 @@ export default async function EditLegalUpdatePage({
 
   return (
     <div>
-      <h1 className="font-admin text-2xl font-semibold text-ink">Edit Legal Update</h1>
+      <AdminBackButton />
+      <h1 className="mt-4 font-admin text-2xl font-semibold text-ink">Edit Legal Update</h1>
       <div className="mt-6">
         <LegalUpdateForm
           action={boundAction}
