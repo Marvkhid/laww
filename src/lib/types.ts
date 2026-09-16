@@ -47,6 +47,8 @@ export interface PracticeArea {
   slug: string;
   name: string;
   description?: string | null;
+  imageUrl?: string | null;
+  imageAlt?: string | null;
 }
 
 export interface IssueMeta {

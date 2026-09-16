@@ -334,6 +334,39 @@ export async function uploadHighlightImage(
   }
 }
 
+/** Upload a practice-area image (homepage "Coverage areas" section). */
+export async function uploadPracticeAreaImage(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  if (!ALLOWED_TYPES.has(file.type)) {
+    return { url: null, error: "Image must be a JPEG, PNG, WEBP, or GIF." };
+  }
+  if (file.size > MAX_BYTES) {
+    return { url: null, error: "Image must be 5MB or smaller." };
+  }
+
+  const supabase = await requireAdmin();
+  const path = `practice-areas/${randomUUID()}.${extensionFor(file.type)}`;
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, buffer, { contentType: file.type, upsert: false });
+
+    if (uploadError) {
+      console.error(`Supabase Storage upload failed (bucket=${BUCKET}):`, uploadError);
+      return { url: null, error: "Could not upload the image. Please try again." };
+    }
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    return { url: data.publicUrl, error: null };
+  } catch (err) {
+    console.error(`Supabase Storage upload threw (bucket=${BUCKET}):`, err);
+    return { url: null, error: "Could not upload the image. Please try again." };
+  }
+}
+
 /** Upload a sponsor/advertisement image or logo. */
 export async function uploadSponsorImage(
   file: File

@@ -284,10 +284,11 @@ export default async function PracticeAreaPage({
           <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
             <Image
               src={
+                area.imageUrl ??
                 editorial?.heroImage ??
                 "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=80"
               }
-              alt={editorial?.heroAlt ?? area.name}
+              alt={area.imageAlt ?? editorial?.heroAlt ?? area.name}
               fill
               className="object-contain"
               priority

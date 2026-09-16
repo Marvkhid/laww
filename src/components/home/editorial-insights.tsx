@@ -6,6 +6,7 @@ import { Byline } from "@/components/ui/byline";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { MagnifyingGlass } from "@/components/ui/editorial-illustration";
+import { ArticleCoverImage } from "@/components/ui/article-cover-image";
 
 export async function EditorialInsights() {
   const supabase = createSupabaseServerClient();
@@ -29,6 +30,18 @@ export async function EditorialInsights() {
                 href={`/articles/${article.slug}`}
                 className="group block border-t-2 border-purple/20 pt-6 transition-border-color duration-300 hover:border-purple"
               >
+                {/* Uploaded cover image — shown only when the admin uploaded
+                    one (object-contain, never cropped); text-only otherwise */}
+                {article.coverImageUrl ? (
+                  <div className="relative mb-5 overflow-hidden">
+                    <ArticleCoverImage
+                      src={article.coverImageUrl}
+                      alt={article.imageAlt}
+                      aspect="aspect-[16/10]"
+                    />
+                    <div className="absolute bottom-0 left-0 h-[3px] w-0 bg-digest-red transition-all duration-500 group-hover:w-full" />
+                  </div>
+                ) : null}
                 <PageNumberBadge page={article.page} />
                 <h3 className="mt-4 font-display text-lg italic text-ink transition-colors duration-300 group-hover:text-digest-red">
                   {article.title}
