@@ -1,12 +1,35 @@
 "use client";
 
 import { useActionState, useState, useCallback } from "react";
+import { motion } from "motion/react";
 import type { ArticleRow, IssueRow, PracticeAreaRow, ContributorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/articles/actions";
 import { TiptapEditor } from "@/app/admin/(protected)/articles/tiptap-editor";
 import { slugify } from "@/lib/slugify";
+import {
+  TextField,
+  TextAreaField,
+  SelectField,
+  CheckboxField,
+  FormSection,
+  fieldEntrance,
+} from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
+
+const POSITION_OPTIONS = [
+  ["top-right", "Top / Right"],
+  ["top-left", "Top / Left"],
+  ["bottom-right", "Bottom / Right"],
+  ["bottom-left", "Bottom / Left"],
+  ["center-right", "Centre / Right"],
+  ["center-left", "Centre / Left"],
+  ["full-width", "Full Width"],
+] as const;
+
+const DEFAULT_POSITIONS = ["top-right", "bottom-left", "center-right", "center-left"] as const;
 
 export function ArticleForm({
   action,
@@ -68,221 +91,193 @@ export function ArticleForm({
   );
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
-      <div>
-        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Title
-        </label>
-        <input
+    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+      {/* ── Article details ── */}
+      <FormSection title="Article Details" subtitle="The headline and metadata that define this story." accent="top">
+        <TextField
+          label="Title"
           id="title"
           name="title"
           type="text"
           required
           defaultValue={initial?.title}
           onChange={onTitleChange}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          placeholder="Enter the article headline…"
+          helper={initial?.slug ? undefined : "The URL slug is generated automatically as you type."}
+          index={0}
         />
-      </div>
-      <div>
-        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Slug
-        </label>
-        {initial?.slug ? (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              readOnly
-              defaultValue={initial.slug}
-              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
-            />
-            <input type="hidden" name="slug" value={initial.slug} />
-            <p className="mt-1 font-admin text-xs text-[#333]">
-              Existing slug — preserved to keep the public URL stable.
-            </p>
-          </>
-        ) : (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              required
-              placeholder="auto-generated-from-title"
-              onChange={() => setSlugManualOverride(true)}
-              className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-            />
-            <p className="mt-1 font-admin text-xs text-[#333]">
-              Auto-generated from the title. Edit manually only if needed.
-            </p>
-          </>
-        )}
-      </div>
-      <div>
-        <label htmlFor="dek" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Dek <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        <textarea
-          id="dek"
+
+        <div className="flex flex-col">
+          <label htmlFor="slug" className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+            Slug
+          </label>
+          {initial?.slug ? (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                readOnly
+                defaultValue={initial.slug}
+                className="mt-1.5 w-full cursor-not-allowed border border-hairline bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+                style={{ borderRadius: 2 }}
+              />
+              <input type="hidden" name="slug" value={initial.slug} />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Existing slug — preserved to keep the public URL stable.
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                required
+                placeholder="auto-generated-from-title"
+                onChange={() => setSlugManualOverride(true)}
+                className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
+                style={{ borderRadius: 2 }}
+              />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Auto-generated from the title. Edit manually only if needed.
+              </p>
+            </>
+          )}
+        </div>
+
+        <TextAreaField
+          label="Dek"
+          optional
           name="dek"
           rows={2}
           defaultValue={initial?.dek ?? ""}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          placeholder="A short standfirst beneath the headline…"
+          index={2}
         />
-      </div>
-      <div>
-        <label className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Body <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        <div className="mt-1">
+      </FormSection>
+
+      {/* ── Body ── */}
+      <FormSection title="Body" subtitle="Write the story with the rich text editor." accent="left">
+        <div>
+          <div className="mb-1.5">
+            <span className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+              Content <span className="normal-case tracking-normal text-stone/70">(optional)</span>
+            </span>
+          </div>
           <TiptapEditor name="body" initialContent={initial?.body} />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label
-            htmlFor="page_number"
-            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
-          >
-            Page number <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <input
+      </FormSection>
+
+      {/* ── Publishing ── */}
+      <FormSection title="Publishing" subtitle="Status and in-issue placement." accent="left">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Page number"
+            optional
             id="page_number"
             name="page_number"
             type="number"
             min={1}
             step={1}
             defaultValue={initial?.page_number ?? ""}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={0}
           />
-        </div>
-        <div>
-          <label htmlFor="status" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-            Status
-          </label>
-          <select
+          <SelectField
+            label="Status"
             id="status"
             name="status"
             defaultValue={initial?.status ?? "draft"}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={1}
           >
             <option value="draft">Draft</option>
             <option value="published">Published</option>
-          </select>
+          </SelectField>
         </div>
-      </div>
-      <div>
-        <label
-          htmlFor="cover_image_file"
-          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
-        >
-          Cover image <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        {coverPreview ? (
-          <div className="mt-2 aspect-[16/10] w-full max-w-xs overflow-hidden border border-hairline">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
-          </div>
-        ) : null}
-        <input
-          id="cover_image_file"
-          name="cover_image_file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) setCoverPreview(URL.createObjectURL(file));
-          }}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
-        <input
-          type="hidden"
-          name="existing_cover_image_url"
-          value={initial?.cover_image_url ?? ""}
-        />
-        <p className="mt-1 font-admin text-xs text-[#333]">
-          JPEG, PNG, WEBP, or GIF, up to 5MB.
-          {initial?.cover_image_url ? " Leave empty to keep the current image." : ""}
-        </p>
-      </div>
+      </FormSection>
 
-      {/* Inline Article Images */}
-      <fieldset className="flex flex-col gap-4 border border-hairline p-4">
-        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Article Images <span className="normal-case text-[#333]">(optional, up to 4)</span>
-        </legend>
-        <p className="font-admin text-xs text-[#333]">
-          Position images within the article content. Leave empty to skip.
+      {/* ── Cover image ── */}
+      <FormSection title="Cover Image" subtitle="The hero image shown on the homepage and article page." accent="left">
+        <ImageUploadZone
+          name="cover_image_file"
+          label={coverPreview ? "Replace cover image" : "Upload cover image"}
+          existingHiddenName="existing_cover_image_url"
+          existingValue={initial?.cover_image_url ?? ""}
+          initialPreview={coverPreview}
+          onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
+        />
+        <p className="font-admin text-xs text-stone">
+          {initial?.cover_image_url ? "Leave empty to keep the current image." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}
         </p>
-        {([1, 2, 3, 4] as const).map((num) => {
+      </FormSection>
+
+      {/* ── Inline article images ── */}
+      <FormSection
+        title="Article Images"
+        subtitle="Position up to 4 images within the article content. Leave empty to skip."
+        accent="left"
+      >
+        {([1, 2, 3, 4] as const).map((num, i) => {
           const posKey = `image_${num}_position` as const;
           const urlKey = `image_${num}_url` as const;
           const altKey = `image_${num}_alt` as const;
           return (
-            <div key={num} className="grid grid-cols-[1fr_140px] gap-3 border-t border-hairline/60 pt-3">
+            <motion.div
+              key={num}
+              {...fieldEntrance}
+              transition={{ ...fieldEntrance.transition, delay: i * 0.05 }}
+              className="grid gap-3 border-t border-hairline/70 pt-4 sm:grid-cols-[1fr_170px]"
+            >
               <div>
-                <label htmlFor={`image_${num}_file`} className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
+                <span className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
                   Image {num}
-                </label>
-                <input
-                  id={`image_${num}_file`}
-                  name={`image_${num}_file`}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 font-admin text-xs text-ink"
-                />
-                <input type="hidden" name={`existing_${urlKey}`} value={initial?.[urlKey] ?? ""} />
-              </div>
-              <div className="flex flex-col gap-2">
-                <div>
-                  <label htmlFor={`image_${num}_alt`} className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
-                    Alt text
-                  </label>
-                  <input
-                    id={`image_${num}_alt`}
-                    name={altKey}
-                    type="text"
-                    defaultValue={initial?.[altKey] ?? ""}
-                    placeholder="Image description"
-                    className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 font-admin text-xs text-ink"
+                </span>
+                <div className="mt-1.5">
+                  <ImageUploadZone
+                    name={`image_${num}_file`}
+                    label={`Image ${num}`}
+                    existingHiddenName={`existing_${urlKey}`}
+                    existingValue={initial?.[urlKey] ?? ""}
+                    compact
+                    previewAspect="aspect-[16/9]"
                   />
                 </div>
-                <div>
-                  <label htmlFor={posKey} className="font-admin text-[11px] font-semibold uppercase tracking-wide text-ink">
-                    Position
-                  </label>
-                  <select
-                    id={posKey}
-                    name={posKey}
-                    defaultValue={initial?.[posKey] ?? (num === 1 ? "top-right" : num === 2 ? "bottom-left" : num === 3 ? "center-right" : "center-left")}
-                    className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 font-admin text-xs text-ink"
-                  >
-                    <option value="top-right">Top / Right</option>
-                    <option value="top-left">Top / Left</option>
-                    <option value="bottom-right">Bottom / Right</option>
-                    <option value="bottom-left">Bottom / Left</option>
-                    <option value="center-right">Centre / Right</option>
-                    <option value="center-left">Centre / Left</option>
-                    <option value="full-width">Full Width</option>
-                  </select>
-                </div>
               </div>
-            </div>
+              <div className="flex flex-col gap-3">
+                <TextField
+                  label="Alt text"
+                  name={altKey}
+                  type="text"
+                  defaultValue={initial?.[altKey] ?? ""}
+                  placeholder="Describe the image…"
+                  index={i}
+                />
+                <SelectField
+                  label="Position"
+                  name={posKey}
+                  defaultValue={initial?.[posKey] ?? DEFAULT_POSITIONS[num - 1]}
+                  index={i}
+                >
+                  {POSITION_OPTIONS.map(([value, text]) => (
+                    <option key={value} value={value}>{text}</option>
+                  ))}
+                </SelectField>
+              </div>
+            </motion.div>
           );
         })}
-      </fieldset>
+      </FormSection>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="issue_id" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-            Issue <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <select
+      {/* ── Editorial information ── */}
+      <FormSection title="Editorial Information" subtitle="Issue, practice area, and homepage placement." accent="left">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Issue"
+            optional
             id="issue_id"
             name="issue_id"
             defaultValue={initial?.issue_id ?? ""}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={0}
           >
             <option value="">None</option>
             {issues.map((issue) => (
@@ -290,20 +285,14 @@ export function ArticleForm({
                 Issue {issue.issue_number} — {issue.season} {issue.year}
               </option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label
-            htmlFor="practice_area_id"
-            className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
-          >
-            Practice area <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <select
+          </SelectField>
+          <SelectField
+            label="Practice area"
+            optional
             id="practice_area_id"
             name="practice_area_id"
             defaultValue={initial?.practice_area_id ?? ""}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={1}
           >
             <option value="">None</option>
             {practiceAreas.map((area) => (
@@ -311,84 +300,91 @@ export function ArticleForm({
                 {area.name}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
-      </div>
 
-      <fieldset className="flex flex-col gap-2 border border-hairline p-4">
-        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Homepage placement
-        </legend>
-        <label className="flex items-center gap-2 font-admin text-sm text-ink">
-          <input type="checkbox" name="on_cover" defaultChecked={initial?.on_cover} />
-          In This Issue (cover teaser strip)
-        </label>
-        <label className="flex items-center gap-2 font-admin text-sm text-ink">
-          <input type="checkbox" name="featured" defaultChecked={initial?.featured} />
-          Featured Stories
-        </label>
-        <label className="flex items-center gap-2 font-admin text-sm text-ink">
-          <input
-            type="checkbox"
+        <div className="flex flex-col gap-1 border-t border-hairline/70 pt-3">
+          <span className="mb-1 font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+            Homepage placement
+          </span>
+          <CheckboxField
+            name="on_cover"
+            label="In This Issue"
+            description="Cover teaser strip"
+            defaultChecked={initial?.on_cover}
+            index={0}
+          />
+          <CheckboxField
+            name="featured"
+            label="Featured Stories"
+            defaultChecked={initial?.featured}
+            index={1}
+          />
+          <CheckboxField
             name="is_editorial_insight"
+            label="Editorial Insights"
             defaultChecked={initial?.is_editorial_insight}
+            index={2}
           />
-          Editorial Insights
-        </label>
-        <label className="flex items-center gap-2 font-admin text-sm text-ink">
-          <input
-            type="checkbox"
+          <CheckboxField
             name="is_cover_story"
+            label="Cover Story"
+            description="Only one at a time — setting this unsets the previous"
             defaultChecked={initial?.is_cover_story}
+            index={3}
           />
-          Cover Story (only one at a time — setting this unsets the previous)
-        </label>
-      </fieldset>
+        </div>
+      </FormSection>
 
-      <fieldset className="flex flex-col gap-3 border border-hairline p-4">
-        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Authors
-        </legend>
-        <p className="font-admin text-xs text-[#333]">
-          Check who&rsquo;s credited. The number sets byline order (1 = first author) — only
-          used when more than one is selected.
-        </p>
-        {contributors.map((person) => (
-          <div key={person.id} className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id={`contributor_${person.id}`}
-              name={`contributor_${person.id}`}
-              defaultChecked={selections.has(person.id)}
-              className="shrink-0"
-            />
-            <label htmlFor={`contributor_${person.id}`} className="flex-1 font-admin text-sm text-ink">
-              {person.name}
-              {person.is_editorial_board ? (
-                <span className="ml-1 text-[#333]">(Editorial Board)</span>
-              ) : null}
-            </label>
-            <input
-              type="number"
-              name={`order_${person.id}`}
-              min={1}
-              step={1}
-              defaultValue={selections.get(person.id) ?? 1}
-              className="w-16 border border-hairline bg-white px-2 py-1 font-admin text-xs text-ink"
-              aria-label={`Byline order for ${person.name}`}
-            />
-          </div>
-        ))}
-      </fieldset>
-
-      {state.error ? <p className="font-admin text-sm text-digest-red">{state.error}</p> : null}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
+      {/* ── Authors ── */}
+      <FormSection
+        title="Authors"
+        subtitle="Check who's credited. The number sets byline order (1 = first author) — only used when more than one is selected."
+        accent="left"
       >
-        {isPending ? "Saving…" : submitLabel}
-      </button>
+        <div className="flex flex-col divide-y divide-hairline/60">
+          {contributors.map((person, i) => (
+            <motion.div
+              key={person.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.3) }}
+              className="flex items-center gap-3 py-2"
+            >
+              <CheckboxField
+                name={`contributor_${person.id}`}
+                label={
+                  person.name + (person.is_editorial_board ? "  (Editorial Board)" : "")
+                }
+                defaultChecked={selections.has(person.id)}
+                index={0}
+              />
+              <input
+                type="number"
+                name={`order_${person.id}`}
+                min={1}
+                step={1}
+                defaultValue={selections.get(person.id) ?? 1}
+                className="ml-auto w-16 border border-hairline bg-white px-2 py-1.5 font-admin text-xs text-ink"
+                style={{ borderRadius: 2 }}
+                aria-label={`Byline order for ${person.name}`}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </FormSection>
+
+      {state.error ? (
+        <p role="alert" className="font-admin text-sm font-medium text-digest-red">
+          {state.error}
+        </p>
+      ) : null}
+
+      <SubmitButton
+        label={submitLabel}
+        pendingLabel="Saving…"
+        isPending={isPending}
+      />
     </form>
   );
 }

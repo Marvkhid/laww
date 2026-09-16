@@ -4,6 +4,15 @@ import { useActionState, useState, useCallback } from "react";
 import type { EventRow, EventImageRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/events/actions";
 import { slugify } from "@/lib/slugify";
+import {
+  TextField,
+  TextAreaField,
+  CheckboxField,
+  FormSection,
+} from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { ImageUploadZone, RemoveThumbButton } from "@/components/forms/kit/image-upload";
+import { motion, useReducedMotion } from "motion/react";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -22,10 +31,9 @@ export function EventForm({
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
-  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [removeImageIds, setRemoveImageIds] = useState<string[]>([]);
   const [slugManualOverride, setSlugManualOverride] = useState(false);
+  const reduce = useReducedMotion();
 
   const onTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,79 +50,74 @@ export function EventForm({
   );
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
-      <div>
-        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Event Title
-        </label>
-        <input
+    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+      <FormSection title="Event Details" subtitle="Title, date, and description." accent="top">
+        <TextField
+          label="Event title"
           id="title"
           name="title"
           type="text"
           required
           defaultValue={initial?.title}
           onChange={onTitleChange}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          placeholder="e.g. Annual Law Conference 2026"
+          helper={initial?.slug ? undefined : "The URL slug is generated automatically as you type."}
+          index={0}
         />
-      </div>
-      <div>
-        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Slug
-        </label>
-        {initial?.slug ? (
-          <>
+
+        <div className="flex flex-col">
+          <label htmlFor="slug" className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+            Slug
+          </label>
+          {initial?.slug ? (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                readOnly
+                defaultValue={initial.slug}
+                className="mt-1.5 w-full cursor-not-allowed border border-hairline bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+                style={{ borderRadius: 2 }}
+              />
+              <input type="hidden" name="slug" value={initial.slug} />
+            </>
+          ) : (
             <input
               id="slug"
               name="slug"
               type="text"
-              readOnly
-              defaultValue={initial.slug}
-              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+              required
+              placeholder="auto-generated-from-title"
+              onChange={() => setSlugManualOverride(true)}
+              className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
+              style={{ borderRadius: 2 }}
             />
-            <input type="hidden" name="slug" value={initial.slug} />
-          </>
-        ) : (
-          <input
-            id="slug"
-            name="slug"
-            type="text"
-            required
-            placeholder="auto-generated-from-title"
-            onChange={() => setSlugManualOverride(true)}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-          />
-        )}
-      </div>
-      <div>
-        <label htmlFor="description" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Description <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        <textarea
-          id="description"
+          )}
+        </div>
+
+        <TextAreaField
+          label="Description"
+          optional
           name="description"
           rows={3}
           defaultValue={initial?.description ?? ""}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          placeholder="What happens at this event?"
         />
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <label htmlFor="event_date" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-            Event Date <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <input
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TextField
+            label="Event date"
+            optional
             id="event_date"
             name="event_date"
             type="date"
             defaultValue={initial?.event_date ?? ""}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={1}
           />
-        </div>
-        <div>
-          <label htmlFor="event_page_number" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-            Page Number <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <input
+          <TextField
+            label="Page number"
+            optional
             id="event_page_number"
             name="page_number"
             type="number"
@@ -122,111 +125,78 @@ export function EventForm({
             step={1}
             defaultValue={initial?.page_number ?? ""}
             placeholder="e.g. 30"
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={2}
           />
-        </div>
-        <div className="flex items-end">
-          <label className="flex items-center gap-2 font-admin text-sm text-ink">
-            <input
-              type="checkbox"
+          <div className="flex items-end pb-2">
+            <CheckboxField
               name="published"
+              label="Published"
               defaultChecked={initial?.published ?? true}
+              index={3}
             />
-            Published
-          </label>
-        </div>
-      </div>
-
-      {/* Cover Image */}
-      <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Cover Image <span className="normal-case text-[#333]">(optional)</span>
-        </legend>
-        {coverPreview ? (
-          <div className="mt-2 aspect-[16/10] w-full max-w-xs overflow-hidden border border-hairline">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
           </div>
-        ) : null}
-        <input
-          id="cover_image_file"
-          name="cover_image_file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) setCoverPreview(URL.createObjectURL(file));
-          }}
-          className="mt-2 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
-        <input type="hidden" name="existing_cover_image_url" value={initial?.cover_image_url ?? ""} />
-      </fieldset>
+        </div>
+      </FormSection>
 
-      {/* Gallery Images */}
-      <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Gallery Images <span className="normal-case text-[#333]">(optional)</span>
-        </legend>
+      <FormSection title="Cover Image" subtitle="The hero image for this event." accent="left">
+        <ImageUploadZone
+          name="cover_image_file"
+          label={coverPreview ? "Replace cover image" : "Upload cover image"}
+          existingHiddenName="existing_cover_image_url"
+          existingValue={initial?.cover_image_url ?? ""}
+          initialPreview={coverPreview}
+          previewAspect="aspect-[16/10]"
+          onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
+        />
+      </FormSection>
+
+      <FormSection title="Gallery Images" subtitle="Select multiple images at once. JPEG, PNG, WEBP, or GIF, up to 5MB each." accent="left">
         {existingImages.length > 0 ? (
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {existingImages.map((img) => (
-              <div key={img.id} className="relative aspect-square overflow-hidden border border-hairline">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {existingImages.map((img, i) => (
+              <motion.div
+                key={img.id}
+                layout={!reduce}
+                initial={reduce ? false : { opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
+                transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 26, delay: i * 0.03 }}
+                className="relative aspect-square overflow-hidden border border-hairline bg-white"
+                style={{ borderRadius: 2 }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.image_url} alt={img.caption ?? "Gallery"} className="h-auto max-h-40 w-full object-contain" />
-                <button
-                  type="button"
-                  onClick={() => setRemoveImageIds((prev) => [...prev, img.id])}
-                  className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center bg-digest-red text-xs text-paper"
-                >
-                  ×
-                </button>
+                <img src={img.image_url} alt={img.caption ?? "Gallery"} className="h-full w-full object-cover" />
+                <RemoveThumbButton
+                  label={`Remove gallery image ${i + 1}`}
+                  onRemove={() => setRemoveImageIds((prev) => [...prev, img.id])}
+                />
                 {img.caption ? (
                   <span className="absolute bottom-0 left-0 right-0 bg-ink/60 px-1 py-0.5 font-admin text-[8px] text-paper">
                     {img.caption}
                   </span>
                 ) : null}
-              </div>
+              </motion.div>
             ))}
           </div>
         ) : null}
-        {galleryPreviews.length > 0 ? (
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {galleryPreviews.map((src, i) => (
-              <div key={i} className="aspect-square overflow-hidden border border-hairline">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={`New gallery ${i + 1}`} className="h-auto max-h-40 w-full object-contain" />
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <input
-          id="gallery_files"
+        <ImageUploadZone
           name="gallery_files"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          label="Add gallery images"
           multiple
-          onChange={(event) => {
-            const files = Array.from(event.target.files ?? []);
-            setGalleryFiles(files);
-            setGalleryPreviews(files.map((f) => URL.createObjectURL(f)));
-          }}
-          className="mt-2 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          compact
+          previewAspect="aspect-square"
         />
         <input type="hidden" name="remove_image_ids" value={removeImageIds.join(",")} />
-        <p className="mt-1 font-admin text-xs text-[#333]">
-          Select multiple images at once. JPEG, PNG, WEBP, or GIF, up to 5MB each.
-        </p>
-      </fieldset>
+      </FormSection>
 
       {entityId ? <input type="hidden" name="entity_id" value={entityId} /> : null}
-      {state.error ? <p className="font-admin text-sm text-digest-red">{state.error}</p> : null}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
-      >
-        {isPending ? "Saving…" : submitLabel}
-      </button>
+      {state.error ? (
+        <p role="alert" className="font-admin text-sm font-medium text-digest-red">
+          {state.error}
+        </p>
+      ) : null}
+
+      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
     </form>
   );
 }

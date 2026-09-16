@@ -2,46 +2,46 @@
 
 import { useActionState } from "react";
 import { login } from "@/app/admin/actions";
+import { TextField } from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
 
 export function LoginForm() {
   const [error, formAction, isPending] = useActionState(login, null);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div>
-        <label htmlFor="email" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="username"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
-      </div>
-      <div>
-        <label htmlFor="password" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-        />
-      </div>
-      {error ? <p className="font-admin text-sm text-digest-red">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
-      >
-        {isPending ? "Signing in…" : "Sign in"}
-      </button>
+    <form action={formAction} className="flex flex-col gap-5">
+      <TextField
+        label="Email"
+        id="email"
+        name="email"
+        type="email"
+        required
+        autoComplete="username"
+        placeholder="admin@nglawdigest.com"
+        index={0}
+      />
+      <TextField
+        label="Password"
+        id="password"
+        name="password"
+        type="password"
+        required
+        autoComplete="current-password"
+        placeholder="••••••••"
+        index={1}
+      />
+      {error ? (
+        <p role="alert" className="flex items-center gap-2 font-admin text-sm font-medium text-digest-red">
+          <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-digest-red" />
+          {error}
+        </p>
+      ) : null}
+      <SubmitButton
+        label="Sign in"
+        pendingLabel="Signing in…"
+        isPending={isPending}
+        fullWidth
+      />
     </form>
   );
 }

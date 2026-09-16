@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getArticles } from "@/lib/supabase/queries/articles";
-import { getContributors } from "@/lib/supabase/queries/contributors";
+import { getContributors, getEditorialBoard } from "@/lib/supabase/queries/contributors";
 import { getPracticeAreas } from "@/lib/supabase/queries/practice-areas";
 import { getCurrentIssue } from "@/lib/supabase/queries/issues";
 import { getPublishedLegalUpdates } from "@/lib/supabase/queries/legal-updates";
@@ -26,9 +26,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // than failing the whole sitemap.
   try {
     const supabase = createSupabaseServerClient();
-    const [articles, contributors, practiceAreas, issue, legalUpdates, interviews] = await Promise.all([
+    const [articles, contributors, editorialBoard, practiceAreas, issue, legalUpdates, interviews] = await Promise.all([
       getArticles(supabase),
       getContributors(supabase),
+      getEditorialBoard(supabase),
       getPracticeAreas(supabase),
       getCurrentIssue(supabase),
       getPublishedLegalUpdates(supabase, 100),
@@ -46,6 +47,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "monthly" as const,
         priority: 0.5,
       })),
+      ...editorialBoard
+        .filter((member) => Boolean(member.slug))
+        .map((member) => ({
+          url: `${SITE_URL}/contributors/${member.slug}`,
+          changeFrequency: "monthly" as const,
+          priority: 0.5,
+        })),
       ...practiceAreas.map((practiceArea) => ({
         url: `${SITE_URL}/practice-areas/${practiceArea.slug}`,
         changeFrequency: "monthly" as const,

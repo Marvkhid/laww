@@ -1,7 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
+import { motion, useReducedMotion, AnimatePresence } from "motion/react";
+import { CheckCircle2 } from "lucide-react";
 import { sendContactMessage, type ContactFormState } from "@/app/contact/actions";
+import {
+  TextField,
+  TextAreaField,
+  SelectField,
+  FormSection,
+} from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
 
 const CATEGORIES = [
   "General Enquiry",
@@ -16,107 +25,99 @@ const INITIAL_STATE: ContactFormState = { status: "idle", message: "" };
 
 export function ContactForm() {
   const [state, formAction, isPending] = useActionState(sendContactMessage, INITIAL_STATE);
+  const reduce = useReducedMotion();
 
-  const inputClass =
-    "w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink placeholder:text-stone/75 focus:border-digest-red focus:outline-none transition-colors";
+  if (state.status === "success") {
+    return (
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 24 }}
+        className="relative border border-digest-red/25 bg-white p-7"
+        style={{ borderRadius: 2 }}
+      >
+        <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-digest-red" />
+        <motion.span
+          initial={reduce ? false : { scale: 0, rotate: -30 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 18, delay: 0.1 }}
+          className="mb-3 inline-flex text-digest-red"
+        >
+          <CheckCircle2 size={28} strokeWidth={1.75} />
+        </motion.span>
+        <p className="font-admin text-sm font-bold uppercase tracking-[0.1em] text-digest-red">
+          Message sent
+        </p>
+        <p className="mt-2 font-body text-sm text-stone">{state.message}</p>
+      </motion.div>
+    );
+  }
 
   return (
-    <div>
-      {state.status === "success" ? (
-        <div className="border border-digest-red/20 bg-digest-red/5 p-6">
-          <p className="font-admin text-sm font-medium text-digest-red">Message sent</p>
-          <p className="mt-2 font-body text-sm text-stone">{state.message}</p>
+    <form action={formAction} className="flex flex-col gap-5">
+      <FormSection title="Your Details" subtitle="So we know who's writing and how to reply." accent="top">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Name"
+            name="name"
+            type="text"
+            required
+            autoComplete="name"
+            placeholder="Your full name"
+            index={0}
+          />
+          <TextField
+            label="Email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+            index={1}
+          />
         </div>
-      ) : (
-        <form action={formAction} className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="contact-name" className="font-utility text-xs uppercase tracking-wide text-stone">
-                Name
-              </label>
-              <input
-                id="contact-name"
-                name="name"
-                type="text"
-                required
-                autoComplete="name"
-                placeholder="Your full name"
-                className={`mt-1 ${inputClass}`}
-              />
-            </div>
-            <div>
-              <label htmlFor="contact-email" className="font-utility text-xs uppercase tracking-wide text-stone">
-                Email
-              </label>
-              <input
-                id="contact-email"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="you@example.com"
-                className={`mt-1 ${inputClass}`}
-              />
-            </div>
-          </div>
+        <SelectField label="Category" name="category" defaultValue="">
+          <option value="">Select a category</option>
+          {CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </SelectField>
+        <TextField
+          label="Subject"
+          name="subject"
+          type="text"
+          required
+          placeholder="What is this about?"
+        />
+        <TextAreaField
+          label="Message"
+          name="message"
+          rows={6}
+          required
+          placeholder="Tell us how we can help…"
+        />
+      </FormSection>
 
-          <div>
-            <label htmlFor="contact-category" className="font-utility text-xs uppercase tracking-wide text-stone">
-              Category
-            </label>
-            <select
-              id="contact-category"
-              name="category"
-              className={`mt-1 ${inputClass}`}
-            >
-              <option value="">Select a category</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="contact-subject" className="font-utility text-xs uppercase tracking-wide text-stone">
-              Subject
-            </label>
-            <input
-              id="contact-subject"
-              name="subject"
-              type="text"
-              required
-              placeholder="What is this about?"
-              className={`mt-1 ${inputClass}`}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="contact-message" className="font-utility text-xs uppercase tracking-wide text-stone">
-              Message
-            </label>
-            <textarea
-              id="contact-message"
-              name="message"
-              rows={6}
-              required
-              placeholder="Your message..."
-              className={`mt-1 ${inputClass} resize-y`}
-            />
-          </div>
-
-          {state.status === "error" ? (
-            <p className="font-admin text-sm text-digest-red">{state.message}</p>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-fit bg-digest-red px-8 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
+      <AnimatePresence>
+        {state.status === "error" ? (
+          <motion.p
+            role="alert"
+            initial={reduce ? false : { opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center gap-2 font-admin text-sm font-medium text-digest-red"
           >
-            {isPending ? "Sending…" : "Send Message"}
-          </button>
-        </form>
-      )}
-    </div>
+            <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-digest-red" />
+            {state.message}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
+
+      <SubmitButton
+        label="Send Message"
+        pendingLabel="Sending…"
+        isPending={isPending}
+      />
+    </form>
   );
 }

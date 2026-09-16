@@ -38,7 +38,37 @@ export async function getEditorialBoard(
     name: row.name,
     credentials: row.credentials ?? undefined,
     role: row.role,
+    slug: row.slug,
   }));
+}
+
+/**
+ * Full editorial-board record for the dedicated public profile page.
+ * Returns every saved field the contributors table holds — the page renders
+ * whatever exists and skips what doesn't. Board members only.
+ */
+export async function getEditorialBoardMemberBySlug(
+  supabase: UntypedSupabaseClient,
+  slug: string
+): Promise<EditorialBoardMember | null> {
+  const { data, error } = await supabase
+    .from("contributors")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_editorial_board", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const row = data as ContributorRow;
+
+  return {
+    slug: row.slug,
+    name: row.name,
+    credentials: row.credentials ?? undefined,
+    role: row.role,
+    bio: row.bio,
+    photoUrl: row.photo_url,
+  };
 }
 
 export async function getContributorBySlug(

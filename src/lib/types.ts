@@ -72,9 +72,12 @@ export interface CallForPapers {
 }
 
 export interface EditorialBoardMember {
+  slug?: string;
   name: string;
   credentials?: string;
   role: string;
+  bio?: string | null;
+  photoUrl?: string | null;
 }
 
 export interface Masthead {

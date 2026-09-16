@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
-import { getPublishedLegalUpdateBySlug } from "@/lib/supabase/queries/legal-updates";
-import { ArticleCoverImage } from "@/components/ui/article-cover-image";
+import { getPublishedLegalUpdateBySlug } from "@/lib/supabase/queries/legal-updates";import { CoverHeroImage } from "@/components/ui/cover-hero-image";
 import { Reveal } from "@/components/motion/reveal";
 import { SITE_URL } from "@/lib/constants";
 import { EditorialBody } from "@/components/editorial/editorial-body";
@@ -57,7 +56,15 @@ export default async function LegalUpdateArticlePage({
   }
 
   return (
-    <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+    <>
+      {/* ── Full-bleed cover hero ──
+          Rendered OUTSIDE the reading container so no max-width or padding
+          constrains it. Only the designated cover image gets this treatment. */}
+      {update.coverImageUrl ? (
+        <CoverHeroImage src={update.coverImageUrl} alt={update.headline} />
+      ) : null}
+
+      <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-6">
         <ol className="flex flex-wrap items-center gap-1.5 font-utility text-[10px] uppercase tracking-[0.12em] text-stone">
@@ -111,13 +118,6 @@ export default async function LegalUpdateArticlePage({
         ) : null}
       </Reveal>
 
-      {/* Cover Image */}
-      <Reveal delay={0.05}>
-        <div className="mt-8">
-          <ArticleCoverImage src={update.coverImageUrl} alt={update.headline} aspect="aspect-[16/9]" />
-        </div>
-      </Reveal>
-
       {/* Divider */}
       <div className="mt-8 mb-8 border-t border-hairline" />
 
@@ -157,5 +157,6 @@ export default async function LegalUpdateArticlePage({
         </div>
       </Reveal>
     </article>
+    </>
   );
 }

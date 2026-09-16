@@ -1,8 +1,18 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import type { LawyerQAPair } from "@/lib/supabase/types";
 import type { FormState } from "./actions";
+import {
+  TextField,
+  TextAreaField,
+  SelectField,
+  FormSection,
+  fieldEntrance,
+} from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -25,19 +35,11 @@ const DEFAULT_POSITIONS: Record<number, string> = {
 
 function InlineImageField({
   num,
-  fileKey,
-  existingKey,
-  altKey,
-  posKey,
   existingUrl,
   existingAlt,
   existingPosition,
 }: {
   num: number;
-  fileKey: string;
-  existingKey: string;
-  altKey: string;
-  posKey: string;
   existingUrl?: string | null;
   existingAlt?: string | null;
   existingPosition?: string | null;
@@ -46,36 +48,43 @@ function InlineImageField({
   const [removed, setRemoved] = useState(false);
 
   return (
-    <div className="grid grid-cols-[1fr_160px] gap-3 border-t border-hairline/60 pt-3">
+    <motion.div {...fieldEntrance} className="grid gap-3 border-t border-hairline/70 pt-4 sm:grid-cols-[1fr_170px]">
       <div>
-        <label htmlFor={fileKey} className="block text-[12px] font-semibold text-ink">
+        <span className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
           Image {num}
-        </label>
-        {preview && !removed ? (
-          <div className="mt-1 w-full max-w-[220px] border border-hairline">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={preview}
-              alt={`Preview ${num}`}
-              className="h-auto max-h-40 w-full object-contain"
-            />
-          </div>
-        ) : null}
-        <input
-          id={fileKey}
-          name={fileKey}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              setPreview(URL.createObjectURL(file));
+        </span>
+        <AnimatePresence initial={false}>
+          {preview && !removed ? (
+            <motion.div
+              key="preview"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="mt-1.5 w-full max-w-[220px] border border-hairline bg-white"
+              style={{ borderRadius: 2 }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt={`Preview ${num}`} className="h-auto max-h-40 w-full object-contain" />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+        <div className="mt-1.5">
+          <ImageUploadZone
+            name={`image_${num}_file`}
+            label={`Image ${num}`}
+            compact
+            previewAspect="aspect-[16/9]"
+            onFilesSelected={(files) => {
+              setPreview(URL.createObjectURL(files[0]));
               setRemoved(false);
-            }
-          }}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 text-xs text-ink"
+            }}
+          />
+        </div>
+        <input
+          type="hidden"
+          name={`existing_image_${num}_url`}
+          value={removed ? "" : (existingUrl ?? "")}
         />
-        <input type="hidden" name={existingKey} value={removed ? "" : (existingUrl ?? "")} />
         {preview && !removed ? (
           <button
             type="button"
@@ -83,45 +92,35 @@ function InlineImageField({
               setRemoved(true);
               setPreview(null);
             }}
-            className="mt-1 text-xs font-semibold text-digest-red hover:text-digest-red-deep"
+            className="mt-1.5 font-admin text-xs font-semibold text-digest-red hover:text-digest-red-deep"
           >
             Remove image
           </button>
         ) : null}
       </div>
-      <div className="flex flex-col gap-2">
-        <div>
-          <label htmlFor={altKey} className="block text-[12px] font-semibold text-ink">
-            Alt text
-          </label>
-          <input
-            id={altKey}
-            name={altKey}
-            type="text"
-            defaultValue={existingAlt ?? ""}
-            placeholder="Image description"
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 text-xs text-ink"
-          />
-        </div>
-        <div>
-          <label htmlFor={posKey} className="block text-[12px] font-semibold text-ink">
-            Position
-          </label>
-          <select
-            id={posKey}
-            name={posKey}
-            defaultValue={existingPosition ?? DEFAULT_POSITIONS[num]}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 text-xs text-ink"
-          >
-            {POSITIONS.map((pos) => (
-              <option key={pos.value} value={pos.value}>
-                {pos.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="flex flex-col gap-3">
+        <TextField
+          label="Alt text"
+          id={`image_${num}_alt`}
+          name={`image_${num}_alt`}
+          type="text"
+          defaultValue={existingAlt ?? ""}
+          placeholder="Describe the photo"
+        />
+        <SelectField
+          label="Position"
+          id={`image_${num}_position`}
+          name={`image_${num}_position`}
+          defaultValue={existingPosition ?? DEFAULT_POSITIONS[num]}
+        >
+          {POSITIONS.map((pos) => (
+            <option key={pos.value} value={pos.value}>
+              {pos.label}
+            </option>
+          ))}
+        </SelectField>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -157,6 +156,7 @@ export function LawyerNewsForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const reduce = useReducedMotion();
 
   const existingQa: LawyerQAPair[] = Array.isArray(initial?.qa_pairs)
     ? initial!.qa_pairs!.filter(
@@ -184,196 +184,146 @@ export function LawyerNewsForm({
 
   return (
     <form action={formAction} className="flex max-w-3xl flex-col gap-5">
-      {/* ── Basics ─────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="lawyer_name" className="block text-sm font-semibold text-ink">
-            Lawyer name <span className="text-digest-red">*</span>
-          </label>
-          <input
+      {/* ── Basics ── */}
+      <FormSection title="Interview" subtitle="Who is being featured." accent="top">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Lawyer name"
             id="lawyer_name"
             name="lawyer_name"
             type="text"
             required
             defaultValue={initial?.lawyer_name ?? ""}
             placeholder="e.g. Chief Afe Babalola (SAN)"
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+            index={0}
           />
-        </div>
-        <div>
-          <label htmlFor="lawyer_title" className="block text-sm font-semibold text-ink">
-            Title / Role <span className="text-[#666]">(optional)</span>
-          </label>
-          <input
+          <TextField
+            label="Title / Role"
+            optional
             id="lawyer_title"
             name="lawyer_title"
             type="text"
             defaultValue={initial?.lawyer_title ?? ""}
             placeholder="e.g. Senior Advocate of Nigeria"
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+            index={1}
           />
         </div>
-      </div>
 
-      <div>
-        <label htmlFor="slug" className="block text-sm font-semibold text-ink">
-          Slug
-        </label>
-        {initial?.slug ? (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              readOnly
-              defaultValue={initial.slug}
-              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 text-sm text-stone"
-            />
-            <input type="hidden" name="slug" value={initial.slug} />
-            <p className="mt-1 text-xs text-[#666]">
-              Existing slug — preserved to keep the public URL stable.
-            </p>
-          </>
-        ) : (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              placeholder="auto-generated-from-name"
-              className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
-            />
-            <p className="mt-1 text-xs text-[#666]">
-              Auto-generated from the lawyer name if left empty.
-            </p>
-          </>
-        )}
-      </div>
+        <div className="flex flex-col">
+          <label htmlFor="slug" className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+            Slug
+          </label>
+          {initial?.slug ? (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                readOnly
+                defaultValue={initial.slug}
+                className="mt-1.5 w-full cursor-not-allowed border border-hairline bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+                style={{ borderRadius: 2 }}
+              />
+              <input type="hidden" name="slug" value={initial.slug} />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Existing slug — preserved to keep the public URL stable.
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                placeholder="auto-generated-from-name"
+                className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
+                style={{ borderRadius: 2 }}
+              />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Auto-generated from the lawyer name if left empty.
+              </p>
+            </>
+          )}
+        </div>
 
-      <div>
-        <label htmlFor="intro" className="block text-sm font-semibold text-ink">
-          Introduction <span className="text-[#666]">(optional)</span>
-        </label>
-        <textarea
+        <TextAreaField
+          label="Introduction"
+          optional
           id="intro"
           name="intro"
           rows={3}
           defaultValue={initial?.intro ?? ""}
           placeholder="Short editorial introduction to the interview…"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
         />
-      </div>
+      </FormSection>
 
-      {/* ── Cover image ────────────────────────────────────────── */}
-      <div>
-        <label className="block text-sm font-semibold text-ink">
-          Cover / featured image <span className="text-[#666]">(optional)</span>
-        </label>
-        {initial?.cover_image_url ? (
-          <div className="mt-2 w-full max-w-sm border border-hairline">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={initial.cover_image_url}
-              alt="Cover preview"
-              className="h-auto w-full object-contain"
-            />
-          </div>
-        ) : null}
-        <input
-          id="cover_image_file"
+      {/* ── Cover image ── */}
+      <FormSection title="Cover / Featured Image" subtitle="The hero photo for this feature." accent="left">
+        <ImageUploadZone
           name="cover_image_file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-2 text-sm text-ink"
+          label={initial?.cover_image_url ? "Replace cover image" : "Upload cover image"}
+          existingHiddenName="existing_cover_image_url"
+          existingValue={initial?.cover_image_url ?? ""}
+          previewAspect="aspect-[16/9]"
         />
-        <input
-          type="hidden"
-          name="existing_cover_image_url"
-          value={initial?.cover_image_url ?? ""}
-        />
-        <label htmlFor="cover_image_alt" className="mt-2 block text-[12px] font-semibold text-ink">
-          Cover alt text
-        </label>
-        <input
+        <TextField
+          label="Cover alt text"
           id="cover_image_alt"
           name="cover_image_alt"
           type="text"
           defaultValue={initial?.cover_image_alt ?? ""}
           placeholder="Describe the photo"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-2 text-sm text-ink"
         />
-      </div>
+      </FormSection>
 
-      {/* ── Inline images (1–4) ────────────────────────────────── */}
-      <fieldset className="border border-hairline p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
-          Inline images <span className="text-[#666]">(optional, up to 4)</span>
-        </legend>
-        <p className="mb-3 text-xs text-[#666]">
-          Distributed editorially through the interview text — same behavioural layout as
-          articles. Uploaded images are never cropped.
-        </p>
+      {/* ── Inline images ── */}
+      <FormSection
+        title="Inline Images"
+        subtitle="Distributed editorially through the interview text — up to 4. Uploaded images are never cropped."
+        accent="left"
+      >
         <InlineImageField
           num={1}
-          fileKey="image_1_file"
-          existingKey="existing_image_1_url"
-          altKey="image_1_alt"
-          posKey="image_1_position"
           existingUrl={initial?.image_1_url}
           existingAlt={initial?.image_1_alt}
           existingPosition={initial?.image_1_position}
         />
         <InlineImageField
           num={2}
-          fileKey="image_2_file"
-          existingKey="existing_image_2_url"
-          altKey="image_2_alt"
-          posKey="image_2_position"
           existingUrl={initial?.image_2_url}
           existingAlt={initial?.image_2_alt}
           existingPosition={initial?.image_2_position}
         />
         <InlineImageField
           num={3}
-          fileKey="image_3_file"
-          existingKey="existing_image_3_url"
-          altKey="image_3_alt"
-          posKey="image_3_position"
           existingUrl={initial?.image_3_url}
           existingAlt={initial?.image_3_alt}
           existingPosition={initial?.image_3_position}
         />
         <InlineImageField
           num={4}
-          fileKey="image_4_file"
-          existingKey="existing_image_4_url"
-          altKey="image_4_alt"
-          posKey="image_4_position"
           existingUrl={initial?.image_4_url}
           existingAlt={initial?.image_4_alt}
           existingPosition={initial?.image_4_position}
         />
-      </fieldset>
+      </FormSection>
 
-      {/* ── Q&A builder ────────────────────────────────────────── */}
-      <fieldset className="border border-hairline p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">
-          Question &amp; Answer pairs
-        </legend>
-        <p className="mb-3 text-xs text-[#666]">
-          Choose how many Q&amp;A pairs you need — fields appear immediately. Remove any
-          pair you don&rsquo;t want.
-        </p>
-
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <label htmlFor="qa_count" className="text-sm font-semibold text-ink">
+      {/* ── Q&A builder ── */}
+      <FormSection
+        title="Question & Answer Pairs"
+        subtitle="Choose how many pairs you need — fields appear immediately. The first 3 show on the homepage; readers click through for all of them."
+        accent="left"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <label htmlFor="qa_count" className="font-admin text-sm font-semibold text-ink">
             Number of Q&amp;A pairs:
           </label>
           <select
             id="qa_count"
             value={qaCount}
             onChange={(event) => setQaCountWithFlags(Number(event.target.value))}
-            className="border border-[#c8c3bb] bg-white px-3 py-2 text-sm text-ink"
+            className="border border-hairline bg-white px-3 py-2 font-admin text-sm text-ink"
+            style={{ borderRadius: 2 }}
           >
             {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>
@@ -381,109 +331,107 @@ export function LawyerNewsForm({
               </option>
             ))}
           </select>
-          <span className="text-xs text-[#666]">
-            The first 3 show on the homepage; readers click through for all of them.
-          </span>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {Array.from({ length: qaCount }, (_, i) => {
-            const existing = existingQa[i];
-            const isRemoved = removeFlags[i] ?? false;
-            return (
-              <div
-                key={i}
-                className={`rounded-sm border p-3 ${
-                  isRemoved ? "border-hairline bg-hairline/30 opacity-50" : "border-hairline bg-white"
-                }`}
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[12px] font-bold uppercase tracking-wide text-ink">
-                    Q&amp;A {i + 1}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRemoveFlags((prev) => {
-                        const next = [...prev];
-                        next[i] = !next[i];
-                        return next;
-                      })
-                    }
-                    className="text-xs font-semibold text-digest-red hover:text-digest-red-deep"
-                  >
-                    {isRemoved ? "Restore" : "Remove"}
-                  </button>
-                </div>
-                {isRemoved ? (
-                  <p className="text-xs text-[#666]">
-                    This pair will be deleted when you save.
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <div>
-                      <label htmlFor={`qa_q_${i}`} className="block text-[12px] font-semibold text-ink">
-                        Question {i + 1}
-                      </label>
-                      <QaTextarea
-                        id={`qa_q_${i}`}
-                        name={`qa_question_${i}`}
-                        initialValue={existing?.question ?? ""}
-                        placeholder="e.g. What inspired you to pursue law?"
-                        rows={2}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={`qa_a_${i}`} className="block text-[12px] font-semibold text-ink">
-                        Answer {i + 1}
-                      </label>
-                      <QaTextarea
-                        id={`qa_a_${i}`}
-                        name={`qa_answer_${i}`}
-                        initialValue={existing?.answer ?? ""}
-                        placeholder="The lawyer's full answer…"
-                        rows={4}
-                      />
-                    </div>
+        <div className="flex flex-col gap-3">
+          <AnimatePresence initial={false}>
+            {Array.from({ length: qaCount }, (_, i) => {
+              const existing = existingQa[i];
+              const isRemoved = removeFlags[i] ?? false;
+              return (
+                <motion.div
+                  key={i}
+                  layout={!reduce}
+                  initial={reduce ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, y: -8 }}
+                  transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 28 }}
+                  className={`border p-4 ${
+                    isRemoved ? "border-hairline bg-hairline/30 opacity-50" : "border-hairline bg-white"
+                  }`}
+                  style={{ borderRadius: 2 }}
+                >
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="font-admin text-[11px] font-bold uppercase tracking-[0.12em] text-ink">
+                      Q&amp;A {i + 1}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRemoveFlags((prev) => {
+                          const next = [...prev];
+                          next[i] = !next[i];
+                          return next;
+                        })
+                      }
+                      className="font-admin text-xs font-semibold text-digest-red hover:text-digest-red-deep"
+                    >
+                      {isRemoved ? "Restore" : "Remove"}
+                    </button>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  {isRemoved ? (
+                    <p className="font-admin text-xs text-stone">
+                      This pair will be deleted when you save.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <label htmlFor={`qa_q_${i}`} className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+                          Question {i + 1}
+                        </label>
+                        <QaTextarea
+                          id={`qa_q_${i}`}
+                          name={`qa_question_${i}`}
+                          initialValue={existing?.question ?? ""}
+                          placeholder="e.g. What inspired you to pursue law?"
+                          rows={2}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={`qa_a_${i}`} className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+                          Answer {i + 1}
+                        </label>
+                        <QaTextarea
+                          id={`qa_a_${i}`}
+                          name={`qa_answer_${i}`}
+                          initialValue={existing?.answer ?? ""}
+                          placeholder="The lawyer's full answer…"
+                          rows={4}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* ── Status ─────────────────────────────────────────────── */}
-      <div>
-        <label htmlFor="status" className="block text-sm font-semibold text-ink">
-          Status
-        </label>
-        <select
+      {/* ── Status ── */}
+      <FormSection title="Status" accent="left">
+        <SelectField
+          label="Status"
           id="status"
           name="status"
           defaultValue={initial?.status ?? "pending_review"}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
         >
           <option value="pending_review">Pending review</option>
           <option value="published">Published</option>
           <option value="archived">Archived</option>
-        </select>
-      </div>
-
-      {state.error ? <p className="text-sm font-semibold text-digest-red">{state.error}</p> : null}
-
-      <div className="flex items-center gap-4">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-fit bg-digest-red px-6 py-3 text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
-        >
-          {isPending ? "Saving…" : submitLabel}
-        </button>
-        <span className="text-xs text-[#666]">
+        </SelectField>
+        <p className="font-admin text-xs text-stone">
           {activeCount} active Q&amp;A pair{activeCount === 1 ? "" : "s"}
-        </span>
-      </div>
+        </p>
+      </FormSection>
+
+      {state.error ? (
+        <p role="alert" className="font-admin text-sm font-medium text-digest-red">
+          {state.error}
+        </p>
+      ) : null}
+
+      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
     </form>
   );
 }
@@ -516,7 +464,8 @@ function QaTextarea({
         value={value}
         placeholder={placeholder}
         onChange={(event) => setValue(event.target.value)}
-        className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+        className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
+        style={{ borderRadius: 2 }}
       />
       <input type="hidden" name={name} value={value} />
     </>

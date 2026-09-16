@@ -22,16 +22,17 @@ export function ContributorAvatar({
 }: {
   name: string;
   photoUrl?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
   const sizeClasses = {
     sm: "h-10 w-10 text-xs",
     md: "h-12 w-12 text-sm",
     lg: "h-16 w-16 text-xl",
+    xl: "h-28 w-28 text-3xl sm:h-36 sm:w-36",
   };
 
-  const sizePx = { sm: 40, md: 48, lg: 64 };
+  const sizePx = { sm: 40, md: 48, lg: 64, xl: 144 };
 
   if (photoUrl) {
     return (

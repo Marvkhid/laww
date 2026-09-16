@@ -1,94 +1,90 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
+import { motion } from "motion/react";
 import type { LegalUpdateRow, PracticeAreaRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/legal-updates/actions";
 import { TiptapEditor } from "@/app/admin/(protected)/articles/tiptap-editor";
 import type { JSONContent } from "@tiptap/core";
+import {
+  TextField,
+  TextAreaField,
+  SelectField,
+  FormSection,
+  fieldEntrance,
+} from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
-function ImageUploadField({
-  num,
-  fileKey,
-  existingKey,
-  altKey,
-  posKey,
-  existingUrl,
-  existingAlt,
-  existingPosition,
-}: {
-  num: number;
-  fileKey: string;
-  existingKey: string;
-  altKey: string;
-  posKey: string;
-  existingUrl?: string | null;
-  existingAlt?: string | null;
-  existingPosition?: string | null;
-}) {
-  const [preview, setPreview] = useState<string | null>(existingUrl ?? null);
+const POSITION_OPTIONS = [
+  ["top-right", "Top / Right"],
+  ["top-left", "Top / Left"],
+  ["bottom-right", "Bottom / Right"],
+  ["bottom-left", "Bottom / Left"],
+  ["center-right", "Centre / Right"],
+  ["center-left", "Centre / Left"],
+  ["full-width", "Full Width"],
+] as const;
 
+const DEFAULT_POSITIONS = ["top-right", "bottom-left", "center-right", "center-left"] as const;
+
+function InlineImageField({
+  num,
+  initial,
+}: {
+  num: 1 | 2 | 3 | 4;
+  initial?: Pick<
+    LegalUpdateRow,
+    | "image_1_url" | "image_1_alt" | "image_1_position"
+    | "image_2_url" | "image_2_alt" | "image_2_position"
+    | "image_3_url" | "image_3_alt" | "image_3_position"
+    | "image_4_url" | "image_4_alt" | "image_4_position"
+  >;
+}) {
+  const posKey = `image_${num}_position` as const;
+  const urlKey = `image_${num}_url` as const;
+  const altKey = `image_${num}_alt` as const;
   return (
-    <div className="grid grid-cols-[1fr_140px] gap-3 border-t border-hairline/60 pt-3">
+    <motion.div
+      {...fieldEntrance}
+      className="grid gap-3 border-t border-hairline/70 pt-4 sm:grid-cols-[1fr_170px]"
+    >
       <div>
-        <label htmlFor={fileKey} className="text-[11px] font-semibold uppercase tracking-wide text-ink">
+        <span className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
           Image {num}
-        </label>
-        {preview ? (
-          <div className="mt-1 aspect-[16/10] w-full max-w-[200px] overflow-hidden border border-hairline">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt={`Preview ${num}`} className="h-auto max-h-40 w-full object-contain" />
-          </div>
-        ) : null}
-        <input
-          id={fileKey}
-          name={fileKey}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) setPreview(URL.createObjectURL(file));
-          }}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 text-xs text-ink"
-        />
-        <input type="hidden" name={existingKey} value={existingUrl ?? ""} />
-      </div>
-      <div className="flex flex-col gap-2">
-        <div>
-          <label htmlFor={altKey} className="text-[11px] font-semibold uppercase tracking-wide text-ink">
-            Alt text
-          </label>
-          <input
-            id={altKey}
-            name={altKey}
-            type="text"
-            defaultValue={existingAlt ?? ""}
-            placeholder="Image description"
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 text-xs text-ink"
+        </span>
+        <div className="mt-1.5">
+          <ImageUploadZone
+            name={`image_${num}_file`}
+            label={`Image ${num}`}
+            existingHiddenName={`existing_${urlKey}`}
+            existingValue={initial?.[urlKey] ?? ""}
+            compact
+            previewAspect="aspect-[16/9]"
           />
         </div>
-        <div>
-          <label htmlFor={posKey} className="text-[11px] font-semibold uppercase tracking-wide text-ink">
-            Position
-          </label>
-          <select
-            id={posKey}
-            name={posKey}
-            defaultValue={existingPosition ?? (num === 1 ? "top-right" : num === 2 ? "bottom-left" : num === 3 ? "center-right" : "center-left")}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-3 py-2 text-xs text-ink"
-          >
-            <option value="top-right">Top / Right</option>
-            <option value="top-left">Top / Left</option>
-            <option value="bottom-right">Bottom / Right</option>
-            <option value="bottom-left">Bottom / Left</option>
-            <option value="center-right">Centre / Right</option>
-            <option value="center-left">Centre / Left</option>
-            <option value="full-width">Full Width</option>
-          </select>
-        </div>
       </div>
-    </div>
+      <div className="flex flex-col gap-3">
+        <TextField
+          label="Alt text"
+          name={altKey}
+          type="text"
+          defaultValue={initial?.[altKey] ?? ""}
+          placeholder="Describe the image…"
+        />
+        <SelectField
+          label="Position"
+          name={posKey}
+          defaultValue={initial?.[posKey] ?? DEFAULT_POSITIONS[num - 1]}
+        >
+          {POSITION_OPTIONS.map(([value, text]) => (
+            <option key={value} value={value}>{text}</option>
+          ))}
+        </SelectField>
+      </div>
+    </motion.div>
   );
 }
 
@@ -112,185 +108,117 @@ export function LegalUpdateForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
-  const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
 
   const initialBody: JSONContent | null =
     initial?.body && typeof initial.body === "object" ? (initial.body as JSONContent) : null;
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
-      <div>
-        <label htmlFor="headline" className="text-sm font-semibold text-ink">
-          Headline
-        </label>
-        <input
+    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+      <FormSection title="Update Details" subtitle="The headline and summary readers see first." accent="top">
+        <TextField
+          label="Headline"
           id="headline"
           name="headline"
           type="text"
           required
           defaultValue={initial?.headline}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+          placeholder="Enter the breaking-news headline…"
+          index={0}
         />
-      </div>
-      <div>
-        <label htmlFor="slug" className="text-sm font-semibold text-ink">
-          Slug
-        </label>
-        {initial?.slug ? (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              readOnly
-              defaultValue={initial.slug}
-              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 text-sm text-stone"
-            />
-            <input type="hidden" name="slug" value={initial.slug} />
-            <p className="mt-1 text-xs text-[#666]">
-              Existing slug — preserved to keep the public URL stable.
-            </p>
-          </>
-        ) : (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              placeholder="auto-generated-from-headline"
-              className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
-            />
-            <p className="mt-1 text-xs text-[#666]">
-              Auto-generated from the headline if left empty.
-            </p>
-          </>
-        )}
-      </div>
-      <div>
-        <label htmlFor="summary" className="text-sm font-semibold text-ink">
-          Summary <span className="text-[#666]">(optional)</span>
-        </label>
-        <textarea
-          id="summary"
+
+        <div className="flex flex-col">
+          <label htmlFor="slug" className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+            Slug
+          </label>
+          {initial?.slug ? (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                readOnly
+                defaultValue={initial.slug}
+                className="mt-1.5 w-full cursor-not-allowed border border-hairline bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+                style={{ borderRadius: 2 }}
+              />
+              <input type="hidden" name="slug" value={initial.slug} />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Existing slug — preserved to keep the public URL stable.
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                placeholder="auto-generated-from-headline"
+                className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
+                style={{ borderRadius: 2 }}
+              />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Auto-generated from the headline if left empty.
+              </p>
+            </>
+          )}
+        </div>
+
+        <TextAreaField
+          label="Summary"
+          optional
           name="summary"
           rows={3}
           defaultValue={initial?.summary ?? ""}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+          placeholder="Give readers a concise overview of this update…"
         />
-      </div>
-      <div>
-        <label htmlFor="source_name" className="text-sm font-semibold text-ink">
-          Source name
-        </label>
-        <input
-          id="source_name"
+
+        <TextField
+          label="Source name"
           name="source_name"
           type="text"
           required
           defaultValue={initial?.source_name}
           placeholder="e.g. CityLawyerMag"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
         />
-      </div>
+      </FormSection>
 
-      {/* Cover Image */}
-      <div>
-        <label className="text-sm font-semibold text-ink">
-          Cover Image <span className="text-[#666]">(optional)</span>
-        </label>
-        {coverPreview ? (
-          <div className="mt-2 aspect-[16/9] w-full max-w-sm overflow-hidden border border-hairline">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
-          </div>
-        ) : null}
-        <input
-          id="cover_image_file"
+      <FormSection title="Cover Image" subtitle="The hero image for this update." accent="left">
+        <ImageUploadZone
           name="cover_image_file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) setCoverPreview(URL.createObjectURL(file));
-          }}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+          label="Upload cover image"
+          existingHiddenName="existing_cover_image_url"
+          existingValue={initial?.cover_image_url ?? ""}
+          previewAspect="aspect-[16/9]"
         />
-        <input type="hidden" name="existing_cover_image_url" value={initial?.cover_image_url ?? ""} />
-        <p className="mt-1 text-xs text-[#666]">
-          JPEG, PNG, WEBP, or GIF, up to 5MB.
-          {initial?.cover_image_url ? " Leave empty to keep the current image." : ""}
+        <p className="font-admin text-xs text-stone">
+          {initial?.cover_image_url ? "Leave empty to keep the current image." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}
         </p>
-      </div>
+      </FormSection>
 
-      {/* Inline Article Images */}
-      <fieldset className="flex flex-col gap-4 border border-hairline p-4">
-        <legend className="text-sm font-semibold text-ink">
-          Article Images <span className="text-[#666]">(optional, up to 4)</span>
-        </legend>
-        <p className="text-xs text-[#666]">
-          Position images within the article content. They will be distributed editorially
-          through the text, matching the layout used by regular articles.
-        </p>
-        <ImageUploadField
-          num={1}
-          fileKey="image_1_file"
-          existingKey="existing_image_1_url"
-          altKey="image_1_alt"
-          posKey="image_1_position"
-          existingUrl={initial?.image_1_url}
-          existingAlt={initial?.image_1_alt}
-          existingPosition={initial?.image_1_position}
-        />
-        <ImageUploadField
-          num={2}
-          fileKey="image_2_file"
-          existingKey="existing_image_2_url"
-          altKey="image_2_alt"
-          posKey="image_2_position"
-          existingUrl={initial?.image_2_url}
-          existingAlt={initial?.image_2_alt}
-          existingPosition={initial?.image_2_position}
-        />
-        <ImageUploadField
-          num={3}
-          fileKey="image_3_file"
-          existingKey="existing_image_3_url"
-          altKey="image_3_alt"
-          posKey="image_3_position"
-          existingUrl={initial?.image_3_url}
-          existingAlt={initial?.image_3_alt}
-          existingPosition={initial?.image_3_position}
-        />
-        <ImageUploadField
-          num={4}
-          fileKey="image_4_file"
-          existingKey="existing_image_4_url"
-          altKey="image_4_alt"
-          posKey="image_4_position"
-          existingUrl={initial?.image_4_url}
-          existingAlt={initial?.image_4_alt}
-          existingPosition={initial?.image_4_position}
-        />
-      </fieldset>
+      <FormSection
+        title="Article Images"
+        subtitle="Position up to 4 images within the content. They are distributed editorially through the text."
+        accent="left"
+      >
+        <InlineImageField num={1} initial={initial} />
+        <InlineImageField num={2} initial={initial} />
+        <InlineImageField num={3} initial={initial} />
+        <InlineImageField num={4} initial={initial} />
+      </FormSection>
 
-      {/* Full Content */}
-      <div>
-        <label className="text-sm font-semibold text-ink">Full Content</label>
-        <div className="mt-1">
-          <TiptapEditor name="body" initialContent={initialBody} />
-        </div>
-      </div>
+      <FormSection title="Full Content" subtitle="The body of the update." accent="left">
+        <TiptapEditor name="body" initialContent={initialBody} />
+      </FormSection>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="practice_area_id" className="text-sm font-semibold text-ink">
-            Practice area <span className="text-[#666]">(optional)</span>
-          </label>
-          <select
+      <FormSection title="Classification" subtitle="Practice area and review status." accent="left">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Practice area"
+            optional
             id="practice_area_id"
             name="practice_area_id"
             defaultValue={initial?.practice_area_id ?? ""}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+            index={0}
           >
             <option value="">None</option>
             {practiceAreas.map((area) => (
@@ -298,33 +226,28 @@ export function LegalUpdateForm({
                 {area.name}
               </option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="status" className="text-sm font-semibold text-ink">
-            Status
-          </label>
-          <select
+          </SelectField>
+          <SelectField
+            label="Status"
             id="status"
             name="status"
             defaultValue={initial?.status ?? "pending_review"}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 text-sm text-ink"
+            index={1}
           >
             <option value="pending_review">Pending review</option>
             <option value="published">Published</option>
             <option value="rejected">Rejected</option>
-          </select>
+          </SelectField>
         </div>
-      </div>
+      </FormSection>
 
-      {state.error ? <p className="text-sm text-digest-red">{state.error}</p> : null}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 text-sm uppercase tracking-wide text-paper disabled:opacity-60"
-      >
-        {isPending ? "Saving…" : submitLabel}
-      </button>
+      {state.error ? (
+        <p role="alert" className="font-admin text-sm font-medium text-digest-red">
+          {state.error}
+        </p>
+      ) : null}
+
+      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
     </form>
   );
 }

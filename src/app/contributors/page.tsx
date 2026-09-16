@@ -53,15 +53,42 @@ export default async function ContributorsPage() {
           Editorial Board
         </h2>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {editorialBoard.map((member) => (
-            <li key={member.name} className="border-t border-hairline py-3 font-admin text-sm">
-              <p className="text-ink">
-                {member.name}
-                {member.credentials ? `, ${member.credentials}` : ""}
-              </p>
-              <p className="mt-0.5 font-body text-xs text-stone">{member.role}</p>
-            </li>
-          ))}
+          {editorialBoard.map((member) => {
+            const content = (
+              <>
+                <ContributorAvatar
+                  name={member.name}
+                  photoUrl={member.photoUrl}
+                  size="md"
+                  className="transition-transform duration-300 group-hover:scale-110"
+                />
+                <div>
+                  <p className="font-admin text-sm text-ink transition-colors group-hover:text-digest-red">
+                    {member.name}
+                    {member.credentials ? `, ${member.credentials}` : ""}
+                  </p>
+                  <p className="mt-0.5 font-body text-xs text-stone">{member.role}</p>
+                </div>
+              </>
+            );
+            // Board members with a saved slug get a dedicated profile page;
+            // members without one stay as plain (non-clickable) entries.
+            return member.slug ? (
+              <li key={member.slug} className="group">
+                <Link
+                  href={`/contributors/${member.slug}`}
+                  className="flex items-center gap-3 border-t border-hairline py-3"
+                  aria-label={`View profile: ${member.name}`}
+                >
+                  {content}
+                </Link>
+              </li>
+            ) : (
+              <li key={member.name} className="border-t border-hairline py-3 font-admin text-sm">
+                <div className="flex items-center gap-3">{content}</div>
+              </li>
+            );
+          })}
         </ul>
       </Reveal>
     </div>

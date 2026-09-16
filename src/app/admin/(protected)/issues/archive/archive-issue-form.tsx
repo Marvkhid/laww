@@ -4,6 +4,13 @@ import { useActionState, useState, useCallback } from "react";
 import type { IssuesArchiveRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/issues/archive/actions";
 import { slugify } from "@/lib/slugify";
+import {
+  TextField,
+  TextAreaField,
+  FormSection,
+} from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -33,12 +40,10 @@ export function ArchiveIssueForm({
   );
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
-      <div>
-        <label htmlFor="title" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Title
-        </label>
-        <input
+    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+      <FormSection title="Archive Issue" subtitle="The archived edition's identity." accent="top">
+        <TextField
+          label="Title"
           id="title"
           name="title"
           type="text"
@@ -46,152 +51,126 @@ export function ArchiveIssueForm({
           defaultValue={initial?.title}
           placeholder="e.g. Issue 38 — Spring 2026"
           onChange={onTitleChange}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          helper={initial?.slug ? undefined : "The URL slug is generated automatically as you type."}
+          index={0}
         />
-      </div>
-      <div>
-        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Slug
-        </label>
-        {initial?.slug ? (
-          <>
+
+        <div className="flex flex-col">
+          <label htmlFor="slug" className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+            Slug
+          </label>
+          {initial?.slug ? (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                readOnly
+                defaultValue={initial.slug}
+                className="mt-1.5 w-full cursor-not-allowed border border-hairline bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+                style={{ borderRadius: 2 }}
+              />
+              <input type="hidden" name="slug" value={initial.slug} />
+            </>
+          ) : (
             <input
               id="slug"
               name="slug"
               type="text"
-              readOnly
-              defaultValue={initial.slug}
-              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+              required
+              placeholder="auto-generated-from-title"
+              onChange={() => setSlugManualOverride(true)}
+              className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
+              style={{ borderRadius: 2 }}
             />
-            <input type="hidden" name="slug" value={initial.slug} />
-          </>
-        ) : (
-          <input
-            id="slug"
-          name="slug"
-          type="text"
-          required
-          placeholder="auto-generated-from-title"
-          onChange={() => setSlugManualOverride(true)}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-          />
-        )}
-      </div>
-      <div>
-        <label htmlFor="description" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Description <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        <textarea
+          )}
+        </div>
+
+        <TextAreaField
+          label="Description"
+          optional
           id="description"
           name="description"
           rows={3}
           defaultValue={initial?.description ?? ""}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          placeholder="What's inside this edition?"
         />
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <label htmlFor="issue_number" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-            Issue Number <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <input
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TextField
+            label="Issue number"
+            optional
             id="issue_number"
             name="issue_number"
             type="number"
             min={1}
             defaultValue={initial?.issue_number ?? ""}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={1}
           />
-        </div>
-        <div>
-          <label htmlFor="season" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-            Season <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <input
+          <TextField
+            label="Season"
+            optional
             id="season"
             name="season"
             type="text"
             defaultValue={initial?.season ?? ""}
             placeholder="e.g. Spring"
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={2}
           />
-        </div>
-        <div>
-          <label htmlFor="year" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-            Year <span className="normal-case text-[#333]">(optional)</span>
-          </label>
-          <input
+          <TextField
+            label="Year"
+            optional
             id="year"
             name="year"
             type="number"
             min={2020}
             max={2099}
             defaultValue={initial?.year ?? ""}
-            className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+            index={3}
           />
         </div>
-      </div>
+      </FormSection>
 
-      {/* Cover Image */}
-      <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Cover Image <span className="normal-case text-[#333]">(optional)</span>
-        </legend>
-        {coverPreview ? (
-          <div className="mt-2 aspect-[3/4] w-full max-w-[200px] overflow-hidden border border-hairline">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverPreview} alt="Cover preview" className="h-auto max-h-56 w-full object-contain" />
-          </div>
-        ) : null}
-        <input
-          id="cover_image_file"
+      <FormSection title="Cover Image" subtitle="The public cover for this archive issue." accent="left">
+        <ImageUploadZone
           name="cover_image_file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) setCoverPreview(URL.createObjectURL(file));
-          }}
-          className="mt-2 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          label={coverPreview ? "Replace cover image" : "Upload cover image"}
+          existingHiddenName="existing_cover_image_url"
+          existingValue={initial?.cover_image_url ?? ""}
+          initialPreview={coverPreview}
+          previewAspect="aspect-[3/4]"
+          compact
+          onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
         />
-        <input type="hidden" name="existing_cover_image_url" value={initial?.cover_image_url ?? ""} />
-      </fieldset>
+      </FormSection>
 
-      {/* PDF */}
-      <fieldset className="border border-hairline p-4">
-        <legend className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Digital Edition PDF <span className="normal-case text-[#333]">(optional)</span>
-        </legend>
+      <FormSection title="Digital Edition PDF" subtitle="PDF up to 20MB. Leave empty to keep the current PDF." accent="left">
         {initial?.pdf_url ? (
-          <p className="mt-2 font-admin text-xs text-[#333]">
+          <p className="font-admin text-xs text-stone">
             Current PDF:{" "}
             <a href={initial.pdf_url} target="_blank" rel="noopener noreferrer" className="text-digest-red underline">
               View
             </a>
           </p>
         ) : null}
-        <input
+        <TextField
+          label=""
           id="pdf_file"
           name="pdf_file"
           type="file"
           accept="application/pdf"
-          className="mt-2 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
         />
         <input type="hidden" name="existing_pdf_url" value={initial?.pdf_url ?? ""} />
-        <p className="mt-1 font-admin text-xs text-[#333]">
-          PDF up to 20MB. Leave empty to keep the current PDF.
-        </p>
-      </fieldset>
+      </FormSection>
 
       {entityId ? <input type="hidden" name="entity_id" value={entityId} /> : null}
-      {state.error ? <p className="font-admin text-sm text-digest-red">{state.error}</p> : null}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
-      >
-        {isPending ? "Saving…" : submitLabel}
-      </button>
+      {state.error ? (
+        <p role="alert" className="font-admin text-sm font-medium text-digest-red">
+          {state.error}
+        </p>
+      ) : null}
+
+      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
     </form>
   );
 }

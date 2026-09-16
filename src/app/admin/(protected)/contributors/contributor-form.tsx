@@ -4,6 +4,14 @@ import { useActionState, useState, useCallback } from "react";
 import type { ContributorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/contributors/actions";
 import { slugify } from "@/lib/slugify";
+import {
+  TextField,
+  TextAreaField,
+  CheckboxField,
+  FormSection,
+} from "@/components/forms/kit/field";
+import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -34,163 +42,120 @@ export function ContributorForm({
   );
 
   return (
-    <form action={formAction} className="flex max-w-lg flex-col gap-4">
-      <div>
-        <label htmlFor="name" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Name
-        </label>
-        <input
+    <form action={formAction} className="flex max-w-lg flex-col gap-5">
+      <FormSection title="Profile" subtitle="Who this person is and how they appear on the masthead." accent="top">
+        <TextField
+          label="Name"
           id="name"
           name="name"
           type="text"
           required
           defaultValue={initial?.name}
           onChange={onNameChange}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          placeholder="Full name"
+          helper={initial?.slug ? undefined : "The URL slug is generated automatically as you type."}
+          index={0}
         />
-      </div>
-      <div>
-        <label htmlFor="slug" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Slug
-        </label>
-        {initial?.slug ? (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              readOnly
-              defaultValue={initial.slug}
-              className="mt-1 w-full cursor-not-allowed border border-[#c8c3bb] bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
-            />
-            <input type="hidden" name="slug" value={initial.slug} />
-            <p className="mt-1 font-admin text-xs text-[#333]">
-              Existing slug — preserved to keep the public URL stable.
-            </p>
-          </>
-        ) : (
-          <>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              required
-              placeholder="auto-generated-from-name"
-              onChange={() => setSlugManualOverride(true)}
-              className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
-            />
-            <p className="mt-1 font-admin text-xs text-[#333]">
-              Auto-generated from the name. Edit manually only if needed.
-            </p>
-          </>
-        )}
-      </div>
-      <div>
-        <label htmlFor="role" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Role
-        </label>
-        <input
-          id="role"
+
+        <div className="flex flex-col">
+          <label htmlFor="slug" className="font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
+            Slug
+          </label>
+          {initial?.slug ? (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                readOnly
+                defaultValue={initial.slug}
+                className="mt-1.5 w-full cursor-not-allowed border border-hairline bg-hairline/20 px-4 py-3 font-admin text-sm text-stone"
+                style={{ borderRadius: 2 }}
+              />
+              <input type="hidden" name="slug" value={initial.slug} />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Existing slug — preserved to keep the public URL stable.
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                required
+                placeholder="auto-generated-from-name"
+                onChange={() => setSlugManualOverride(true)}
+                className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
+                style={{ borderRadius: 2 }}
+              />
+              <p className="mt-1.5 font-admin text-xs text-stone">
+                Auto-generated from the name. Edit manually only if needed.
+              </p>
+            </>
+          )}
+        </div>
+
+        <TextField
+          label="Role"
           name="role"
           type="text"
           required
           defaultValue={initial?.role}
           placeholder="e.g. Contributor, Editor-in-Chief"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
         />
-      </div>
-      <div>
-        <label
-          htmlFor="credentials"
-          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
-        >
-          Credentials <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        <input
-          id="credentials"
+
+        <TextField
+          label="Credentials"
+          optional
           name="credentials"
           type="text"
           defaultValue={initial?.credentials ?? ""}
           placeholder="e.g. SAN, LL.M"
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
         />
-      </div>
-      <div>
-        <label htmlFor="bio" className="font-admin text-xs font-semibold uppercase tracking-wide text-ink">
-          Bio <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        <textarea
-          id="bio"
+
+        <TextAreaField
+          label="Bio"
+          optional
           name="bio"
           rows={3}
           defaultValue={initial?.bio ?? ""}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          placeholder="A short professional biography…"
         />
-      </div>
-      <div>
-        <label
-          htmlFor="photo_file"
-          className="font-admin text-xs font-semibold uppercase tracking-wide text-ink"
-        >
-          Profile Photo <span className="normal-case text-[#333]">(optional)</span>
-        </label>
-        {photoPreview ? (
-          <div className="mt-2 flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photoPreview}
-              alt="Photo preview"
-              className="h-20 w-20 rounded-full object-cover border border-hairline"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setPhotoPreview(null);
-                const input = document.getElementById("photo_file") as HTMLInputElement | null;
-                if (input) input.value = "";
-              }}
-              className="font-admin text-xs text-digest-red hover:text-digest-red-deep"
-            >
-              Remove
-            </button>
-          </div>
-        ) : null}
-        <input
-          id="photo_file"
+      </FormSection>
+
+      <FormSection title="Profile Photo" subtitle="Shown on the contributor page and bylines." accent="left">
+        <ImageUploadZone
           name="photo_file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) setPhotoPreview(URL.createObjectURL(file));
-          }}
-          className="mt-1 w-full border border-[#c8c3bb] bg-white px-4 py-3 font-admin text-sm text-ink"
+          label={photoPreview ? "Replace photo" : "Upload profile photo"}
+          existingHiddenName="existing_photo_url"
+          existingValue={initial?.photo_url ?? ""}
+          initialPreview={photoPreview}
+          previewAspect="aspect-square"
+          compact
+          onFilesSelected={(files) => setPhotoPreview(URL.createObjectURL(files[0]))}
         />
-        <input
-          type="hidden"
-          name="existing_photo_url"
-          value={initial?.photo_url ?? ""}
-        />
-        <p className="mt-1 font-admin text-xs text-[#333]">
+        <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep the current photo.
         </p>
-      </div>
-      <label className="flex items-center gap-2 font-admin text-sm text-ink">
-        <input
-          type="checkbox"
+      </FormSection>
+
+      <FormSection title="Masthead" subtitle="How this person is classified." accent="left">
+        <CheckboxField
           name="is_editorial_board"
+          label="Editorial board member"
+          description="vs. article contributor"
           defaultChecked={initial?.is_editorial_board}
         />
-        Editorial board member (vs. article contributor)
-      </label>
-      {state.error ? <p className="font-admin text-sm text-digest-red">{state.error}</p> : null}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-fit bg-digest-red px-6 py-3 font-admin text-sm font-semibold uppercase tracking-wide text-paper disabled:opacity-60"
-      >
-        {isPending ? "Saving…" : submitLabel}
-      </button>
+      </FormSection>
+
+      {state.error ? (
+        <p role="alert" className="font-admin text-sm font-medium text-digest-red">
+          {state.error}
+        </p>
+      ) : null}
+
+      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
     </form>
   );
 }

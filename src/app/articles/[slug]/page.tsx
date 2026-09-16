@@ -9,7 +9,7 @@ import {
 } from "@/lib/supabase/queries/articles";
 import { getCurrentIssue } from "@/lib/supabase/queries/issues";
 import { Byline } from "@/components/ui/byline";
-import { ArticleCoverImage } from "@/components/ui/article-cover-image";
+import { CoverHeroImage } from "@/components/ui/cover-hero-image";
 import { ContributorAvatar } from "@/components/ui/contributor-avatar";
 import { Reveal } from "@/components/motion/reveal";
 import { SocialShareIcons } from "@/components/ui/social-share-icons";
@@ -166,6 +166,15 @@ export default async function ArticlePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
+
+      {/* ── Full-bleed cover hero ──
+          Rendered OUTSIDE the article's max-width container (and outside the
+          two-column grid) so no container margin constrains it. Only the
+          designated cover image receives this treatment. */}
+      {article.coverImageUrl ? (
+        <CoverHeroImage src={article.coverImageUrl} alt={article.imageAlt} />
+      ) : null}
+
       <article className="mx-auto max-w-6xl px-6 py-12 md:py-16">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-6">
@@ -222,11 +231,6 @@ export default async function ArticlePage({
           </Reveal>
 
           <Reveal delay={0.1}>
-            {/* Cover image */}
-            <div className="mt-8">
-              <ArticleCoverImage src={article.coverImageUrl} alt={article.imageAlt} aspect="aspect-[16/9]" />
-            </div>
-
             {/* Article body */}
             <div className="mt-10">
               {article.body ? (
