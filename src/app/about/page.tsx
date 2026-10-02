@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getEditorialBoard } from "@/lib/supabase/queries/contributors";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
+import { AdPlacement } from "@/components/home/ad-placement";
 
 export const metadata: Metadata = {
   title: "About",
@@ -394,6 +395,9 @@ export default async function AboutPage() {
           </div>
         </section>
       </Reveal>
+
+      {/* Advert selected for this page */}
+      <AdPlacement page="about" inset />
     </div>
   );
 }

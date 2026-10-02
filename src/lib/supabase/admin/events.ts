@@ -9,7 +9,31 @@ export type EventInput = {
   published: boolean;
   event_date: string | null;
   page_number: number | null;
+  /** Page keys from the admin's "Display On" group; omitted when unavailable. */
+  show_on_pages?: string[];
 };
+
+// show_on_pages lives in its own statement so a missing column (migration
+// 0025 not applied yet) can never roll back the event itself; the admin form
+// withholds the "Display On" group in that state, so nothing is lost.
+async function applyPageVisibility(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>,
+  eventId: string,
+  pages: string[] | undefined
+): Promise<void> {
+  if (!pages) return;
+  const { error } = await supabase
+    .from("events")
+    .update({ show_on_pages: pages })
+    .eq("id", eventId);
+  if (error) {
+    if (error.code === "42703" || error.code === "PGRST204") {
+      console.warn("show_on_pages column not found — run migration 0025_page_visibility");
+    } else {
+      console.error("applyPageVisibility error:", error);
+    }
+  }
+}
 
 export async function listEventsForAdmin(): Promise<EventRow[]> {
   const supabase = await requireAdmin();
@@ -48,9 +72,10 @@ export async function getEventImagesForAdmin(eventId: string): Promise<EventImag
 
 export async function createEvent(input: EventInput): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
+  const { show_on_pages, ...row } = input;
   const { data, error } = await supabase
     .from("events")
-    .insert(input)
+    .insert(row)
     .select("id")
     .single();
 
@@ -60,7 +85,7 @@ export async function createEvent(input: EventInput): Promise<{ id: string | nul
       return { id: null, error: "That slug is already in use by another event." };
     }
     if (error.code === "42703" || error.code === "PGRST204") {
-      const { page_number: _, ...rest } = input;
+      const { page_number: _, ...rest } = row;
       const { data: retryData, error: retryError } = await supabase
         .from("events")
         .insert(rest)
@@ -70,16 +95,22 @@ export async function createEvent(input: EventInput): Promise<{ id: string | nul
         console.error("createEvent retry error:", retryError);
         return { id: null, error: "Could not create the event. Please try again." };
       }
-      return { id: (retryData as { id: string }).id, error: null };
+      const retryId = (retryData as { id: string }).id;
+      await applyPageVisibility(supabase, retryId, show_on_pages);
+      return { id: retryId, error: null };
     }
     return { id: null, error: "Could not create the event. Please try again." };
   }
-  return { id: (data as { id: string }).id, error: null };
+
+  const createdId = (data as { id: string }).id;
+  await applyPageVisibility(supabase, createdId, show_on_pages);
+  return { id: createdId, error: null };
 }
 
 export async function updateEvent(id: string, input: EventInput): Promise<{ error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("events").update(input).eq("id", id);
+  const { show_on_pages, ...row } = input;
+  const { error } = await supabase.from("events").update(row).eq("id", id);
 
   if (error) {
     console.error("updateEvent error:", error);
@@ -88,16 +119,18 @@ export async function updateEvent(id: string, input: EventInput): Promise<{ erro
     }
     // If the column doesn't exist yet (migration not applied), retry without it
     if (error.code === "42703" || error.code === "PGRST204") {
-      const { page_number: _, ...rest } = input;
+      const { page_number: _, ...rest } = row;
       const { error: retryError } = await supabase.from("events").update(rest).eq("id", id);
       if (retryError) {
         console.error("updateEvent retry error:", retryError);
         return { error: "Could not update the event. Please try again." };
       }
+      await applyPageVisibility(supabase, id, show_on_pages);
       return { error: null };
     }
     return { error: "Could not update the event. Please try again." };
   }
+  await applyPageVisibility(supabase, id, show_on_pages);
   return { error: null };
 }
 

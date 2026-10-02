@@ -4,6 +4,7 @@ import { createArticleAction } from "@/app/admin/(protected)/articles/actions";
 import { listIssuesForAdmin } from "@/lib/supabase/admin/issues";
 import { listPracticeAreasForAdmin } from "@/lib/supabase/admin/practice-areas";
 import { listContributorsForAdmin } from "@/lib/supabase/admin/contributors";
+import { pageTargetingAvailable } from "@/lib/supabase/admin/page-targeting";
 import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
@@ -12,10 +13,11 @@ export const metadata: Metadata = {
 };
 
 export default async function NewArticlePage() {
-  const [issues, practiceAreas, contributors] = await Promise.all([
+  const [issues, practiceAreas, contributors, pageTargeting] = await Promise.all([
     listIssuesForAdmin(),
     listPracticeAreasForAdmin(),
     listContributorsForAdmin(),
+    pageTargetingAvailable(),
   ]);
 
   return (
@@ -28,6 +30,7 @@ export default async function NewArticlePage() {
           issues={issues}
           practiceAreas={practiceAreas}
           contributors={contributors}
+          pageTargeting={pageTargeting}
           submitLabel="Create"
         />
       </div>

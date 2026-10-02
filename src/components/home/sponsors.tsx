@@ -5,21 +5,24 @@ import { Reveal } from "@/components/motion/reveal";
 
 export async function Sponsors() {
   const supabase = createSupabaseServerClient();
-  const sponsors = await getActiveSponsors(supabase);
+  // getActiveSponsors already applies the admin's "Display On" homepage
+  // gate; entries that carry a banner image are adverts and belong in the
+  // AdPlacement slots, so this wall shows logo-only sponsors only — the
+  // same sponsor never appears twice on one page.
+  const allSponsors = await getActiveSponsors(supabase);
+  const sponsors = allSponsors.filter((sponsor) => !sponsor.imageUrl);
+
+  // Nothing logo-only to credit on this page — the section (and its
+  // empty-state copy) stays out of the way rather than promising sponsors
+  // that are already rendered above as adverts.
+  if (sponsors.length === 0) return null;
 
   return (
     <section className="border-t border-hairline">
       <div className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
           <SectionHeading eyebrow="Sponsors" title="Supporting Law Digest" />
-          {sponsors.length === 0 ? (
-            <p className="max-w-lg font-body text-sm leading-relaxed text-stone">
-              Sponsor placements will appear here once confirmed. This section is built
-              and ready — no sponsors are attached yet, so nothing is shown in their
-              place.
-            </p>
-          ) : (
-            <ul className="flex flex-wrap items-center gap-x-12 gap-y-8">
+          <ul className="flex flex-wrap items-center gap-x-12 gap-y-8">
               {sponsors.map((sponsor) => {
                 const content = sponsor.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -51,8 +54,7 @@ export async function Sponsors() {
                   </li>
                 );
               })}
-            </ul>
-          )}
+          </ul>
         </Reveal>
       </div>
     </section>

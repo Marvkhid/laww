@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { requireAdmin } from "@/lib/supabase/admin/require-admin";
+import {
+  IMAGE_MAX_BYTES as MAX_BYTES,
+  PDF_MAX_BYTES,
+  PDF_MAX_LABEL,
+} from "@/lib/upload-limits";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 const BUCKET = "article-images";
-const PDF_MAX_BYTES = 20 * 1024 * 1024; // 20MB
 
 /** Generic image upload helper — reusable by any admin entity. */
 async function uploadImageToBucket(
@@ -177,7 +180,7 @@ export async function uploadIssuePdf(
     return { url: null, error: "File must be a PDF." };
   }
   if (file.size > PDF_MAX_BYTES) {
-    return { url: null, error: "PDF must be 20MB or smaller." };
+    return { url: null, error: `PDF must be ${PDF_MAX_LABEL} or smaller.` };
   }
 
   const supabase = await requireAdmin();

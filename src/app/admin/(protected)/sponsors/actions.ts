@@ -10,8 +10,31 @@ import {
   type SponsorInput,
 } from "@/lib/supabase/admin/sponsors";
 import { uploadSponsorImage } from "@/lib/supabase/admin/storage";
+import {
+  ADVERT_PAGE_OPTIONS,
+  pagesFromFormData,
+} from "@/lib/page-visibility";
 
 export type FormState = { error: string | null };
+
+// Adverts can sit on any public page, so every save must invalidate all of
+// them — otherwise a changed advert keeps rendering from the old route cache
+// on the pages it targets.
+const AD_PAGES = [
+  "/",
+  "/about",
+  "/articles",
+  "/issues",
+  "/events",
+  "/legal-updates",
+  "/contributors",
+  "/contact",
+] as const;
+
+function revalidateAdPaths() {
+  revalidatePath("/admin/sponsors");
+  for (const page of AD_PAGES) revalidatePath(page);
+}
 
 async function readInput(formData: FormData): Promise<{ input: SponsorInput | null; error: string | null }> {
   const name = String(formData.get("name") ?? "").trim();
@@ -20,7 +43,6 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
     return raw.length > 0 ? raw : null;
   };
   const displayOrderRaw = String(formData.get("display_order") ?? "0").trim();
-  const placement = String(formData.get("placement") ?? "all").trim();
   const pageNumberRaw = String(formData.get("page_number") ?? "").trim();
 
   if (!name) {
@@ -49,20 +71,29 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
     const { url, error: imageError } = await uploadSponsorImage(imageFile);
     if (imageError) return { input: null, error: imageError };
     image_url = url;
-  }    return {
-      input: {
-        name,
-        logo_url,
-        image_url,
-        website_url: optional("website_url"),
-        tier: optional("tier"),
-        placement,
-        display_order: displayOrderRaw ? Number(displayOrderRaw) : 0,
-        page_number: pageNumberRaw ? Number(pageNumberRaw) : null,
-        active: formData.get("active") === "on",
-      },
-      error: null,
-    };
+  }
+
+  // "Display On" — null when the group was not rendered (migration 0025
+  // pending), so the column keeps its current value.
+  const show_on_pages = pagesFromFormData(formData, ADVERT_PAGE_OPTIONS);
+  if (show_on_pages && show_on_pages.length === 0) {
+    return { input: null, error: "Select at least one page under Display On." };
+  }
+
+  return {
+    input: {
+      name,
+      logo_url,
+      image_url,
+      website_url: optional("website_url"),
+      tier: optional("tier"),
+      display_order: displayOrderRaw ? Number(displayOrderRaw) : 0,
+      page_number: pageNumberRaw ? Number(pageNumberRaw) : null,
+      active: formData.get("active") === "on",
+      ...(show_on_pages ? { show_on_pages } : {}),
+    },
+    error: null,
+  };
 }
 
 export async function createSponsorAction(
@@ -75,8 +106,7 @@ export async function createSponsorAction(
   const { error } = await createSponsor(input);
   if (error) return { error };
 
-  revalidatePath("/admin/sponsors");
-  revalidatePath("/");
+  revalidateAdPaths();
   redirect("/admin/sponsors");
 }
 
@@ -91,8 +121,7 @@ export async function updateSponsorAction(
   const { error } = await updateSponsor(id, input);
   if (error) return { error };
 
-  revalidatePath("/admin/sponsors");
-  revalidatePath("/");
+  revalidateAdPaths();
   redirect("/admin/sponsors");
 }
 
@@ -100,8 +129,7 @@ export async function deleteSponsorAction(id: string) {
   const { error } = await deleteSponsor(id);
   if (error) return { error };
 
-  revalidatePath("/admin/sponsors");
-  revalidatePath("/");
+  revalidateAdPaths();
   return { error: null };
 }
 
@@ -109,7 +137,6 @@ export async function toggleSponsorActiveAction(id: string, active: boolean) {
   const { error } = await setSponsorActive(id, active);
   if (error) return { error };
 
-  revalidatePath("/admin/sponsors");
-  revalidatePath("/");
+  revalidateAdPaths();
   return { error: null };
 }

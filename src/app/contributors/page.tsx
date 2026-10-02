@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { ContributorAvatar } from "@/components/ui/contributor-avatar";
 import { Reveal } from "@/components/motion/reveal";
 import { Gavel } from "@/components/ui/editorial-illustration";
+import { AdPlacement } from "@/components/home/ad-placement";
 
 export const metadata: Metadata = {
   title: "Editorial Board",
@@ -91,6 +92,9 @@ export default async function ContributorsPage() {
           })}
         </ul>
       </Reveal>
+
+      {/* Advert selected for this page */}
+      <AdPlacement page="contributors" inset />
     </div>
   );
 }

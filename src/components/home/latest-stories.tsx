@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
-import { getArticles } from "@/lib/supabase/queries/articles";
+import { getHomepageArticles } from "@/lib/supabase/queries/articles";
 import { PageNumberBadge } from "@/components/ui/page-number-badge";
 import { Byline } from "@/components/ui/byline";
 import { ArticleCoverImage } from "@/components/ui/article-cover-image";
@@ -9,10 +9,11 @@ import { Reveal } from "@/components/motion/reveal";
 
 export async function LatestStories() {
   const supabase = createSupabaseServerClient();
-  const articles = await getArticles(supabase);
-
-  // Take the most recent 8 published articles
-  const latest = articles.slice(-8).reverse();
+  // Published articles the admin ticked "Show on Homepage" that are not
+  // already shown by a dedicated placement (Featured / Cover Story /
+  // In This Issue / Editorial Insights) — so the homepage shows each
+  // opted-in story exactly once and never the whole archive.
+  const latest = await getHomepageArticles(supabase, 8);
 
   if (latest.length === 0) return null;
 

@@ -15,6 +15,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { SocialShareIcons } from "@/components/ui/social-share-icons";
 import { SITE_URL } from "@/lib/constants";
 import { EditorialBody } from "@/components/editorial/editorial-body";
+import { PositionedImageGrid } from "@/components/ui/positioned-images-grid";
 import type { ArticleImage } from "@/lib/types";
 
 // Rough word count from Tiptap JSON body
@@ -244,15 +245,28 @@ export default async function ArticlePage({
                   title={article.title}
                 />
               ) : (
-                <div className="border border-hairline bg-paper-warm p-6">
-                  <p className="font-utility text-[10px] uppercase tracking-[0.15em] text-digest-red">
-                    Note
-                  </p>
-                  <p className="mt-2 font-body text-sm leading-relaxed text-stone">
-                    The full article body has not yet been added to the digital edition.
-                    The title, byline, and page reference{issueMeta ? ` from Issue ${issueMeta.issueNumber}` : ""} are confirmed.
-                  </p>
-                </div>
+                <>
+                  <div className="border border-hairline bg-paper-warm p-6">
+                    <p className="font-utility text-[10px] uppercase tracking-[0.15em] text-digest-red">
+                      Note
+                    </p>
+                    <p className="mt-2 font-body text-sm leading-relaxed text-stone">
+                      The full article body has not yet been added to the digital edition.
+                      The title, byline, and page reference{issueMeta ? ` from Issue ${issueMeta.issueNumber}` : ""} are confirmed.
+                    </p>
+                  </div>
+
+                  {/* Images 1–4 still render at their chosen positions even
+                      with no body text to interleave them into. */}
+                  {(article.images ?? []).length > 0 ? (
+                    <div className="mt-8">
+                      <PositionedImageGrid
+                        images={article.images ?? []}
+                        title={article.title}
+                      />
+                    </div>
+                  ) : null}
+                </>
               )}
             </div>
           </Reveal>

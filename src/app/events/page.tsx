@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getEvents } from "@/lib/supabase/queries/events";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
+import { AdPlacement } from "@/components/home/ad-placement";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -92,6 +93,9 @@ export default async function EventsPage() {
           ))}
         </div>
       )}
+
+      {/* Advert selected for this page */}
+      <AdPlacement page="events" inset />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Byline } from "@/components/ui/byline";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { OpenBook } from "@/components/ui/editorial-illustration";
+import { AdPlacement } from "@/components/home/ad-placement";
 
 export const metadata: Metadata = {
   title: "Articles",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export default async function ArticlesPage() {
   const supabase = createSupabaseServerClient();
   const [articles, issueMeta] = await Promise.all([
-    getArticles(supabase),
+    getArticles(supabase, { page: "articles" }),
     getCurrentIssue(supabase),
   ]);
 
@@ -50,6 +51,9 @@ export default async function ArticlesPage() {
           ))}
         </ul>
       </Reveal>
+
+      {/* Advert selected for this page */}
+      <AdPlacement page="articles" inset />
     </div>
   );
 }

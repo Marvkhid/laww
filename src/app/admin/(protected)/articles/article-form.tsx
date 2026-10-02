@@ -14,6 +14,12 @@ import {
   FormSection,
   fieldEntrance,
 } from "@/components/forms/kit/field";
+import { PageVisibilityField } from "@/components/forms/kit/page-visibility";
+import { PageTargetingNotice } from "@/app/admin/(protected)/page-targeting-notice";
+import {
+  ARTICLE_PAGE_OPTIONS,
+  pagesForRow,
+} from "@/lib/page-visibility";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 
@@ -39,8 +45,10 @@ export function ArticleForm({
   practiceAreas,
   contributors,
   submitLabel,
+  pageTargeting = false,
 }: {
   action: ActionFn;
+  pageTargeting?: boolean;
   initial?: Pick<
     ArticleRow,
     | "slug"
@@ -48,6 +56,7 @@ export function ArticleForm({
     | "dek"
     | "page_number"
     | "cover_image_url"
+    | "show_on_pages"
     | "image_1_url"
     | "image_1_alt"
     | "image_1_position"
@@ -79,6 +88,63 @@ export function ArticleForm({
   const selections = initialContributorSelections ?? new Map<string, number>();
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
   const [slugManualOverride, setSlugManualOverride] = useState(false);
+
+  // ── Page visibility ("Display On") ──────────────────────────────────────
+  // One source of truth: these keys are what gets stored in show_on_pages
+  // and what the homepage/articles/issues queries filter on.
+  const [pages, setPages] = useState<string[]>(() => {
+    const stored = pagesForRow(initial?.show_on_pages, ARTICLE_PAGE_OPTIONS);
+    if (stored) return stored;
+    // Row saved before migration 0025: mirror the migration's backfill so
+    // the form shows what the site actually does today.
+    const legacy = ARTICLE_PAGE_OPTIONS.filter((o) => o.key !== "homepage").map(
+      (o) => o.key
+    );
+    const usedHomepagePlacement =
+      initial?.featured ||
+      initial?.on_cover ||
+      initial?.is_editorial_insight ||
+      initial?.is_cover_story;
+    return usedHomepagePlacement ? [...legacy, "homepage"] : legacy;
+  });
+
+  // Homepage placement flags — ticked placement always implies "Show on
+  // Homepage", and clearing "Show on Homepage" clears the placements, so
+  // the form can never submit a state the homepage would contradict.
+  const [placements, setPlacements] = useState({
+    on_cover: initial?.on_cover ?? false,
+    featured: initial?.featured ?? false,
+    is_editorial_insight: initial?.is_editorial_insight ?? false,
+    is_cover_story: initial?.is_cover_story ?? false,
+  });
+
+  const onPlacementChange = useCallback(
+    (key: keyof typeof placements, isChecked: boolean) => {
+      setPlacements((prev) => ({ ...prev, [key]: isChecked }));
+      if (isChecked) {
+        setPages((prev) =>
+          prev.includes("homepage") ? prev : [...prev, "homepage"]
+        );
+      }
+    },
+    []
+  );
+
+  const onPageToggle = useCallback((key: string, isChecked: boolean) => {
+    setPages((prev) =>
+      isChecked
+        ? [...new Set([...prev, key])]
+        : prev.filter((page) => page !== key)
+    );
+    if (key === "homepage" && !isChecked) {
+      setPlacements({
+        on_cover: false,
+        featured: false,
+        is_editorial_insight: false,
+        is_cover_story: false,
+      });
+    }
+  }, []);
 
   const onTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,8 +235,8 @@ export function ArticleForm({
         </div>
       </FormSection>
 
-      {/* ── Publishing ── */}
-      <FormSection title="Publishing" subtitle="Status and in-issue placement." accent="left">
+      {/* ── Publication ── */}
+      <FormSection title="Publication" subtitle="Draft or published, plus the printed page number." accent="left">
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
             label="Page number"
@@ -195,6 +261,29 @@ export function ArticleForm({
           </SelectField>
         </div>
       </FormSection>
+
+      {/* ── Display On ── */}
+      {pageTargeting ? (
+        <FormSection
+          title="Display On"
+          subtitle="Where this story is allowed to appear. The homepage only shows it when Homepage is ticked."
+          accent="left"
+        >
+          <PageVisibilityField
+            options={ARTICLE_PAGE_OPTIONS}
+            selected={pages}
+            checked={Object.fromEntries(
+              ARTICLE_PAGE_OPTIONS.map((option) => [
+                option.key,
+                pages.includes(option.key),
+              ])
+            )}
+            onToggle={onPageToggle}
+          />
+        </FormSection>
+      ) : (
+        <PageTargetingNotice />
+      )}
 
       {/* ── Cover image ── */}
       <FormSection title="Cover Image" subtitle="The hero image shown on the homepage and article page." accent="left">
@@ -269,7 +358,7 @@ export function ArticleForm({
       </FormSection>
 
       {/* ── Editorial information ── */}
-      <FormSection title="Editorial Information" subtitle="Issue, practice area, and homepage placement." accent="left">
+      <FormSection title="Editorial Information" subtitle="Issue and practice area." accent="left">
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectField
             label="Issue"
@@ -302,35 +391,47 @@ export function ArticleForm({
             ))}
           </SelectField>
         </div>
+      </FormSection>
 
-        <div className="flex flex-col gap-1 border-t border-hairline/70 pt-3">
-          <span className="mb-1 font-admin text-[11px] font-semibold uppercase tracking-[0.12em] text-stone">
-            Homepage placement
-          </span>
+      {/* ── Homepage placement ── */}
+      <FormSection
+        title="Homepage Placement"
+        subtitle={'Which homepage section shows this story. Tick one — "Show on Homepage" switches on automatically.'}
+        accent="left"
+      >
+        <div className="flex flex-col gap-1">
           <CheckboxField
             name="on_cover"
             label="In This Issue"
             description="Cover teaser strip"
-            defaultChecked={initial?.on_cover}
+            checked={placements.on_cover}
+            onChange={(isChecked) => onPlacementChange("on_cover", isChecked)}
             index={0}
           />
           <CheckboxField
             name="featured"
-            label="Featured Stories"
-            defaultChecked={initial?.featured}
+            label="Featured Story"
+            checked={placements.featured}
+            onChange={(isChecked) => onPlacementChange("featured", isChecked)}
             index={1}
           />
           <CheckboxField
             name="is_editorial_insight"
             label="Editorial Insights"
-            defaultChecked={initial?.is_editorial_insight}
+            checked={placements.is_editorial_insight}
+            onChange={(isChecked) =>
+              onPlacementChange("is_editorial_insight", isChecked)
+            }
             index={2}
           />
           <CheckboxField
             name="is_cover_story"
             label="Cover Story"
             description="Only one at a time — setting this unsets the previous"
-            defaultChecked={initial?.is_cover_story}
+            checked={placements.is_cover_story}
+            onChange={(isChecked) =>
+              onPlacementChange("is_cover_story", isChecked)
+            }
             index={3}
           />
         </div>

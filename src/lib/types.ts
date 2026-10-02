@@ -136,6 +136,8 @@ export interface Sponsor {
   placement?: string;
   imageUrl?: string;
   pageNumber?: number | null;
+  /** Page keys the admin selected in "Display On" (undefined = legacy row). */
+  showOnPages?: string[];
 }
 
 export interface LegalInsight {

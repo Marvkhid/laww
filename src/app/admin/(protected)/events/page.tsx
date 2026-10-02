@@ -4,6 +4,11 @@ import { listEventsForAdmin } from "@/lib/supabase/admin/events";
 import { deleteEventAction } from "./actions";
 import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
 import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
+import {
+  EVENT_PAGE_OPTIONS,
+  pageLabels,
+  pagesForRow,
+} from "@/lib/page-visibility";
 
 export const metadata: Metadata = {
   title: "Events — Admin",
@@ -45,6 +50,13 @@ export default async function AdminEventsPage() {
                   {event.event_date ? ` · ${event.event_date}` : ""}
                   {typeof event.page_number === "number" ? ` · p. ${event.page_number}` : ""}
                   {event.published ? "" : " · Draft"}
+                </p>
+                <p className="font-admin text-[11px] tracking-wide text-stone">
+                  Shows on:{" "}
+                  {pageLabels(
+                    pagesForRow(event.show_on_pages, EVENT_PAGE_OPTIONS) ??
+                      EVENT_PAGE_OPTIONS.map((option) => option.key)
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-4">

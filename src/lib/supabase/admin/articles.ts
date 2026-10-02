@@ -65,6 +65,8 @@ export type ArticleInput = {
   issue_id: string | null;
   practice_area_id: string | null;
   body: JSONContent | null;
+  /** Page keys from the admin's "Display On" group; null/undefined = leave as-is. */
+  show_on_pages?: string[] | null;
 };
 
 export type ContributorSelection = { contributorId: string; order: number };
@@ -107,6 +109,30 @@ async function applyCoverStoryFlag(
   }
 }
 
+// Applied as its own statement because the create/update RPCs below take a
+// fixed parameter list (migration 0004). A missing column — migration 0025
+// not applied yet — is warned about instead of failing the save, and the
+// admin form withholds the "Display On" group entirely in that state
+// (see pageTargetingAvailable) so no selection is ever silently dropped.
+async function applyPageVisibility(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>,
+  articleId: string,
+  pages: string[] | null | undefined
+): Promise<void> {
+  if (!pages) return;
+  const { error } = await supabase
+    .from("articles")
+    .update({ show_on_pages: pages })
+    .eq("id", articleId);
+  if (error) {
+    if (error.code === "42703" || error.code === "PGRST204") {
+      console.warn("show_on_pages column not found — run migration 0025_page_visibility");
+    } else {
+      console.error("applyPageVisibility error:", error);
+    }
+  }
+}
+
 export async function createArticle(
   input: ArticleInput,
   contributors: ContributorSelection[]
@@ -146,6 +172,11 @@ export async function createArticle(
   // Apply cover story flag separately
   if (articleId && input.is_cover_story) {
     await applyCoverStoryFlag(supabase, articleId, true);
+  }
+
+  // Apply page visibility separately (see applyPageVisibility)
+  if (articleId) {
+    await applyPageVisibility(supabase, articleId, input.show_on_pages);
   }
 
   // Apply inline images separately (the RPC doesn't have these columns)
@@ -209,6 +240,9 @@ export async function updateArticle(
 
   // Apply cover story flag separately
   await applyCoverStoryFlag(supabase, id, input.is_cover_story);
+
+  // Apply page visibility separately (see applyPageVisibility)
+  await applyPageVisibility(supabase, id, input.show_on_pages);
 
   // Apply inline images separately
   await supabase

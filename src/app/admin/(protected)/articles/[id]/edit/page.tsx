@@ -9,6 +9,7 @@ import { ArticleForm } from "@/app/admin/(protected)/articles/article-form";
 import { listIssuesForAdmin } from "@/lib/supabase/admin/issues";
 import { listPracticeAreasForAdmin } from "@/lib/supabase/admin/practice-areas";
 import { listContributorsForAdmin } from "@/lib/supabase/admin/contributors";
+import { pageTargetingAvailable } from "@/lib/supabase/admin/page-targeting";
 import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
@@ -22,13 +23,15 @@ export default async function EditArticlePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [article, links, issues, practiceAreas, contributors] = await Promise.all([
-    getArticleByIdForAdmin(id),
-    getArticleContributorLinksForAdmin(id),
-    listIssuesForAdmin(),
-    listPracticeAreasForAdmin(),
-    listContributorsForAdmin(),
-  ]);
+  const [article, links, issues, practiceAreas, contributors, pageTargeting] =
+    await Promise.all([
+      getArticleByIdForAdmin(id),
+      getArticleContributorLinksForAdmin(id),
+      listIssuesForAdmin(),
+      listPracticeAreasForAdmin(),
+      listContributorsForAdmin(),
+      pageTargetingAvailable(),
+    ]);
 
   if (!article) {
     notFound();
@@ -51,6 +54,7 @@ export default async function EditArticlePage({
           issues={issues}
           practiceAreas={practiceAreas}
           contributors={contributors}
+          pageTargeting={pageTargeting}
           submitLabel="Save changes"
         />
       </div>

@@ -4,11 +4,30 @@ import { listArticlesForAdmin } from "@/lib/supabase/admin/articles";
 import { DeleteArticleButton } from "@/app/admin/(protected)/articles/delete-button";
 import { StatusToggleButton } from "@/app/admin/(protected)/articles/status-toggle-button";
 import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
+import {
+  ARTICLE_PAGE_OPTIONS,
+  pageLabels,
+  pagesForRow,
+} from "@/lib/page-visibility";
+import type { ArticleRow } from "@/lib/supabase/types";
 
 export const metadata: Metadata = {
   title: "Articles — Admin",
   robots: { index: false, follow: false },
 };
+
+// Where this article is listed — mirrors the form and the public queries,
+// including the pre-migration fallback (placement flags imply homepage).
+function visiblePages(article: ArticleRow): string[] {
+  const stored = pagesForRow(article.show_on_pages, ARTICLE_PAGE_OPTIONS);
+  if (stored) return stored;
+  const onHomepage =
+    article.featured ||
+    article.on_cover ||
+    article.is_editorial_insight ||
+    article.is_cover_story;
+  return onHomepage ? ["homepage", "articles", "issues"] : ["articles", "issues"];
+}
 
 export default async function AdminArticlesPage() {
   const articles = await listArticlesForAdmin();
@@ -42,7 +61,11 @@ export default async function AdminArticlesPage() {
                     {article.status}
                   </span>
                   {article.is_cover_story ? " · Cover Story" : ""}
+                  {article.featured ? " · Featured" : ""}
                   {article.page_number ? ` · p. ${article.page_number}` : ""}
+                </p>
+                <p className="font-admin text-[11px] tracking-wide text-stone">
+                  Shows on: {pageLabels(visiblePages(article))}
                 </p>
               </div>
               <div className="flex items-center gap-4">

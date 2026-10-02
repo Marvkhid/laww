@@ -6,6 +6,7 @@ import { getCurrentIssue } from "@/lib/supabase/queries/issues";
 import { getArchivedIssues } from "@/lib/supabase/queries/issues-archive";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
+import { AdPlacement } from "@/components/home/ad-placement";
 import { Gavel } from "@/components/ui/editorial-illustration";
 
 export const metadata: Metadata = {
@@ -118,6 +119,9 @@ export default async function IssuesPage() {
           </div>
         </Reveal>
       ) : null}
+
+      {/* Advert selected for this page */}
+      <AdPlacement page="issues" inset />
     </div>
   );
 }

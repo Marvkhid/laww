@@ -58,6 +58,7 @@ export async function createContributorAction(
   revalidatePath("/admin/contributors");
   revalidatePath("/contributors");
   revalidatePath("/about");
+  revalidatePath("/"); // homepage Contributors section
   redirect("/admin/contributors");
 }
 
@@ -79,6 +80,7 @@ export async function updateContributorAction(
   revalidatePath("/contributors");
   revalidatePath(`/contributors/${input.slug}`);
   revalidatePath("/about");
+  revalidatePath("/"); // homepage Contributors section
   redirect("/admin/contributors");
 }
 
@@ -90,5 +92,6 @@ export async function deleteContributorAction(id: string, slug: string) {
   revalidatePath("/contributors");
   revalidatePath(`/contributors/${slug}`);
   revalidatePath("/about");
+  revalidatePath("/"); // homepage Contributors section
   return { error: null };
 }

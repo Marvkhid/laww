@@ -6,6 +6,7 @@ import { getPublishedLegalUpdateBySlug } from "@/lib/supabase/queries/legal-upda
 import { Reveal } from "@/components/motion/reveal";
 import { SITE_URL } from "@/lib/constants";
 import { EditorialBody } from "@/components/editorial/editorial-body";
+import { PositionedImageGrid } from "@/components/ui/positioned-images-grid";
 
 export async function generateMetadata({
   params,
@@ -134,14 +135,24 @@ export default async function LegalUpdateArticlePage({
             title={update.headline}
           />
         ) : (
-          <div className="border border-hairline bg-paper-warm p-6">
-            <p className="font-utility text-[10px] uppercase tracking-[0.15em] text-digest-red">
-              Note
-            </p>
-            <p className="mt-2 font-body text-sm leading-relaxed text-stone">
-              The full article content has not yet been added. Check back soon.
-            </p>
-          </div>
+          <>
+            <div className="border border-hairline bg-paper-warm p-6">
+              <p className="font-utility text-[10px] uppercase tracking-[0.15em] text-digest-red">
+                Note
+              </p>
+              <p className="mt-2 font-body text-sm leading-relaxed text-stone">
+                The full article content has not yet been added. Check back soon.
+              </p>
+            </div>
+
+            {/* Images 1–4 still render at their chosen positions even with
+                no body text to interleave them into. */}
+            {update.images.filter((image) => image.url).length > 0 ? (
+              <div className="mt-8">
+                <PositionedImageGrid images={update.images} title={update.headline} />
+              </div>
+            ) : null}
+          </>
         )}
       </Reveal>
 

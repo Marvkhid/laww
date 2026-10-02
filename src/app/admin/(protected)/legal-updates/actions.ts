@@ -16,6 +16,17 @@ import { slugify } from "@/lib/slugify";
 
 export type FormState = { error: string | null };
 
+// Legal updates surface on the homepage ("This Week in Law") and in the
+// breaking-news bar, so every mutation must invalidate those routes too —
+// revalidating only the admin list is how published content ends up
+// missing from the homepage until an unrelated rebuild.
+function revalidateLegalUpdatePaths(slug?: string) {
+  revalidatePath("/admin/legal-updates");
+  revalidatePath("/legal-updates");
+  revalidatePath("/");
+  if (slug) revalidatePath(`/legal-updates/${slug}`);
+}
+
 const VALID_STATUSES: LegalUpdateStatus[] = ["pending_review", "published", "rejected"];
 
 function isEmptyDoc(doc: JSONContent): boolean {
@@ -134,7 +145,7 @@ export async function createLegalUpdateAction(
   const { error } = await createLegalUpdate(input);
   if (error) return { error };
 
-  revalidatePath("/admin/legal-updates");
+  revalidateLegalUpdatePaths(input.slug);
   redirect("/admin/legal-updates");
 }
 
@@ -149,7 +160,7 @@ export async function updateLegalUpdateAction(
   const { error } = await updateLegalUpdate(id, input);
   if (error) return { error };
 
-  revalidatePath("/admin/legal-updates");
+  revalidateLegalUpdatePaths(input.slug);
   redirect("/admin/legal-updates");
 }
 
@@ -157,7 +168,7 @@ export async function deleteLegalUpdateAction(id: string) {
   const { error } = await deleteLegalUpdate(id);
   if (error) return { error };
 
-  revalidatePath("/admin/legal-updates");
+  revalidateLegalUpdatePaths();
   return { error: null };
 }
 
@@ -165,6 +176,6 @@ export async function setLegalUpdateStatusAction(id: string, status: LegalUpdate
   const { error } = await setLegalUpdateStatus(id, status);
   if (error) return { error };
 
-  revalidatePath("/admin/legal-updates");
+  revalidateLegalUpdatePaths();
   return { error: null };
 }

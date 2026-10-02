@@ -13,6 +13,10 @@ import {
 import type { JSONContent } from "@tiptap/core";
 import { uploadArticleCoverImage } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
+import {
+  ARTICLE_PAGE_OPTIONS,
+  pagesFromFormData,
+} from "@/lib/page-visibility";
 
 export type FormState = { error: string | null };
 
@@ -125,6 +129,32 @@ async function readArticleInput(
     });
   }
 
+  const featured = formData.get("featured") === "on";
+  const is_editorial_insight = formData.get("is_editorial_insight") === "on";
+  const on_cover = formData.get("on_cover") === "on";
+  const is_cover_story = formData.get("is_cover_story") === "on";
+
+  // "Display On" — null when the group was not rendered (migration 0025
+  // pending), in which case the column is left untouched rather than being
+  // silently overwritten with an empty selection.
+  const show_on_pages = pagesFromFormData(formData, ARTICLE_PAGE_OPTIONS);
+  if (show_on_pages) {
+    if (show_on_pages.length === 0) {
+      return {
+        input: null,
+        error: "Select at least one page under Display On.",
+      };
+    }
+    // A homepage placement is meaningless without homepage visibility. The
+    // form keeps these in step interactively; this guards a stale client.
+    if (
+      (featured || on_cover || is_editorial_insight || is_cover_story) &&
+      !show_on_pages.includes("homepage")
+    ) {
+      show_on_pages.push("homepage");
+    }
+  }
+
   return {
     input: {
       slug,
@@ -145,10 +175,11 @@ async function readArticleInput(
       image_4_alt: inlineImages[3].alt,
       image_4_position: inlineImages[3].position,
       status,
-      featured: formData.get("featured") === "on",
-      is_editorial_insight: formData.get("is_editorial_insight") === "on",
-      on_cover: formData.get("on_cover") === "on",
-      is_cover_story: formData.get("is_cover_story") === "on",
+      featured,
+      is_editorial_insight,
+      on_cover,
+      is_cover_story,
+      ...(show_on_pages ? { show_on_pages } : {}),
       issue_id: optional("issue_id"),
       practice_area_id: optional("practice_area_id"),
       body: readArticleBody(formData),

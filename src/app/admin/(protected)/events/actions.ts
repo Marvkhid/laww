@@ -12,6 +12,10 @@ import {
 } from "@/lib/supabase/admin/events";
 import { uploadEventImage } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
+import {
+  EVENT_PAGE_OPTIONS,
+  pagesFromFormData,
+} from "@/lib/page-visibility";
 
 export type FormState = { error: string | null };
 
@@ -43,6 +47,13 @@ async function readEventInput(formData: FormData): Promise<{ input: EventInput |
     return { input: null, error: "Page number must be a whole number." };
   }
 
+  // "Display On" — null when the group was not rendered (migration 0025
+  // pending), so the column keeps its current value.
+  const show_on_pages = pagesFromFormData(formData, EVENT_PAGE_OPTIONS);
+  if (show_on_pages && show_on_pages.length === 0) {
+    return { input: null, error: "Select at least one page under Display On." };
+  }
+
   return {
     input: {
       slug,
@@ -52,6 +63,7 @@ async function readEventInput(formData: FormData): Promise<{ input: EventInput |
       published: formData.get("published") === "on",
       event_date: optional("event_date"),
       page_number: pageNumberRaw ? Number(pageNumberRaw) : null,
+      ...(show_on_pages ? { show_on_pages } : {}),
     },
     error: null,
   };

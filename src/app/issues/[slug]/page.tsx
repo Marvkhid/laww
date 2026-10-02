@@ -54,7 +54,7 @@ export default async function IssuePage({
   const supabase = createSupabaseServerClient();
   const [issueMeta, articles] = await Promise.all([
     getCurrentIssue(supabase),
-    getArticles(supabase),
+    getArticles(supabase, { page: "issues" }),
   ]);
 
   if (!issueMeta || slug !== `issue-${issueMeta.issueNumber}`) {

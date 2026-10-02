@@ -11,6 +11,7 @@ import {
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { PdfFileField } from "@/components/forms/kit/pdf-upload";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -144,7 +145,7 @@ export function ArchiveIssueForm({
         />
       </FormSection>
 
-      <FormSection title="Digital Edition PDF" subtitle="PDF up to 20MB. Leave empty to keep the current PDF." accent="left">
+      <FormSection title="Digital Edition PDF" subtitle="PDF digital edition for download. Maximum PDF size: 30 MB." accent="left">
         {initial?.pdf_url ? (
           <p className="font-admin text-xs text-stone">
             Current PDF:{" "}
@@ -153,13 +154,7 @@ export function ArchiveIssueForm({
             </a>
           </p>
         ) : null}
-        <TextField
-          label=""
-          id="pdf_file"
-          name="pdf_file"
-          type="file"
-          accept="application/pdf"
-        />
+        <PdfFileField />
         <input type="hidden" name="existing_pdf_url" value={initial?.pdf_url ?? ""} />
       </FormSection>
 

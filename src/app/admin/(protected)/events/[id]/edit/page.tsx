@@ -4,6 +4,7 @@ import { getEventByIdForAdmin, getEventImagesForAdmin } from "@/lib/supabase/adm
 import { EventForm } from "@/app/admin/(protected)/events/event-form";
 import { updateEventAction, deleteEventAction } from "@/app/admin/(protected)/events/actions";
 import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
+import { pageTargetingAvailable } from "@/lib/supabase/admin/page-targeting";
 import { AdminBackButton } from "@/app/admin/(protected)/admin-back-button";
 
 export const metadata: Metadata = {
@@ -16,9 +17,10 @@ export default async function EditEventPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [event, images] = await Promise.all([
+  const [event, images, pageTargeting] = await Promise.all([
     getEventByIdForAdmin(id),
     getEventImagesForAdmin(id),
+    pageTargetingAvailable(),
   ]);
 
   if (!event) notFound();
@@ -43,6 +45,7 @@ export default async function EditEventPage({
         initialImages={images}
         entityId={event!.id}
         submitLabel="Save Changes"
+        pageTargeting={pageTargeting}
       />
     </div>
   );

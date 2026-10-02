@@ -16,6 +16,7 @@ import { InsideLawDigest } from "@/components/home/inside-lawdigest";
 import { LegalQuizServer } from "@/components/home/legal-quiz-server";
 import { ThisWeekInLaw } from "@/components/home/this-week-in-law";
 import { HomepageHighlightsServer } from "@/components/home/homepage-highlights-server";
+import { HomepageEvents } from "@/components/home/homepage-events";
 
 export default function Home() {
   return (
@@ -29,8 +30,14 @@ export default function Home() {
       {/* 2. Featured Stories */}
       <FeaturedStories />
 
+      {/* 2b. Ad slot — one advert, placed clear of every other slot */}
+      <AdPlacement page="homepage" slot={0} />
+
       {/* 3. Latest Legal Updates */}
       <ThisWeekInLaw />
+
+      {/* 3b. Events chosen for the homepage by the admin */}
+      <HomepageEvents />
 
       {/* 4. Editorial Insights / Blog */}
       <EditorialInsights />
@@ -43,6 +50,9 @@ export default function Home() {
 
       {/* 7. In This Issue */}
       <InThisIssue />
+
+      {/* 7b. Homepage-selected stories with no dedicated placement above */}
+      <LatestStories />
 
       {/* 8. Inside LawDigest */}
       <InsideLawDigest />
@@ -68,8 +78,8 @@ export default function Home() {
       {/* 14. Newsletter */}
       <Newsletter />
 
-      {/* Ads */}
-      <AdPlacement placement="homepage" />
+      {/* Bottom ad slot — second advert, far from the first slot */}
+      <AdPlacement page="homepage" slot={1} />
     </>
   );
 }

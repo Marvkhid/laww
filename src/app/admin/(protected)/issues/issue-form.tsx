@@ -7,6 +7,7 @@ import type { FormState } from "@/app/admin/(protected)/issues/actions";
 import { TextField, FormSection } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { PdfFileField } from "@/components/forms/kit/pdf-upload";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -105,7 +106,7 @@ export function IssueForm({
         </p>
       </FormSection>
 
-      <FormSection title="Digital Edition PDF" subtitle="PDF digital edition for download. Max 20MB." accent="left">
+      <FormSection title="Digital Edition PDF" subtitle="PDF digital edition for download. Maximum PDF size: 30 MB." accent="left">
         {pdfPreview ? (
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 6 }}
@@ -137,17 +138,8 @@ export function IssueForm({
         ) : (
           <p className="font-admin text-xs text-stone">No PDF uploaded yet.</p>
         )}
-        <TextField
-          label=""
-          id="pdf_file"
-          name="pdf_file"
-          type="file"
-          accept="application/pdf"
-        />
+        <PdfFileField />
         <input type="hidden" name="existing_pdf_url" value={initial?.pdf_url ?? ""} />
-        <p className="font-admin text-xs text-stone">
-          Leave empty to keep the current PDF.
-        </p>
       </FormSection>
 
       <FormSection title="Pricing & Release" subtitle="Regional prices and publication date." accent="left">

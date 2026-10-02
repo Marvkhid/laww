@@ -74,6 +74,7 @@ export interface ArticleRow {
   page_number: number | null;
   body: JSONContent | null;
   cover_image_url: string | null;
+  show_on_pages: string[] | null;
   image_1_url: string | null;
   image_1_alt: string | null;
   image_1_position: string | null;
@@ -103,6 +104,7 @@ type ArticleOptionalKeys =
   | "page_number"
   | "body"
   | "cover_image_url"
+  | "show_on_pages"
   | "image_1_url"
   | "image_1_alt"
   | "image_1_position"
@@ -197,6 +199,7 @@ export interface SponsorRow {
   tier: string | null;
   placement: string;
   image_url: string | null;
+  show_on_pages: string[] | null;
   display_order: number;
   page_number: number | null;
   active: boolean;
@@ -208,6 +211,7 @@ type SponsorOptionalKeys =
   | "logo_url"
   | "website_url"
   | "tier"
+  | "show_on_pages"
   | "display_order"
   | "active"
   | "created_at"
@@ -245,11 +249,12 @@ export interface EventRow {
   published: boolean;
   event_date: string | null;
   page_number: number | null;
+  show_on_pages: string[] | null;
   created_at: string;
   updated_at: string;
 }
-type EventInsert = Omit<EventRow, "id" | "created_at" | "updated_at"> &
-  Partial<Pick<EventRow, "id" | "created_at" | "updated_at">>;
+type EventOptionalKeys = "id" | "created_at" | "updated_at" | "show_on_pages";
+type EventInsert = Omit<EventRow, EventOptionalKeys> & Partial<Pick<EventRow, EventOptionalKeys>>;
 type EventUpdate = Partial<EventInsert>;
 
 export interface EventImageRow {

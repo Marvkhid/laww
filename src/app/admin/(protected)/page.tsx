@@ -19,7 +19,7 @@ const SECTIONS = [
   { name: "Homepage Highlights", href: "/admin/highlights" },
   { name: "Call for Papers", href: "/admin/call-for-papers" },
   { name: "Breaking Legal Updates", href: "/admin/legal-updates" },
-  { name: "Sponsors", href: "/admin/sponsors" },
+  { name: "Sponsors / Advert", href: "/admin/sponsors" },
 ] as const;
 
 export default function AdminDashboardPage() {

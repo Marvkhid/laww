@@ -12,6 +12,9 @@ import {
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone, RemoveThumbButton } from "@/components/forms/kit/image-upload";
+import { PageVisibilityField } from "@/components/forms/kit/page-visibility";
+import { PageTargetingNotice } from "@/app/admin/(protected)/page-targeting-notice";
+import { EVENT_PAGE_OPTIONS, pagesForRow } from "@/lib/page-visibility";
 import { motion, useReducedMotion } from "motion/react";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
@@ -22,12 +25,24 @@ export function EventForm({
   initialImages,
   entityId,
   submitLabel,
+  pageTargeting = false,
 }: {
   action: ActionFn;
-  initial?: Pick<EventRow, "slug" | "title" | "description" | "cover_image_url" | "published" | "event_date" | "page_number">;
+  initial?: Pick<
+    EventRow,
+    | "slug"
+    | "title"
+    | "description"
+    | "cover_image_url"
+    | "published"
+    | "event_date"
+    | "page_number"
+    | "show_on_pages"
+  >;
   initialImages?: EventImageRow[];
   entityId?: string;
   submitLabel: string;
+  pageTargeting?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
@@ -48,6 +63,12 @@ export function EventForm({
   const existingImages = (initialImages ?? []).filter(
     (img) => !removeImageIds.includes(img.id)
   );
+
+  // Where this event is allowed to show. Defaults to homepage + Events so a
+  // published event is never hidden from the homepage by accident.
+  const selectedPages =
+    pagesForRow(initial?.show_on_pages, EVENT_PAGE_OPTIONS) ??
+    EVENT_PAGE_OPTIONS.map((option) => option.key);
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-5">
@@ -137,6 +158,21 @@ export function EventForm({
           </div>
         </div>
       </FormSection>
+
+      {pageTargeting ? (
+        <FormSection
+          title="Display On"
+          subtitle="Where this event is listed. Keep Homepage ticked to feature it on the front page."
+          accent="left"
+        >
+          <PageVisibilityField
+            options={EVENT_PAGE_OPTIONS}
+            selected={selectedPages}
+          />
+        </FormSection>
+      ) : (
+        <PageTargetingNotice />
+      )}
 
       <FormSection title="Cover Image" subtitle="The hero image for this event." accent="left">
         <ImageUploadZone

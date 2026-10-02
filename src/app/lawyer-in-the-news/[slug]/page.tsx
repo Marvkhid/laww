@@ -8,6 +8,7 @@ import {
 import { Reveal } from "@/components/motion/reveal";
 import { SITE_URL } from "@/lib/constants";
 import { EditorialBody } from "@/components/editorial/editorial-body";
+import { CoverHeroImage } from "@/components/ui/cover-hero-image";
 import type { JSONContent } from "@tiptap/core";
 import { RichTextBlock } from "@/components/ui/rich-text";
 
@@ -87,6 +88,18 @@ export default async function LawyerNewsPage({
   if (!story) notFound();
 
   return (
+    <>
+      {/* ── Full-width cover hero ──
+          Rendered OUTSIDE the reading container so no container width or
+          padding constrains it: 100% of the available width, natural aspect
+          ratio, no letter-boxing. Only designated cover images get this. */}
+      {story.coverImageUrl ? (
+        <CoverHeroImage
+          src={story.coverImageUrl}
+          alt={story.coverImageAlt ?? story.lawyerName}
+        />
+      ) : null}
+
     <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-6">
@@ -114,25 +127,6 @@ export default async function LawyerNewsPage({
           </p>
         ) : null}
       </Reveal>
-
-      {/* Cover image — full visibility, never cropped */}
-      {story.coverImageUrl ? (
-        <Reveal delay={0.05}>
-          <figure className="mt-8 border border-hairline bg-hairline/20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={story.coverImageUrl}
-              alt={story.coverImageAlt ?? story.lawyerName}
-              className="h-auto w-full object-contain"
-            />
-            {story.coverImageAlt ? (
-              <figcaption className="border-t border-hairline px-4 py-2 font-utility text-[10px] uppercase tracking-wide text-stone">
-                {story.coverImageAlt}
-              </figcaption>
-            ) : null}
-          </figure>
-        </Reveal>
-      ) : null}
 
       {story.intro ? (
         <Reveal delay={0.08}>
@@ -169,5 +163,6 @@ export default async function LawyerNewsPage({
         </div>
       </Reveal>
     </article>
+    </>
   );
 }

@@ -235,15 +235,24 @@ export function CheckboxField({
   description,
   index,
   name,
+  value,
   defaultChecked,
+  checked: checkedProp,
+  onChange,
 }: {
   label: string;
   description?: string;
   index?: number;
   name: string;
+  /** Submitted value for this checkbox (defaults to "on"). */
+  value?: string;
   defaultChecked?: boolean;
+  /** Controlled state — pass when one checkbox must react to another. */
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
 }) {
-  const [checked, setChecked] = useState(defaultChecked ?? false);
+  const [internalChecked, setChecked] = useState(defaultChecked ?? false);
+  const checked = checkedProp ?? internalChecked;
   const reduce = useReducedMotion();
   return (
     <motion.label
@@ -276,8 +285,12 @@ export function CheckboxField({
         <input
           type="checkbox"
           name={name}
+          value={value}
           checked={checked}
-          onChange={(e) => setChecked(e.target.checked)}
+          onChange={(e) => {
+            setChecked(e.target.checked);
+            onChange?.(e.target.checked);
+          }}
           className="sr-only"
         />
       </motion.span>

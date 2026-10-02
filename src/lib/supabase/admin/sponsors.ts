@@ -25,18 +25,47 @@ export type SponsorInput = {
   logo_url: string | null;
   website_url: string | null;
   tier: string | null;
-  placement: string;
   image_url: string | null;
   display_order: number;
   page_number: number | null;
   active: boolean;
+  /** Page keys from the admin's "Display On" group; omitted when unavailable. */
+  show_on_pages?: string[];
 };
+
+// show_on_pages is written in its own statement so a missing column
+// (migration 0025 not applied yet) can never roll back the advert itself.
+// The admin form withholds the "Display On" group in that state, so no
+// selection is ever silently dropped.
+async function applyPageVisibility(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>,
+  sponsorId: string,
+  pages: string[] | undefined
+): Promise<void> {
+  if (!pages) return;
+  const { error } = await supabase
+    .from("sponsors")
+    .update({ show_on_pages: pages })
+    .eq("id", sponsorId);
+  if (error) {
+    if (error.code === "42703" || error.code === "PGRST204") {
+      console.warn("show_on_pages column not found — run migration 0025_page_visibility");
+    } else {
+      console.error("applyPageVisibility error:", error);
+    }
+  }
+}
 
 export async function createSponsor(input: SponsorInput): Promise<{ error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("sponsors").insert(input);
+  const { show_on_pages, ...row } = input;
+  const { data, error } = await supabase.from("sponsors").insert(row).select("id").maybeSingle();
 
-  if (error) return { error: "Could not create the sponsor. Please try again." };
+  if (error || !data) {
+    console.error("createSponsor error:", error);
+    return { error: "Could not create the advert. Please try again." };
+  }
+  await applyPageVisibility(supabase, (data as { id: string }).id, show_on_pages);
   return { error: null };
 }
 
@@ -45,21 +74,24 @@ export async function updateSponsor(
   input: SponsorInput
 ): Promise<{ error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("sponsors").update(input).eq("id", id);
+  const { show_on_pages, ...row } = input;
+  const { error } = await supabase.from("sponsors").update(row).eq("id", id);
 
   if (error) {
     console.error("updateSponsor error:", error);
     if (error.code === "42703" || error.code === "PGRST204") {
-      const { page_number: _, ...rest } = input;
+      const { page_number: _, ...rest } = row;
       const { error: retryError } = await supabase.from("sponsors").update(rest).eq("id", id);
       if (retryError) {
         console.error("updateSponsor retry error:", retryError);
-        return { error: "Could not update the sponsor. Please try again." };
+        return { error: "Could not update the advert. Please try again." };
       }
+      await applyPageVisibility(supabase, id, show_on_pages);
       return { error: null };
     }
-    return { error: "Could not update the sponsor. Please try again." };
+    return { error: "Could not update the advert. Please try again." };
   }
+  await applyPageVisibility(supabase, id, show_on_pages);
   return { error: null };
 }
 

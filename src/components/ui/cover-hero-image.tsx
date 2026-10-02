@@ -1,18 +1,19 @@
 import { PlaceholderImage } from "@/components/ui/placeholder-image";
 
 /**
- * Full-bleed cover hero for article / legal-update detail pages.
+ * Full-width cover hero for article / legal-update detail pages.
  *
- * - Spans the FULL available page width: it is rendered OUTSIDE the
- *   article's max-width reading container by the page itself, so no
- *   container margin constrains it.
- * - FULL IMAGE VISIBILITY: the uploaded image is never cropped. It renders
- *   at its natural aspect ratio (w-full h-auto). On unusually tall portrait
- *   uploads the height is capped and the image letterboxes (object-contain)
- *   on a deep-ink band so the full frame stays visible without dominating
- *   the page.
- * - Responsive: width 100% at every breakpoint, no overflow, no hardcoded
- *   pixel widths.
+ * - WIDTH: 100% of the available page area, edge to edge. The page renders
+ *   this component OUTSIDE the article's max-width reading container, so
+ *   nothing constrains it and there are no black side margins — the old
+ *   implementation letter-boxed the image on an ink-coloured band whenever
+ *   the upload's aspect ratio differed from the frame.
+ * - ASPECT RATIO: preserved exactly (width 100%, height auto). Nothing is
+ *   cropped, stretched or distorted.
+ * - RESPONSIVE: fluid at every breakpoint, no hardcoded pixel widths.
+ *
+ * Only images the admin designated as COVER images receive this treatment;
+ * ordinary inline images keep their editorial layout.
  */
 export function CoverHeroImage({
   src,
@@ -31,10 +32,7 @@ export function CoverHeroImage({
   }
 
   return (
-    <div
-      className="relative w-full overflow-hidden bg-ink"
-      style={{ maxHeight: "80vh" }}
-    >
+    <div className="w-full">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
@@ -42,8 +40,7 @@ export function CoverHeroImage({
         loading="eager"
         fetchPriority="high"
         decoding="async"
-        className="mx-auto h-auto w-full object-contain"
-        style={{ maxHeight: "80vh" }}
+        className="block h-auto w-full"
       />
     </div>
   );

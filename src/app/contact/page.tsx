@@ -3,6 +3,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { ContactForm } from "@/components/forms/contact-form";
 import { Reveal } from "@/components/motion/reveal";
 import { Handshake } from "@/components/ui/editorial-illustration";
+import { AdPlacement } from "@/components/home/ad-placement";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -119,6 +120,9 @@ export default function ContactPage() {
           </div>
         </Reveal>
       </div>
+
+      {/* Advert selected for this page */}
+      <AdPlacement page="contact" inset />
     </div>
   );
 }
