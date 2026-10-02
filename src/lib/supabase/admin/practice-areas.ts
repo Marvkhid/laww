@@ -39,24 +39,24 @@ export async function createPracticeArea(input: {
   image_url: string | null;
   image_alt: string | null;
   display_order: number;
-}): Promise<{ error: string | null }> {
+}): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("practice_areas").insert({
+  const { data: created, error } = await supabase.from("practice_areas").insert({
     slug: input.slug,
     name: input.name,
     description: input.description,
     image_url: input.image_url,
     image_alt: input.image_alt,
     display_order: input.display_order,
-  });
+  }).select("id").maybeSingle();
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "That slug is already in use by another practice area." };
+      return { id: null, error: "That slug is already in use by another practice area." };
     }
-    return { error: "Could not create the practice area. Please try again." };
+    return { id: null, error: "Could not create the practice area. Please try again." };
   }
-  return { error: null };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updatePracticeArea(

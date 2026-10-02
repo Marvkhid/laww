@@ -53,19 +53,25 @@ export async function getLawyerNewsByIdForAdmin(id: string): Promise<LawyerInThe
   return (data as LawyerInTheNewsRow) ?? null;
 }
 
-export async function createLawyerNews(input: LawyerNewsInput): Promise<{ error: string | null }> {
+export async function createLawyerNews(
+  input: LawyerNewsInput
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("lawyer_in_the_news").insert({
-    ...input,
-    published_at: input.status === "published" ? new Date().toISOString() : null,
-  });
+  const { data: created, error } = await supabase
+    .from("lawyer_in_the_news")
+    .insert({
+      ...input,
+      published_at: input.status === "published" ? new Date().toISOString() : null,
+    })
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("createLawyerNews error:", error);
-    if (error.code === "23505") return { error: "An entry with this slug already exists." };
-    return { error: "Could not save. Please try again." };
+    if (error.code === "23505") return { id: null, error: "An entry with this slug already exists." };
+    return { id: null, error: "Could not save. Please try again." };
   }
-  return { error: null };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updateLawyerNews(
@@ -79,6 +85,27 @@ export async function updateLawyerNews(
     console.error("updateLawyerNews error:", error);
     if (error.code === "23505") return { error: "An entry with this slug already exists." };
     return { error: "Could not save. Please try again." };
+  }
+  return { error: null };
+}
+
+/** Explicit state transition (archive / restore / publish from the list or editor). */
+export async function setLawyerNewsStatus(
+  id: string,
+  status: LawyerNewsStatus
+): Promise<{ error: string | null }> {
+  const supabase = await requireAdmin();
+  const { error } = await supabase
+    .from("lawyer_in_the_news")
+    .update({
+      status,
+      published_at: status === "published" ? new Date().toISOString() : null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("setLawyerNewsStatus error:", error);
+    return { error: "Could not update the status. Please try again." };
   }
   return { error: null };
 }

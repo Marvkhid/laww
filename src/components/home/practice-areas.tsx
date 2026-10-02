@@ -29,14 +29,15 @@ export async function PracticeAreas() {
                 >
                   {area.imageUrl ? (
                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-hairline/20">
-                      {/* object-contain: the uploaded image is never cropped */}
-                      <Image
-                        src={area.imageUrl}
-                        alt={area.imageAlt ?? area.name}
-                        fill
-                        sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        className="object-contain"
-                      />
+                      <div className="relative aspect-[16/9] w-full overflow-hidden bg-hairline/20">
+                        <Image
+                          src={area.imageUrl}
+                          alt={area.imageAlt ?? area.name}
+                          fill
+                          sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="block h-auto w-full object-cover"
+                        />
+                      </div>
                     </div>
                   ) : null}
                   <div className="px-5 py-5">

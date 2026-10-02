@@ -75,9 +75,9 @@ export type LegalUpdateInput = {
 
 export async function createLegalUpdate(
   input: LegalUpdateInput
-): Promise<{ error: string | null }> {
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("legal_updates").insert({
+  const { data: created, error } = await supabase.from("legal_updates").insert({
     headline: input.headline,
     slug: input.slug,
     summary: input.summary,
@@ -100,10 +100,10 @@ export async function createLegalUpdate(
     status: input.status,
     origin: "manual" satisfies LegalUpdateOrigin,
     published_at: input.status === "published" ? new Date().toISOString() : null,
-  });
+  }).select("id").maybeSingle();
 
-  if (error) return { error: "Could not create the update. Please try again." };
-  return { error: null };
+  if (error) return { id: null, error: "Could not create the update. Please try again." };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updateLegalUpdate(

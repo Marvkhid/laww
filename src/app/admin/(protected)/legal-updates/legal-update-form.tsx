@@ -1,9 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { motion } from "motion/react";
 import type { LegalUpdateRow, PracticeAreaRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/legal-updates/actions";
+import {
+  autosaveLegalUpdateAction,
+  uploadLegalUpdateImageAction,
+} from "@/app/admin/(protected)/legal-updates/actions";
 import { TiptapEditor } from "@/app/admin/(protected)/articles/tiptap-editor";
 import type { JSONContent } from "@tiptap/core";
 import {
@@ -13,8 +17,13 @@ import {
   FormSection,
   fieldEntrance,
 } from "@/components/forms/kit/field";
-import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+  SaveButtons,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -63,6 +72,7 @@ function InlineImageField({
             existingValue={initial?.[urlKey] ?? ""}
             compact
             previewAspect="aspect-[16/9]"
+            upload={uploadLegalUpdateImageAction}
           />
         </div>
       </div>
@@ -97,7 +107,8 @@ export function LegalUpdateForm({
   action: ActionFn;
   initial?: Pick<
     LegalUpdateRow,
-    "headline" | "slug" | "summary" | "source_name" | "body" | "cover_image_url"
+    "id"
+    | "headline" | "slug" | "summary" | "source_name" | "body" | "cover_image_url"
     | "image_1_url" | "image_1_alt" | "image_1_position"
     | "image_2_url" | "image_2_alt" | "image_2_position"
     | "image_3_url" | "image_3_alt" | "image_3_position"
@@ -108,12 +119,35 @@ export function LegalUpdateForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveLegalUpdateAction(id, data),
+    initialId: initial?.id ?? null,
+    skip: (data) =>
+      !(data.headline?.[0] ?? "").trim() || !(data.source_name?.[0] ?? "").trim(),
+    autoRecover: !initial,
+    onSlugResolved: (slug) => {
+      if (initial?.slug) return;
+      const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+      if (slugInput && !slugInput.readOnly) slugInput.value = slug;
+    },
+  });
 
   const initialBody: JSONContent | null =
     initial?.body && typeof initial.body === "object" ? (initial.body as JSONContent) : null;
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-2xl flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <FormSection title="Update Details" subtitle="The headline and summary readers see first." accent="top">
         <TextField
           label="Headline"
@@ -189,6 +223,7 @@ export function LegalUpdateForm({
           existingHiddenName="existing_cover_image_url"
           existingValue={initial?.cover_image_url ?? ""}
           previewAspect="aspect-[16/9]"
+          upload={uploadLegalUpdateImageAction}
         />
         <p className="font-admin text-xs text-stone">
           {initial?.cover_image_url ? "Leave empty to keep the current image." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}
@@ -227,17 +262,19 @@ export function LegalUpdateForm({
               </option>
             ))}
           </SelectField>
-          <SelectField
-            label="Status"
-            id="status"
-            name="status"
-            defaultValue={initial?.status ?? "pending_review"}
-            index={1}
-          >
-            <option value="pending_review">Pending review</option>
-            <option value="published">Published</option>
-            <option value="rejected">Rejected</option>
-          </SelectField>
+          <div className="self-end pb-1">
+            <p className="font-admin text-xs text-stone">
+              Status:{" "}
+              <strong className="font-semibold text-ink">
+                {initial?.status === "published"
+                  ? "Published"
+                  : initial?.status === "rejected"
+                    ? "Rejected"
+                    : "Pending review"}
+              </strong>
+              {" "}— use Publish to publish; Save keeps this state.
+            </p>
+          </div>
         </div>
       </FormSection>
 
@@ -247,7 +284,23 @@ export function LegalUpdateForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <SaveButtons
+        formRef={formRef}
+        flush={autosave.flush}
+        isPending={isPending}
+        saveLabel={submitLabel}
+        publishLabel="Publish"
+        showPublish={initial?.status !== "published"}
+        showUnpublish={initial?.status === "published"}
+        statusSlot={
+          <AutosaveStatus
+            status={autosave.status}
+            lastSavedAt={autosave.lastSavedAt}
+            errorMessage={autosave.errorMessage}
+            onRetry={autosave.retry}
+          />
+        }
+      />
     </form>
   );
 }

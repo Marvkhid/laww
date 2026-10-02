@@ -54,6 +54,21 @@ export type CallForPapersInput = {
 // successful multi-topic save and a deliberate failure injection on create
 // and update, confirming a full rollback in both cases (zero rows on
 // failed create; original data unchanged on failed update).
+/** Issue number is unique — used to resolve an id right after create (autosave). */
+export async function getCallForPapersByIssueNumber(
+  issueNumber: number
+): Promise<CallForPapersRow | null> {
+  const supabase = await requireAdmin();
+  const { data, error } = await supabase
+    .from("call_for_papers")
+    .select("*")
+    .eq("issue_number", issueNumber)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as CallForPapersRow;
+}
+
 export async function createCallForPapers(
   input: CallForPapersInput,
   practiceAreaIds: string[]

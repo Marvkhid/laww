@@ -35,17 +35,23 @@ export async function getArchiveIssueByIdForAdmin(id: string): Promise<IssuesArc
   return data as IssuesArchiveRow;
 }
 
-export async function createArchiveIssue(input: ArchiveIssueInput): Promise<{ error: string | null }> {
+export async function createArchiveIssue(
+  input: ArchiveIssueInput
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("issues_archive").insert(input);
+  const { data: created, error } = await supabase
+    .from("issues_archive")
+    .insert(input)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "That slug is already in use by another archived issue." };
+      return { id: null, error: "That slug is already in use by another archived issue." };
     }
-    return { error: "Could not create the archived issue. Please try again." };
+    return { id: null, error: "Could not create the archived issue. Please try again." };
   }
-  return { error: null };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updateArchiveIssue(id: string, input: ArchiveIssueInput): Promise<{ error: string | null }> {

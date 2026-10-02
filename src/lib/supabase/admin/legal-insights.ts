@@ -42,15 +42,21 @@ export async function getLegalInsightByIdForAdmin(id: string): Promise<LegalInsi
   return (data as LegalInsightRow) ?? null;
 }
 
-export async function createLegalInsight(input: LegalInsightInput): Promise<{ error: string | null }> {
+export async function createLegalInsight(
+  input: LegalInsightInput
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("legal_insights").insert(input);
+  const { data: created, error } = await supabase
+    .from("legal_insights")
+    .insert(input)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("createLegalInsight error:", error);
-    return { error: "Could not save. Please try again." };
+    return { id: null, error: "Could not save. Please try again." };
   }
-  return { error: null };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updateLegalInsight(id: string, input: LegalInsightInput): Promise<{ error: string | null }> {

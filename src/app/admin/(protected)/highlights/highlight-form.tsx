@@ -1,16 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { HomepageHighlightRow } from "@/lib/supabase/types";
 import type { FormState } from "./actions";
+import { autosaveHighlightAction, uploadHighlightImageAction } from "./actions";
 import {
   TextField,
   TextAreaField,
   FormSection,
 } from "@/components/forms/kit/field";
-import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+  SaveButtons,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -57,10 +63,29 @@ export function HighlightForm({
   entityId?: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveHighlightAction(id, data),
+    initialId: entityId ?? null,
+    // The image is the one required field — don't hammer the server with
+    // snapshots that would fail validation.
+    skip: (data) => !(data.existing_image_url?.[0] ?? "").trim(),
+    autoRecover: !initial,
+  });
 
   return (
-    <form action={formAction} className="flex max-w-lg flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-lg flex-col gap-5">
       {entityId ? <input type="hidden" name="entity_id" value={entityId} /> : null}
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
 
       <FormSection title="Image" subtitle="Required — the visual for this highlight." accent="top">
         <ImageUploadZone
@@ -69,6 +94,7 @@ export function HighlightForm({
           existingHiddenName="existing_image_url"
           existingValue={initial?.image_url ?? ""}
           previewAspect="aspect-[16/9]"
+          upload={uploadHighlightImageAction}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep current image.
@@ -145,15 +171,13 @@ export function HighlightForm({
             index={2}
           />
         </div>
-        <label className="flex cursor-pointer items-center gap-3 pt-1">
-          <input
-            type="checkbox"
-            name="published"
-            defaultChecked={initial?.published ?? true}
-            className="h-4 w-4 accent-[#A51C30]"
-          />
-          <span className="font-admin text-sm font-medium text-ink">Published</span>
-        </label>
+        <p className="font-admin text-xs text-stone">
+          Status:{" "}
+          <strong className="font-semibold text-ink">
+            {initial?.published ? "Published" : "Draft"}
+          </strong>
+          {" "}— use Publish to publish; Save keeps this state.
+        </p>
       </FormSection>
 
       {state.error ? (
@@ -162,7 +186,23 @@ export function HighlightForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <SaveButtons
+        formRef={formRef}
+        flush={autosave.flush}
+        isPending={isPending}
+        saveLabel={submitLabel}
+        publishLabel="Publish"
+        showPublish
+        showUnpublish={Boolean(initial?.published)}
+        statusSlot={
+          <AutosaveStatus
+            status={autosave.status}
+            lastSavedAt={autosave.lastSavedAt}
+            errorMessage={autosave.errorMessage}
+            onRetry={autosave.retry}
+          />
+        }
+      />
     </form>
   );
 }

@@ -106,13 +106,13 @@ export default async function EventPage({
       {/* Cover image */}
       {event.coverImageUrl ? (
         <Reveal delay={0.08}>
-          <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden">
+          <div className="relative mt-8 w-full">
             <Image
               src={event.coverImageUrl}
               alt={event.title}
               fill
               sizes="100vw"
-              className="object-contain"
+              className="block h-auto w-full object-contain"
               priority
             />
           </div>

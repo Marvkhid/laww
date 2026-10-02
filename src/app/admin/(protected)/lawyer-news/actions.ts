@@ -6,13 +6,34 @@ import {
   createLawyerNews,
   updateLawyerNews,
   deleteLawyerNews,
+  getLawyerNewsByIdForAdmin,
+  setLawyerNewsStatus,
   type LawyerNewsInput,
 } from "@/lib/supabase/admin/lawyer-news";
 import { uploadLawyerNewsImage } from "@/lib/supabase/admin/storage";
 import type { LawyerNewsStatus } from "@/lib/supabase/types";
 import { slugify } from "@/lib/slugify";
+import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
+
+/**
+ * Save vs Publish. Autosave and Enter-key submits default to "save", so
+ * neither can ever publish. "unpublish" moves published entries back to
+ * pending review; archiving/restoring goes through
+ * setLawyerNewsStatusAction below.
+ */
+function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
+  const mode = String(formData.get("save_mode") ?? "save");
+  return mode === "publish" || mode === "unpublish" ? mode : "save";
+}
+
+/** Upload-on-select for interview cover and inline images. */
+export async function uploadLawyerNewsImageAction(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadLawyerNewsImage(file);
+}
 
 const VALID_STATUSES: LawyerNewsStatus[] = ["pending_review", "published", "archived"];
 
@@ -126,12 +147,85 @@ async function readInput(
   };
 }
 
+/**
+ * Autosave — never publishes (new rows forced to pending_review; existing
+ * rows keep their status), never redirects, never revalidates.
+ */
+export async function autosaveLawyerNewsAction(
+  id: string | null,
+  rawData: Record<string, string[]>
+): Promise<AutosaveResult> {
+  const formData = dataToFormData(rawData);
+  const { input, error: validationError } = await readInput(formData);
+  if (!input) return { id, error: validationError ?? "Invalid entry." };
+
+  if (!id) {
+    const created = await createLawyerNews({ ...input, status: "pending_review" });
+    if (created.error && created.error.includes("slug")) {
+      const fallbackSlug = `${input.slug}-${Date.now().toString(36)}`;
+      const retry = await createLawyerNews({
+        ...input,
+        slug: fallbackSlug,
+        status: "pending_review",
+      });
+      if (retry.id) return { id: retry.id, error: null };
+    }
+    return { id: created.id, error: created.error };
+  }
+
+  const current = await getLawyerNewsByIdForAdmin(id);
+  if (!current) {
+    return { id, error: "This entry no longer exists. Reload the editor." };
+  }
+  const { error } = await updateLawyerNews(id, { ...input, status: current.status });
+  if (error) return { id, error };
+  return { id, error: null };
+}
+
+/** Archive / restore — standalone state transitions (no form submit needed). */
+export async function setLawyerNewsStatusAction(
+  id: string,
+  status: LawyerNewsStatus
+): Promise<{ error: string | null }> {
+  const valid: LawyerNewsStatus[] = ["pending_review", "published", "archived"];
+  if (!valid.includes(status)) return { error: "Unknown status." };
+  const { error } = await setLawyerNewsStatus(id, status);
+  if (error) return { error };
+  revalidatePath("/admin/lawyer-news");
+  revalidatePath("/");
+  return { error: null };
+}
+
 export async function createLawyerNewsAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError ?? "Invalid input." };
+
+  const mode = readSaveMode(formData);
+  const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+
+  if (autosaveId) {
+    const current = await getLawyerNewsByIdForAdmin(autosaveId);
+    if (current) {
+      const status: LawyerNewsStatus =
+        mode === "publish"
+          ? "published"
+          : mode === "unpublish"
+            ? "pending_review"
+            : current.status;
+      const { error } = await updateLawyerNews(autosaveId, { ...input, status });
+      if (error) return { error };
+      revalidatePath("/admin/lawyer-news");
+      revalidatePath("/");
+      revalidatePath(`/lawyer-in-the-news/${input.slug}`);
+      redirect("/admin/lawyer-news");
+    }
+  }
+
+  // Save never publishes a brand-new interview; only Publish does.
+  input.status = mode === "publish" ? "published" : "pending_review";
 
   const { error } = await createLawyerNews(input);
   if (error) return { error };
@@ -148,6 +242,16 @@ export async function updateLawyerNewsAction(
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError ?? "Invalid input." };
+
+  const mode = readSaveMode(formData);
+  const current = await getLawyerNewsByIdForAdmin(id);
+  if (!current) return { error: "This entry no longer exists." };
+  input.status =
+    mode === "publish"
+      ? "published"
+      : mode === "unpublish"
+        ? "pending_review"
+        : current.status;
 
   const { error } = await updateLawyerNews(id, input);
   if (error) return { error };

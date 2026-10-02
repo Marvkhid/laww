@@ -1,9 +1,13 @@
 "use client";
 
-import { useActionState, useState, useCallback } from "react";
+import { useActionState, useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import type { ArticleRow, IssueRow, PracticeAreaRow, ContributorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/articles/actions";
+import {
+  autosaveArticleAction,
+  uploadArticleImageAction,
+} from "@/app/admin/(protected)/articles/actions";
 import { TiptapEditor } from "@/app/admin/(protected)/articles/tiptap-editor";
 import { slugify } from "@/lib/slugify";
 import {
@@ -20,8 +24,13 @@ import {
   ARTICLE_PAGE_OPTIONS,
   pagesForRow,
 } from "@/lib/page-visibility";
-import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+  SaveButtons,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -51,6 +60,7 @@ export function ArticleForm({
   pageTargeting?: boolean;
   initial?: Pick<
     ArticleRow,
+    | "id"
     | "slug"
     | "title"
     | "dek"
@@ -85,9 +95,27 @@ export function ArticleForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
   const selections = initialContributorSelections ?? new Map<string, number>();
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
   const [slugManualOverride, setSlugManualOverride] = useState(false);
+
+  // ── Autosave ───────────────────────────────────────────────────────────
+  // Snapshots post to the server through the same reader as Save; status
+  // is never written by autosave (see autosaveArticleAction). New editors
+  // silently recover their last local snapshot; edit pages offer a banner.
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveArticleAction(id, data),
+    initialId: initial?.id ?? null,
+    skip: (data) => !(data.title?.[0] ?? "").trim(),
+    autoRecover: !initial,
+    onSlugResolved: (slug) => {
+      if (initial?.slug || slugManualOverride) return;
+      const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+      if (slugInput && !slugInput.readOnly) slugInput.value = slug;
+    },
+  });
 
   // ── Page visibility ("Display On") ──────────────────────────────────────
   // One source of truth: these keys are what gets stored in show_on_pages
@@ -95,17 +123,12 @@ export function ArticleForm({
   const [pages, setPages] = useState<string[]>(() => {
     const stored = pagesForRow(initial?.show_on_pages, ARTICLE_PAGE_OPTIONS);
     if (stored) return stored;
-    // Row saved before migration 0025: mirror the migration's backfill so
-    // the form shows what the site actually does today.
-    const legacy = ARTICLE_PAGE_OPTIONS.filter((o) => o.key !== "homepage").map(
-      (o) => o.key
-    );
-    const usedHomepagePlacement =
-      initial?.featured ||
-      initial?.on_cover ||
-      initial?.is_editorial_insight ||
-      initial?.is_cover_story;
-    return usedHomepagePlacement ? [...legacy, "homepage"] : legacy;
+  // Migration 0026 flipped the column default to '{homepage,articles,issues}'
+  // and backfilled every published row onto the homepage, so the form now
+  // defaults new editors to the homepage-eligible set. A stored value that
+  // exists and excludes homepage still shows what the site does today.
+  if (stored) return stored;
+  return ARTICLE_PAGE_OPTIONS.map((option) => option.key);
   });
 
   // Homepage placement flags — ticked placement always implies "Show on
@@ -157,7 +180,15 @@ export function ArticleForm({
   );
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-2xl flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       {/* ── Article details ── */}
       <FormSection title="Article Details" subtitle="The headline and metadata that define this story." accent="top">
         <TextField
@@ -237,29 +268,21 @@ export function ArticleForm({
 
       {/* ── Publication ── */}
       <FormSection title="Publication" subtitle="Draft or published, plus the printed page number." accent="left">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
-            label="Page number"
-            optional
-            id="page_number"
-            name="page_number"
-            type="number"
-            min={1}
-            step={1}
-            defaultValue={initial?.page_number ?? ""}
-            index={0}
-          />
-          <SelectField
-            label="Status"
-            id="status"
-            name="status"
-            defaultValue={initial?.status ?? "draft"}
-            index={1}
-          >
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </SelectField>
-        </div>
+        <TextField
+          label="Page number"
+          optional
+          id="page_number"
+          name="page_number"
+          type="number"
+          min={1}
+          step={1}
+          defaultValue={initial?.page_number ?? ""}
+          index={0}
+        />
+        <p className="font-admin text-xs text-stone">
+          Status: <strong className="font-semibold text-ink">{initial?.status === "published" ? "Published" : "Draft"}</strong>
+          {" "}— use Publish to publish; Save never changes publication status.
+        </p>
       </FormSection>
 
       {/* ── Display On ── */}
@@ -294,6 +317,7 @@ export function ArticleForm({
           existingValue={initial?.cover_image_url ?? ""}
           initialPreview={coverPreview}
           onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
+          upload={uploadArticleImageAction}
         />
         <p className="font-admin text-xs text-stone">
           {initial?.cover_image_url ? "Leave empty to keep the current image." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}
@@ -329,6 +353,7 @@ export function ArticleForm({
                     existingValue={initial?.[urlKey] ?? ""}
                     compact
                     previewAspect="aspect-[16/9]"
+                    upload={uploadArticleImageAction}
                   />
                 </div>
               </div>
@@ -481,10 +506,22 @@ export function ArticleForm({
         </p>
       ) : null}
 
-      <SubmitButton
-        label={submitLabel}
-        pendingLabel="Saving…"
+      <SaveButtons
+        formRef={formRef}
+        flush={autosave.flush}
         isPending={isPending}
+        saveLabel={submitLabel}
+        publishLabel={initial?.status === "published" ? "Save & Publish" : "Publish"}
+        showPublish
+        showUnpublish={initial?.status === "published"}
+        statusSlot={
+          <AutosaveStatus
+            status={autosave.status}
+            lastSavedAt={autosave.lastSavedAt}
+            errorMessage={autosave.errorMessage}
+            onRetry={autosave.retry}
+          />
+        }
       />
     </form>
   );

@@ -1,13 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import type { CallForPapersRow, PracticeAreaRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/call-for-papers/actions";
+import { autosaveCallForPapersAction } from "@/app/admin/(protected)/call-for-papers/actions";
 import {
   TextField,
   FormSection,
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -21,17 +27,40 @@ export function CallForPapersForm({
   action: ActionFn;
   initial?: Pick<
     CallForPapersRow,
-    "issue_number" | "issue_month" | "deadline" | "word_limit" | "contact_email"
+    "id" | "issue_number" | "issue_month" | "deadline" | "word_limit" | "contact_email"
   >;
   initialPracticeAreaIds?: Set<string>;
   practiceAreas: PracticeAreaRow[];
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
   const selected = initialPracticeAreaIds ?? new Set<string>();
 
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveCallForPapersAction(id, data),
+    initialId: initial?.id ?? null,
+    // Mirror the server's required fields — no snapshots that can't validate.
+    skip: (data) =>
+      !(data.issue_number?.[0] ?? "").trim() ||
+      !(data.issue_month?.[0] ?? "").trim() ||
+      !(data.deadline?.[0] ?? "").trim() ||
+      !(data.word_limit?.[0] ?? "").trim() ||
+      !(data.contact_email?.[0] ?? "").trim(),
+    autoRecover: !initial,
+  });
+
   return (
-    <form action={formAction} className="flex max-w-lg flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-lg flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <FormSection title="Call Details" subtitle="Issue targeting and submission rules." accent="top">
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
@@ -115,7 +144,15 @@ export function CallForPapersForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <div className="flex flex-wrap items-center gap-4">
+        <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+        <AutosaveStatus
+          status={autosave.status}
+          lastSavedAt={autosave.lastSavedAt}
+          errorMessage={autosave.errorMessage}
+          onRetry={autosave.retry}
+        />
+      </div>
     </form>
   );
 }

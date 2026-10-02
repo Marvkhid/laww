@@ -1,8 +1,12 @@
 "use client";
 
-import { useActionState, useState, useCallback } from "react";
+import { useActionState, useRef, useState, useCallback } from "react";
 import type { PracticeAreaRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/practice-areas/actions";
+import {
+  autosavePracticeAreaAction,
+  uploadPracticeAreaImageAction,
+} from "@/app/admin/(protected)/practice-areas/actions";
 import { slugify } from "@/lib/slugify";
 import {
   TextField,
@@ -11,6 +15,11 @@ import {
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -22,11 +31,12 @@ export function PracticeAreaForm({
   action: ActionFn;
   initial?: Pick<
     PracticeAreaRow,
-    "slug" | "name" | "description" | "image_url" | "image_alt" | "display_order"
+    "id" | "slug" | "name" | "description" | "image_url" | "image_alt" | "display_order"
   >;
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
   const [hasNewFile, setHasNewFile] = useState(false);
   // Bumped when the editor removes the current image — remounts the upload
   // zone so its preview and the existing_image_url hidden input reset.
@@ -64,8 +74,31 @@ export function PracticeAreaForm({
   const currentImageUrl = imageVersion === 0 ? (initial?.image_url ?? "") : "";
   const currentPreview = imageVersion === 0 ? (initial?.image_url ?? null) : null;
 
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosavePracticeAreaAction(id, data),
+    initialId: initial?.id ?? null,
+    skip: (data) => !(data.name?.[0] ?? "").trim(),
+    autoRecover: !initial,
+    onSlugResolved: (slug) => {
+      if (initial?.slug) return;
+      const hidden = document.getElementById("slug_hidden") as HTMLInputElement | null;
+      if (hidden) hidden.value = slug;
+      const display = document.getElementById("slug_display");
+      if (display) display.textContent = slug;
+    },
+  });
+
   return (
-    <form action={formAction} className="flex max-w-xl flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-xl flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <FormSection title="Practice Area" subtitle="Identity for this coverage area." accent="top">
         <TextField
           label="Name"
@@ -111,6 +144,7 @@ export function PracticeAreaForm({
           initialPreview={currentPreview}
           previewAspect="aspect-[16/9]"
           onFilesSelected={onFilesSelected}
+          upload={uploadPracticeAreaImageAction}
         />
         {/* Server action reads this flag to drop a previously saved image. */}
         <input type="hidden" name="remove_image" value={imageRemoved ? "1" : ""} />
@@ -152,8 +186,14 @@ export function PracticeAreaForm({
         </p>
       ) : null}
 
-      <div>
+      <div className="flex flex-wrap items-center gap-4">
         <SubmitButton label={submitLabel} isPending={isPending} />
+        <AutosaveStatus
+          status={autosave.status}
+          lastSavedAt={autosave.lastSavedAt}
+          errorMessage={autosave.errorMessage}
+          onRetry={autosave.retry}
+        />
       </div>
     </form>
   );

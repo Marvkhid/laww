@@ -17,11 +17,12 @@ export async function CoverHero() {
 
   // Lawyer in the News IS the Cover Story — it takes priority over the
   // legacy article-based cover. Falls back when no interview is published.
+  // The cover image is full-width; the caption panel sits on top.
   if (lawyerNews) {
     const href = `/lawyer-in-the-news/${lawyerNews.slug}`;
     return (
       <section className="border-b border-hairline bg-paper">
-        <div className="relative mx-auto max-w-6xl">
+        <div className="mx-auto max-w-6xl px-6">
           <div className="relative w-full overflow-hidden md:aspect-[21/9]">
             {lawyerNews.coverImageUrl ? (
               <ImageReveal className="absolute inset-0">
@@ -31,7 +32,7 @@ export async function CoverHero() {
                   fill
                   priority
                   sizes="100vw"
-                  className="object-contain"
+                  className="block h-auto w-full"
                 />
               </ImageReveal>
             ) : (
@@ -66,10 +67,11 @@ export async function CoverHero() {
 
   return (
     <section className="border-b border-hairline bg-paper">
-      <div className="relative mx-auto max-w-6xl">
-        {/* Full editorial composition: image + overlay text panel */}
-        <div className="relative aspect-[16/9] w-full overflow-hidden md:aspect-[21/9]">
-          {/* Main cover image — occupies the full composition */}
+      <div className="mx-auto max-w-6xl px-6">
+        {/* Full-width cover image — the image itself fills the available
+        horizontal width edge to edge; the aspect ratio is preserved, and
+        nothing letterboxes it inside a narrower frame. */}
+        <div className="relative w-full overflow-hidden md:aspect-[21/9]">
           {coverStory.coverImageUrl ? (
             <Image
               src={coverStory.coverImageUrl}
@@ -77,7 +79,7 @@ export async function CoverHero() {
               fill
               priority
               sizes="100vw"
-              className="object-contain"
+              className="block h-auto w-full"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-hairline/40">

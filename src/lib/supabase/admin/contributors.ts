@@ -36,17 +36,21 @@ export type ContributorInput = {
 
 export async function createContributor(
   input: ContributorInput
-): Promise<{ error: string | null }> {
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("contributors").insert(input);
+  const { data: created, error } = await supabase
+    .from("contributors")
+    .insert(input)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "That slug is already in use by another contributor." };
+      return { id: null, error: "That slug is already in use by another contributor." };
     }
-    return { error: "Could not create the contributor. Please try again." };
+    return { id: null, error: "Could not create the contributor. Please try again." };
   }
-  return { error: null };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updateContributor(

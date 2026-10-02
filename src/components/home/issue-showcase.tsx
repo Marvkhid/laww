@@ -54,13 +54,15 @@ export async function IssueShowcase() {
         <Reveal delay={0.15}>
           <div className="relative mx-auto aspect-[3/4] w-full max-w-[280px] overflow-hidden shadow-2xl md:mx-0 md:ml-auto">
             {issueMeta.coverImageSrc ? (
-              <Image
-                src={issueMeta.coverImageSrc}
-                alt={issueMeta.coverImageAlt}
-                fill
-                sizes="(min-width: 768px) 280px, 100vw"
-                className="object-contain transition-transform duration-700 hover:scale-105"
-              />
+              <div className="relative aspect-[3/4] w-full max-w-[280px] overflow-hidden shadow-2xl md:mx-0 md:ml-auto">
+                <Image
+                  src={issueMeta.coverImageSrc}
+                  alt={issueMeta.coverImageAlt}
+                  fill
+                  sizes="(min-width: 768px) 280px, 100vw"
+                  className="block h-auto w-full object-cover transition-transform duration-700 hover:scale-105"
+                />
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-hairline/20 p-4">
                 <span className="font-utility text-[10px] uppercase tracking-wide text-stone">

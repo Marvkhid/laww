@@ -43,13 +43,15 @@ export async function HomepageEvents() {
               >
                 <div className="relative aspect-[16/10] overflow-hidden">
                   {event.coverImageUrl ? (
-                    <Image
-                      src={event.coverImageUrl}
-                      alt={event.title}
-                      fill
-                      sizes="(min-width: 1024px) 280px, (min-width: 640px) 50vw, 100vw"
-                      className="object-contain transition-transform duration-700 group-hover:scale-105"
-                    />
+                    <div className="relative aspect-[16/10] w-full overflow-hidden">
+                      <Image
+                        src={event.coverImageUrl}
+                        alt={event.title}
+                        fill
+                        sizes="(min-width: 1024px) 280px, (min-width: 640px) 50vw, 100vw"
+                        className="block h-auto w-full object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-hairline/60">
                       <span className="font-utility text-[10px] uppercase tracking-wide text-stone">

@@ -6,6 +6,7 @@ import {
   createArticle,
   updateArticle,
   deleteArticle,
+  getArticleByIdForAdmin,
   setArticleStatus,
   type ArticleInput,
   type ContributorSelection,
@@ -17,6 +18,7 @@ import {
   ARTICLE_PAGE_OPTIONS,
   pagesFromFormData,
 } from "@/lib/page-visibility";
+import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
 
@@ -35,26 +37,15 @@ function isEmptyDoc(doc: JSONContent): boolean {
 
 function readArticleBody(formData: FormData): JSONContent | null {
   const raw = String(formData.get("body") ?? "").trim();
-  if (!raw) {
-    console.log("readArticleBody: empty body field");
-    return null;
-  }
+  if (!raw) return null;
   let parsed: JSONContent;
   try {
     parsed = JSON.parse(raw);
-  } catch (e) {
-    console.error("readArticleBody: JSON parse error:", e);
+  } catch {
     return null;
   }
-  if (parsed?.type !== "doc") {
-    console.log("readArticleBody: not a doc type:", parsed?.type);
-    return null;
-  }
-  if (isEmptyDoc(parsed)) {
-    console.log("readArticleBody: empty doc");
-    return null;
-  }
-  console.log("readArticleBody: body content found, length:", JSON.stringify(parsed).length);
+  if (parsed?.type !== "doc") return null;
+  if (isEmptyDoc(parsed)) return null;
   return parsed;
 }
 
@@ -200,6 +191,18 @@ function readContributorSelections(formData: FormData): ContributorSelection[] {
   return selections;
 }
 
+/**
+ * Save vs Publish. The buttons set `save_mode` (Enter-key implicit submits
+ * default to "save", so a stray Enter can never publish):
+ *   save      → persist everything; publication state unchanged
+ *   publish   → persist + status published (+ published_at via the RPC)
+ *   unpublish → persist + status draft
+ */
+function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
+  const mode = String(formData.get("save_mode") ?? "save");
+  return mode === "publish" || mode === "unpublish" ? mode : "save";
+}
+
 function revalidateArticlePaths(slug?: string) {
   revalidatePath("/admin/articles");
   revalidatePath("/articles");
@@ -210,6 +213,63 @@ function revalidateArticlePaths(slug?: string) {
   if (slug) revalidatePath(`/articles/${slug}`);
 }
 
+/** Upload-on-select: images persist the moment they are chosen. */
+export async function uploadArticleImageAction(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadArticleCoverImage(file);
+}
+
+/**
+ * Autosave — never publishes, never redirects, never revalidates.
+ * - id === null: creates the row as a DRAFT and returns its id (the client
+ *   keeps it in a hidden field so every later snapshot updates that row —
+ *   no duplicate drafts).
+ * - id present: updates every editable field while PRESERVING the row's
+ *   current publication status.
+ * Payloads run through the exact same reader as Save, so autosave and
+ * Save can never disagree about what gets persisted.
+ */
+export async function autosaveArticleAction(
+  id: string | null,
+  rawData: Record<string, string[]>
+): Promise<AutosaveResult> {
+  const formData = dataToFormData(rawData);
+  const { input, error: validationError } = await readArticleInput(formData);
+  if (!input) return { id, error: validationError ?? "Invalid article." };
+  const contributors = readContributorSelections(formData);
+
+  if (!id) {
+    const created = await createArticle(
+      { ...input, status: "draft" },
+      contributors
+    );
+    if (created.error && created.error.includes("slug")) {
+      // A taken slug must not wedge autosave into an endless retry: give
+      // the draft a unique slug and tell the client which one to use.
+      const fallbackSlug = `${input.slug}-${Date.now().toString(36)}`;
+      const retry = await createArticle(
+        { ...input, slug: fallbackSlug, status: "draft" },
+        contributors
+      );
+      if (retry.id) return { id: retry.id, error: null, slug: fallbackSlug };
+    }
+    return { id: created.id, error: created.error };
+  }
+
+  const current = await getArticleByIdForAdmin(id);
+  if (!current) {
+    return { id, error: "This draft no longer exists. Reload the editor." };
+  }
+  const { error } = await updateArticle(
+    id,
+    { ...input, status: current.status },
+    contributors
+  );
+  if (error) return { id, error };
+  return { id, error: null };
+}
+
 export async function createArticleAction(
   _prevState: FormState,
   formData: FormData
@@ -218,6 +278,34 @@ export async function createArticleAction(
   if (!input) return { error: validationError };
 
   const contributors = readContributorSelections(formData);
+  const mode = readSaveMode(formData);
+  const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+
+  // Autosave already created the draft row — continue in it, so the id the
+  // client holds never goes stale and no second row is produced.
+  if (autosaveId) {
+    const current = await getArticleByIdForAdmin(autosaveId);
+    if (current) {
+      const status =
+        mode === "publish"
+          ? "published"
+          : mode === "unpublish"
+            ? "draft"
+            : current.status;
+      const { error } = await updateArticle(
+        autosaveId,
+        { ...input, status },
+        contributors
+      );
+      if (error) return { error };
+      revalidateArticlePaths(input.slug);
+      redirect("/admin/articles");
+    }
+  }
+
+  // Save never publishes a brand-new article; only Publish does.
+  input.status = mode === "publish" ? "published" : "draft";
+
   const { error } = await createArticle(input, contributors);
   if (error) return { error };
 
@@ -230,22 +318,24 @@ export async function updateArticleAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  console.log("updateArticleAction: starting for article", id);
   const { input, error: validationError } = await readArticleInput(formData);
-  if (!input) {
-    console.error("updateArticleAction validation error:", validationError);
-    return { error: validationError };
-  }
+  if (!input) return { error: validationError };
 
-  console.log("updateArticleAction: body is", input.body ? "present" : "null");
   const contributors = readContributorSelections(formData);
-  const { error } = await updateArticle(id, input, contributors);
-  if (error) {
-    console.error("updateArticleAction error for article", id, ":", error);
-    return { error };
-  }
+  const mode = readSaveMode(formData);
+  const current = await getArticleByIdForAdmin(id);
+  if (!current) return { error: "This article no longer exists." };
 
-  console.log("updateArticleAction: success, revalidating");
+  input.status =
+    mode === "publish"
+      ? "published"
+      : mode === "unpublish"
+        ? "draft"
+        : current.status;
+
+  const { error } = await updateArticle(id, input, contributors);
+  if (error) return { error };
+
   revalidateArticlePaths(input.slug);
   redirect("/admin/articles");
 }

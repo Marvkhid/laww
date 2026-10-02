@@ -7,6 +7,7 @@ import {
   updateSponsor,
   deleteSponsor,
   setSponsorActive,
+  getSponsorByIdForAdmin,
   type SponsorInput,
 } from "@/lib/supabase/admin/sponsors";
 import { uploadSponsorImage } from "@/lib/supabase/admin/storage";
@@ -14,6 +15,7 @@ import {
   ADVERT_PAGE_OPTIONS,
   pagesFromFormData,
 } from "@/lib/page-visibility";
+import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
 
@@ -96,12 +98,62 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
   };
 }
 
+/** Upload-on-select for advert artwork and logos. */
+export async function uploadSponsorImageAction(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadSponsorImage(file);
+}
+
+/**
+ * Autosave — adverts have no draft/publish duality beyond `active`, and a
+ * brand-new advert must never go live from autosave alone: creates force
+ * active=false (the admin's explicit Save applies the checkbox), while
+ * updates persist every targeting/status choice so toggling an existing
+ * advert off takes effect without a separate step.
+ */
+export async function autosaveSponsorAction(
+  id: string | null,
+  rawData: Record<string, string[]>
+): Promise<AutosaveResult> {
+  const formData = dataToFormData(rawData);
+  const { input, error: validationError } = await readInput(formData);
+  if (!input) return { id, error: validationError ?? "Invalid advert." };
+
+  if (!id) {
+    const created = await createSponsor({ ...input, active: false });
+    if (created.id) return { id: created.id, error: null };
+    return { id: null, error: created.error };
+  }
+
+  const current = await getSponsorByIdForAdmin(id);
+  if (!current) {
+    return { id, error: "This advert no longer exists. Reload the editor." };
+  }
+  const { error } = await updateSponsor(id, input);
+  if (error) return { id, error };
+  return { id, error: null };
+}
+
 export async function createSponsorAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError };
+
+  // Autosave already created the draft advert — continue in it so no
+  // duplicate row is produced, and let this explicit Save apply `active`.
+  const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+  if (autosaveId) {
+    const current = await getSponsorByIdForAdmin(autosaveId);
+    if (current) {
+      const { error } = await updateSponsor(autosaveId, input);
+      if (error) return { error };
+      revalidateAdPaths();
+      redirect("/admin/sponsors");
+    }
+  }
 
   const { error } = await createSponsor(input);
   if (error) return { error };

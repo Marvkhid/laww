@@ -62,17 +62,23 @@ export type IssueInput = {
   published_at: string | null;
 };
 
-export async function createIssue(input: IssueInput): Promise<{ error: string | null }> {
+export async function createIssue(
+  input: IssueInput
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("issues").insert(input);
+  const { data: created, error } = await supabase
+    .from("issues")
+    .insert(input)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "That issue number already exists." };
+      return { id: null, error: "That issue number already exists." };
     }
-    return { error: "Could not create the issue. Please try again." };
+    return { id: null, error: "Could not create the issue. Please try again." };
   }
-  return { error: null };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updateIssue(

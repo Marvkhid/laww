@@ -28,16 +28,28 @@ export interface PageOption {
   label: string;
 }
 
-/** Every public page an advert can be placed on (navbar routes + home). */
+/** Every public page an advert can be placed on (navbar routes + home).
+ *
+ * Pages are numbered by their position in the site's primary navigation so
+ * an administrator can select exact pages:
+ *   Home (homepage) = Page 1
+ *   About (/about)  = Page 2
+ *   Articles (/articles)  = Page 3
+ *   Issues (/issues)  = Page 4
+ *   Events (/events)  = Page 5
+ *   Legal Updates (/legal-updates)  = Page 6
+ *   Editorial Board (/contributors)  = Page 7
+ *   Contact (/contact)  = Page 8
+ */
 export const ADVERT_PAGE_OPTIONS: PageOption[] = [
-  { key: "homepage", label: "Home" },
-  { key: "about", label: "About" },
-  { key: "articles", label: "Articles" },
-  { key: "issues", label: "Issues" },
-  { key: "events", label: "Events" },
-  { key: "legal-updates", label: "Legal Updates" },
-  { key: "contributors", label: "Editorial Board" },
-  { key: "contact", label: "Contact" },
+  { key: "homepage", label: "Home — Page 1" },
+  { key: "about", label: "About — Page 2" },
+  { key: "articles", label: "Articles — Page 3" },
+  { key: "issues", label: "Issues — Page 4" },
+  { key: "events", label: "Events — Page 5" },
+  { key: "legal-updates", label: "Legal Updates — Page 6" },
+  { key: "contributors", label: "Editorial Board — Page 7" },
+  { key: "contact", label: "Contact — Page 8" },
 ];
 
 /** Where an article can be listed — homepage placement is separate. */

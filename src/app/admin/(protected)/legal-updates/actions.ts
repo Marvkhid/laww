@@ -7,14 +7,29 @@ import {
   updateLegalUpdate,
   deleteLegalUpdate,
   setLegalUpdateStatus,
+  getLegalUpdateByIdForAdmin,
   type LegalUpdateInput,
 } from "@/lib/supabase/admin/legal-updates";
 import { uploadLegalUpdateImage } from "@/lib/supabase/admin/storage";
 import type { LegalUpdateStatus } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
 import { slugify } from "@/lib/slugify";
+import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
+
+/** Save vs Publish — autosave and Enter-key submits always stay draft-safe. */
+function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
+  const mode = String(formData.get("save_mode") ?? "save");
+  return mode === "publish" || mode === "unpublish" ? mode : "save";
+}
+
+/** Upload-on-select for update covers and inline images. */
+export async function uploadLegalUpdateImageAction(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadLegalUpdateImage(file);
+}
 
 // Legal updates surface on the homepage ("This Week in Law") and in the
 // breaking-news bar, so every mutation must invalidate those routes too —
@@ -135,12 +150,69 @@ async function readInput(
   };
 }
 
+/**
+ * Autosave — never publishes (new rows forced to pending_review; existing
+ * rows keep their status), never redirects, never revalidates.
+ */
+export async function autosaveLegalUpdateAction(
+  id: string | null,
+  rawData: Record<string, string[]>
+): Promise<AutosaveResult> {
+  const formData = dataToFormData(rawData);
+  const { input, error: validationError } = await readInput(formData);
+  if (!input) return { id, error: validationError ?? "Invalid update." };
+
+  if (!id) {
+    const created = await createLegalUpdate({ ...input, status: "pending_review" });
+    if (created.error && created.error.includes("slug")) {
+      const fallbackSlug = `${input.slug}-${Date.now().toString(36)}`;
+      const retry = await createLegalUpdate({
+        ...input,
+        slug: fallbackSlug,
+        status: "pending_review",
+      });
+      if (retry.id) return { id: retry.id, error: null };
+    }
+    return { id: created.id, error: created.error };
+  }
+
+  const current = await getLegalUpdateByIdForAdmin(id);
+  if (!current) {
+    return { id, error: "This update no longer exists. Reload the editor." };
+  }
+  const { error } = await updateLegalUpdate(id, { ...input, status: current.status });
+  if (error) return { id, error };
+  return { id, error: null };
+}
+
 export async function createLegalUpdateAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError ?? "Invalid input." };
+
+  const mode = readSaveMode(formData);
+  const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+
+  if (autosaveId) {
+    const current = await getLegalUpdateByIdForAdmin(autosaveId);
+    if (current) {
+      const status: LegalUpdateStatus =
+        mode === "publish"
+          ? "published"
+          : mode === "unpublish"
+            ? "pending_review"
+            : current.status;
+      const { error } = await updateLegalUpdate(autosaveId, { ...input, status });
+      if (error) return { error };
+      revalidateLegalUpdatePaths(input.slug);
+      redirect("/admin/legal-updates");
+    }
+  }
+
+  // Save never publishes a brand-new update; only Publish does.
+  input.status = mode === "publish" ? "published" : "pending_review";
 
   const { error } = await createLegalUpdate(input);
   if (error) return { error };
@@ -156,6 +228,16 @@ export async function updateLegalUpdateAction(
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError ?? "Invalid input." };
+
+  const mode = readSaveMode(formData);
+  const current = await getLegalUpdateByIdForAdmin(id);
+  if (!current) return { error: "This update no longer exists." };
+  input.status =
+    mode === "publish"
+      ? "published"
+      : mode === "unpublish"
+        ? "pending_review"
+        : current.status;
 
   const { error } = await updateLegalUpdate(id, input);
   if (error) return { error };

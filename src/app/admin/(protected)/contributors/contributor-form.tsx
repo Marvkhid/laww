@@ -1,8 +1,12 @@
 "use client";
 
-import { useActionState, useState, useCallback } from "react";
+import { useActionState, useRef, useState, useCallback } from "react";
 import type { ContributorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/contributors/actions";
+import {
+  autosaveContributorAction,
+  uploadContributorPhotoAction,
+} from "@/app/admin/(protected)/contributors/actions";
 import { slugify } from "@/lib/slugify";
 import {
   TextField,
@@ -12,6 +16,11 @@ import {
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -23,13 +32,28 @@ export function ContributorForm({
   action: ActionFn;
   initial?: Pick<
     ContributorRow,
-    "slug" | "name" | "credentials" | "role" | "bio" | "photo_url" | "is_editorial_board"
+    "id" | "slug" | "name" | "credentials" | "role" | "bio" | "photo_url" | "is_editorial_board"
   >;
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url ?? null);
   const [slugManualOverride, setSlugManualOverride] = useState(false);
+
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveContributorAction(id, data),
+    initialId: initial?.id ?? null,
+    skip: (data) =>
+      !(data.name?.[0] ?? "").trim() || !(data.role?.[0] ?? "").trim(),
+    autoRecover: !initial,
+    onSlugResolved: (slug) => {
+      if (initial?.slug || slugManualOverride) return;
+      const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+      if (slugInput && !slugInput.readOnly) slugInput.value = slug;
+    },
+  });
 
   const onNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,7 +66,15 @@ export function ContributorForm({
   );
 
   return (
-    <form action={formAction} className="flex max-w-lg flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-lg flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <FormSection title="Profile" subtitle="Who this person is and how they appear on the masthead." accent="top">
         <TextField
           label="Name"
@@ -134,6 +166,7 @@ export function ContributorForm({
           previewAspect="aspect-square"
           compact
           onFilesSelected={(files) => setPhotoPreview(URL.createObjectURL(files[0]))}
+          upload={uploadContributorPhotoAction}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep the current photo.
@@ -155,7 +188,15 @@ export function ContributorForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <div className="flex flex-wrap items-center gap-4">
+        <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+        <AutosaveStatus
+          status={autosave.status}
+          lastSavedAt={autosave.lastSavedAt}
+          errorMessage={autosave.errorMessage}
+          onRetry={autosave.retry}
+        />
+      </div>
     </form>
   );
 }

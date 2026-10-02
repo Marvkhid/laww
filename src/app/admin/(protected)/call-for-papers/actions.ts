@@ -6,10 +6,39 @@ import {
   createCallForPapers,
   updateCallForPapers,
   deleteCallForPapers,
+  getCallForPapersByIdForAdmin,
+  getCallForPapersByIssueNumber,
   type CallForPapersInput,
 } from "@/lib/supabase/admin/call-for-papers";
+import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
+
+/**
+ * Autosave — calls for papers have no publication state, so every valid
+ * snapshot persists as-is. Never redirects, never revalidates.
+ */
+export async function autosaveCallForPapersAction(
+  id: string | null,
+  rawData: Record<string, string[]>
+): Promise<AutosaveResult> {
+  const formData = dataToFormData(rawData);
+  const { input, error: validationError } = readInput(formData);
+  if (!input) return { id, error: validationError ?? "Invalid call for papers." };
+  const practiceAreaIds = readSelectedPracticeAreaIds(formData);
+
+  if (!id) {
+    const created = await createCallForPapers(input, practiceAreaIds);
+    if (created.error) return { id: null, error: created.error };
+    // Issue numbers are unique — resolve the row id the create produced.
+    const row = await getCallForPapersByIssueNumber(input.issue_number);
+    return { id: row?.id ?? null, error: null };
+  }
+
+  const { error } = await updateCallForPapers(id, input, practiceAreaIds);
+  if (error) return { id, error };
+  return { id, error: null };
+}
 
 function readInput(formData: FormData): { input: CallForPapersInput | null; error: string | null } {
   const issueNumberRaw = String(formData.get("issue_number") ?? "").trim();
@@ -61,6 +90,22 @@ export async function createCallForPapersAction(
 ): Promise<FormState> {
   const { input, error: validationError } = readInput(formData);
   if (!input) return { error: validationError };
+
+  // Autosave already created the row — continue in it (no duplicates).
+  const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+  if (autosaveId) {
+    const current = await getCallForPapersByIdForAdmin(autosaveId);
+    if (current) {
+      const { error } = await updateCallForPapers(
+        autosaveId,
+        input,
+        readSelectedPracticeAreaIds(formData)
+      );
+      if (error) return { error };
+      revalidateCfpPaths();
+      redirect("/admin/call-for-papers");
+    }
+  }
 
   const { error } = await createCallForPapers(input, readSelectedPracticeAreaIds(formData));
   if (error) return { error };

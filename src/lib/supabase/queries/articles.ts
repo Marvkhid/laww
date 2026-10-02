@@ -140,6 +140,24 @@ export interface ArticleQueryOptions {
   page?: PageKey;
 }
 
+// Homepage publication rule (enforced from the database side; see migration
+// 0026_autosave_homepage_atomicity.sql). A published article is
+// homepage-eligible unless the admin explicitly unticked "Homepage" under
+// Display On. This keeps publishing from silently producing content that
+// never appears on the front page, while still honouring a deliberate
+// exclusion.
+export function isHomepageEligible(row: ArticleRow): boolean {
+  // Backfilled/persisted state always wins: an explicit un-tick is stored,
+  // and that choice is respected because it is explicit state.
+  const pages = pagesForRow(row.show_on_pages, ARTICLE_PAGE_OPTIONS);
+  if (pages !== null) {
+    return pages.includes("homepage");
+  }
+  // Fallback for rows that predate migration 0025: treat them as
+  // homepage-eligible so nothing is dropped from the homepage unexpectedly.
+  return row.status === "published";
+}
+
 export async function getArticles(
   supabase: UntypedSupabaseClient,
   options?: ArticleQueryOptions
@@ -192,15 +210,18 @@ export async function getEditorialInsights(supabase: UntypedSupabaseClient): Pro
 }
 
 /**
- * Homepage "Latest Stories": published articles the admin opted onto the
- * homepage that are NOT already surfaced by a dedicated placement section
- * (cover story / featured / in this issue / editorial insights) — so ticking
- * "Show on Homepage" always shows the article exactly once, and the
- * homepage is never flooded with the whole archive.
+ * Homepage "Latest Stories": published articles eligible for the homepage.
  *
- * Deliberately STRICTER than the placement sections: it requires an
- * explicit show_on_pages value. A row that predates migration 0025 has no
- * such value, and "no data" must not be read as consent to show everything.
+ * Revise: a published article is homepage-eligible by default (see the
+ * isHomepageEligible helper and migration 0026, which flips the column
+ * default to '{homepage,articles,issues}' and backfills published rows).
+ * The admin can still deliberately exclude a story by unticking "Homepage"
+ * under Display On — that stored, explicit choice is respected.
+ *
+ * The placement sections (cover story / featured / in this issue / editorial
+ * insights) surface only their own flag; "Latest Stories" renders the
+ * remaining eligible published rows so the homepage shows each opted-in
+ * story exactly once and is not flooded with the whole archive.
  */
 export async function getHomepageArticles(
   supabase: UntypedSupabaseClient,
@@ -215,10 +236,12 @@ export async function getHomepageArticles(
   if (error || !data) return [];
 
   const rows = (data as ArticleRow[]).filter((row) => {
-    const pages = pagesForRow(row.show_on_pages, ARTICLE_PAGE_OPTIONS);
+    // All published articles are eligible for the homepage unless they have
+    // an explicit stored exclusion. No separate opt-in checkbox required.
+    if (!isHomepageEligible(row)) return false;
+    // Filter out the dedicated placement sections so a story shows exactly
+    // once on the homepage.
     return (
-      pages !== null &&
-      pages.includes("homepage") &&
       !row.featured &&
       !row.on_cover &&
       !row.is_editorial_insight &&

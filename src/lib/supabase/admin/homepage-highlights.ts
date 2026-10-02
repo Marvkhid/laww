@@ -35,15 +35,21 @@ export async function getHighlightByIdForAdmin(id: string): Promise<HomepageHigh
   return data as HomepageHighlightRow;
 }
 
-export async function createHighlight(input: HomepageHighlightInput): Promise<{ error: string | null }> {
+export async function createHighlight(
+  input: HomepageHighlightInput
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
-  const { error } = await supabase.from("homepage_highlights").insert(input);
+  const { data: created, error } = await supabase
+    .from("homepage_highlights")
+    .insert(input)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("createHighlight error:", error);
-    return { error: "Could not create the highlight. Please try again." };
+    return { id: null, error: "Could not create the highlight. Please try again." };
   }
-  return { error: null };
+  return { id: (created as { id: string } | null)?.id ?? null, error: null };
 }
 
 export async function updateHighlight(id: string, input: HomepageHighlightInput): Promise<{ error: string | null }> {

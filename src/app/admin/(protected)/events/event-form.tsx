@@ -1,21 +1,30 @@
 "use client";
 
-import { useActionState, useState, useCallback } from "react";
+import { useActionState, useState, useCallback, useRef } from "react";
 import type { EventRow, EventImageRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/events/actions";
+import {
+  autosaveEventAction,
+  removePendingGalleryImageAction,
+  uploadEventImageAction,
+} from "@/app/admin/(protected)/events/actions";
 import { slugify } from "@/lib/slugify";
 import {
   TextField,
   TextAreaField,
-  CheckboxField,
   FormSection,
 } from "@/components/forms/kit/field";
-import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone, RemoveThumbButton } from "@/components/forms/kit/image-upload";
 import { PageVisibilityField } from "@/components/forms/kit/page-visibility";
 import { PageTargetingNotice } from "@/app/admin/(protected)/page-targeting-notice";
 import { EVENT_PAGE_OPTIONS, pagesForRow } from "@/lib/page-visibility";
 import { motion, useReducedMotion } from "motion/react";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+  SaveButtons,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -45,10 +54,25 @@ export function EventForm({
   pageTargeting?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
   const [removeImageIds, setRemoveImageIds] = useState<string[]>([]);
+  const [pendingGalleryUrls, setPendingGalleryUrls] = useState<string[]>([]);
   const [slugManualOverride, setSlugManualOverride] = useState(false);
   const reduce = useReducedMotion();
+
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveEventAction(id, data),
+    initialId: entityId ?? null,
+    skip: (data) => !(data.title?.[0] ?? "").trim(),
+    autoRecover: !initial,
+    onSlugResolved: (slug) => {
+      if (initial?.slug || slugManualOverride) return;
+      const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+      if (slugInput && !slugInput.readOnly) slugInput.value = slug;
+    },
+  });
 
   const onTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,7 +95,20 @@ export function EventForm({
     EVENT_PAGE_OPTIONS.map((option) => option.key);
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-2xl flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      <input
+        type="hidden"
+        name="pending_gallery_urls"
+        value={JSON.stringify(pendingGalleryUrls)}
+      />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <FormSection title="Event Details" subtitle="Title, date, and description." accent="top">
         <TextField
           label="Event title"
@@ -149,12 +186,13 @@ export function EventForm({
             index={2}
           />
           <div className="flex items-end pb-2">
-            <CheckboxField
-              name="published"
-              label="Published"
-              defaultChecked={initial?.published ?? true}
-              index={3}
-            />
+            <p className="font-admin text-xs text-stone">
+              Status:{" "}
+              <strong className="font-semibold text-ink">
+                {initial?.published ? "Published" : "Draft"}
+              </strong>
+              {" "}— use Publish to publish; Save keeps this state.
+            </p>
           </div>
         </div>
       </FormSection>
@@ -183,6 +221,7 @@ export function EventForm({
           initialPreview={coverPreview}
           previewAspect="aspect-[16/10]"
           onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
+          upload={uploadEventImageAction}
         />
       </FormSection>
 
@@ -215,24 +254,62 @@ export function EventForm({
             ))}
           </div>
         ) : null}
+        {pendingGalleryUrls.length > 0 ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {pendingGalleryUrls.map((url, i) => (
+              <div
+                key={url}
+                className="relative aspect-square overflow-hidden border border-hairline bg-white"
+                style={{ borderRadius: 2 }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="New gallery upload" className="h-full w-full object-cover" />
+                <RemoveThumbButton
+                  label={`Remove uploaded gallery image ${i + 1}`}
+                  onRemove={() => {
+                    setPendingGalleryUrls((prev) => prev.filter((value) => value !== url));
+                    void removePendingGalleryImageAction(autosave.draftId ?? null, url);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
         <ImageUploadZone
           name="gallery_files"
           label="Add gallery images"
           multiple
           compact
           previewAspect="aspect-square"
+          upload={uploadEventImageAction}
+          onUploaded={(urls) => setPendingGalleryUrls((prev) => [...prev, ...urls])}
         />
         <input type="hidden" name="remove_image_ids" value={removeImageIds.join(",")} />
       </FormSection>
 
-      {entityId ? <input type="hidden" name="entity_id" value={entityId} /> : null}
       {state.error ? (
         <p role="alert" className="font-admin text-sm font-medium text-digest-red">
           {state.error}
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <SaveButtons
+        formRef={formRef}
+        flush={autosave.flush}
+        isPending={isPending}
+        saveLabel={submitLabel}
+        publishLabel="Publish"
+        showPublish
+        showUnpublish={Boolean(initial?.published)}
+        statusSlot={
+          <AutosaveStatus
+            status={autosave.status}
+            lastSavedAt={autosave.lastSavedAt}
+            errorMessage={autosave.errorMessage}
+            onRetry={autosave.retry}
+          />
+        }
+      />
     </form>
   );
 }

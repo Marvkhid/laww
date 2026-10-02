@@ -6,11 +6,26 @@ import {
   createLegalInsight,
   updateLegalInsight,
   deleteLegalInsight,
+  getLegalInsightByIdForAdmin,
   type LegalInsightInput,
 } from "@/lib/supabase/admin/legal-insights";
 import { uploadLegalInsightImage } from "@/lib/supabase/admin/storage";
+import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
+
+/** Save vs Publish — autosave and Enter-key submits always stay draft-safe. */
+function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
+  const mode = String(formData.get("save_mode") ?? "save");
+  return mode === "publish" || mode === "unpublish" ? mode : "save";
+}
+
+/** Upload-on-select for quiz images. */
+export async function uploadLegalInsightImageAction(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadLegalInsightImage(file);
+}
 
 async function readInput(
   formData: FormData
@@ -79,12 +94,57 @@ async function readInput(
   };
 }
 
+/**
+ * Autosave — never publishes (new questions forced draft; existing rows
+ * keep their flag), never redirects, never revalidates.
+ */
+export async function autosaveLegalInsightAction(
+  id: string | null,
+  rawData: Record<string, string[]>
+): Promise<AutosaveResult> {
+  const formData = dataToFormData(rawData);
+  const { input, error: validationError } = await readInput(formData);
+  if (!input) return { id, error: validationError ?? "Invalid question." };
+
+  if (!id) {
+    const created = await createLegalInsight({ ...input, published: false });
+    return { id: created.id, error: created.error };
+  }
+
+  const current = await getLegalInsightByIdForAdmin(id);
+  if (!current) {
+    return { id, error: "This question no longer exists. Reload the editor." };
+  }
+  const { error } = await updateLegalInsight(id, { ...input, published: current.published });
+  if (error) return { id, error };
+  return { id, error: null };
+}
+
 export async function createLegalInsightAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError };
+
+  const mode = readSaveMode(formData);
+  const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+
+  if (autosaveId) {
+    const current = await getLegalInsightByIdForAdmin(autosaveId);
+    if (current) {
+      input.published =
+        mode === "publish" ? true : mode === "unpublish" ? false : current.published;
+      const { error } = await updateLegalInsight(autosaveId, input);
+      if (error) return { error };
+      revalidatePath("/admin/legal-insights");
+      revalidatePath("/");
+      redirect("/admin/legal-insights");
+    }
+  }
+
+  // Save never publishes a brand-new question; only Publish does.
+  input.published = mode === "publish";
 
   const { error } = await createLegalInsight(input);
   if (error) return { error };
@@ -101,6 +161,12 @@ export async function updateLegalInsightAction(
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError };
+
+  const mode = readSaveMode(formData);
+  const current = await getLegalInsightByIdForAdmin(id);
+  if (!current) return { error: "This question no longer exists." };
+  input.published =
+    mode === "publish" ? true : mode === "unpublish" ? false : current.published;
 
   const { error } = await updateLegalInsight(id, input);
   if (error) return { error };

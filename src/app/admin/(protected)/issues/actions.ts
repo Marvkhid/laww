@@ -6,11 +6,26 @@ import {
   createIssue,
   updateIssue,
   deleteIssue,
+  getIssueByIdForAdmin,
   type IssueInput,
 } from "@/lib/supabase/admin/issues";
 import { uploadIssuePdf, uploadIssueCoverImage } from "@/lib/supabase/admin/storage";
+import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
+
+/** Upload-on-select for issue covers and PDFs. */
+export async function uploadIssueCoverImageAction(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadIssueCoverImage(file);
+}
+
+export async function uploadIssuePdfAction(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  return uploadIssuePdf(file);
+}
 
 async function readInput(formData: FormData): Promise<{ input: IssueInput | null; error: string | null }> {
   const optional = (key: string) => {
@@ -80,12 +95,55 @@ function revalidateIssuePaths() {
   revalidatePath("/issues/[slug]", "page");
 }
 
+/**
+ * Autosave — publication for issues is the explicit "Published date"
+ * field, so autosave never writes it (new rows stay unpublished; existing
+ * rows keep their date). Everything else persists as typed.
+ */
+export async function autosaveIssueAction(
+  id: string | null,
+  rawData: Record<string, string[]>
+): Promise<AutosaveResult> {
+  const formData = dataToFormData(rawData);
+  const { input, error: validationError } = await readInput(formData);
+  if (!input) return { id, error: validationError ?? "Invalid issue." };
+
+  if (!id) {
+    const created = await createIssue({ ...input, published_at: null });
+    if (created.error && created.error.includes("issue number")) {
+      // Unique issue_number conflict (a retry with the same number can never
+      // succeed) — surface it rather than silently forking the number.
+      return { id: null, error: created.error };
+    }
+    return { id: created.id, error: created.error };
+  }
+
+  const current = await getIssueByIdForAdmin(id);
+  if (!current) {
+    return { id, error: "This issue no longer exists. Reload the editor." };
+  }
+  const { error } = await updateIssue(id, { ...input, published_at: current.published_at });
+  if (error) return { id, error };
+  return { id, error: null };
+}
+
 export async function createIssueAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError };
+
+  const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+  if (autosaveId) {
+    const current = await getIssueByIdForAdmin(autosaveId);
+    if (current) {
+      const { error } = await updateIssue(autosaveId, input);
+      if (error) return { error };
+      revalidateIssuePaths();
+      redirect("/admin/issues");
+    }
+  }
 
   const { error } = await createIssue(input);
   if (error) return { error };

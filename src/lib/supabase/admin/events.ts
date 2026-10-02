@@ -143,6 +143,61 @@ export async function deleteEvent(id: string): Promise<{ error: string | null }>
   return { error: null };
 }
 
+/**
+ * Attach gallery images that were uploaded ahead of time (upload-on-select)
+ * or carried in a pending list. Idempotent: a URL already attached to this
+ * event is skipped, so autosave can re-send the pending list every cycle
+ * without ever producing duplicate gallery rows.
+ */
+export async function attachEventImages(
+  eventId: string,
+  imageUrls: string[]
+): Promise<{ error: string | null }> {
+  if (imageUrls.length === 0) return { error: null };
+  const supabase = await requireAdmin();
+
+  const { data: existing, error: readError } = await supabase
+    .from("event_images")
+    .select("image_url")
+    .eq("event_id", eventId);
+  if (readError) return { error: "Could not attach gallery images. Please try again." };
+
+  const present = new Set((existing ?? []).map((row) => row.image_url));
+  let nextOrder = (existing ?? []).length;
+
+  for (const url of imageUrls) {
+    if (!url || present.has(url)) continue;
+    const { error } = await supabase.from("event_images").insert({
+      event_id: eventId,
+      image_url: url,
+      caption: null,
+      display_order: nextOrder,
+    });
+    if (error) {
+      console.error("attachEventImages error:", error);
+      return { error: "Could not attach gallery images. Please try again." };
+    }
+    present.add(url);
+    nextOrder += 1;
+  }
+  return { error: null };
+}
+
+/** Detach a pending gallery URL (by value) — used when the admin cancels an upload. */
+export async function deleteEventImageByUrl(
+  eventId: string,
+  imageUrl: string
+): Promise<{ error: string | null }> {
+  const supabase = await requireAdmin();
+  const { error } = await supabase
+    .from("event_images")
+    .delete()
+    .eq("event_id", eventId)
+    .eq("image_url", imageUrl);
+  if (error) return { error: "Could not remove the image. Please try again." };
+  return { error: null };
+}
+
 export async function addEventImage(
   eventId: string,
   imageUrl: string,

@@ -56,17 +56,20 @@ async function applyPageVisibility(
   }
 }
 
-export async function createSponsor(input: SponsorInput): Promise<{ error: string | null }> {
+export async function createSponsor(
+  input: SponsorInput
+): Promise<{ id: string | null; error: string | null }> {
   const supabase = await requireAdmin();
   const { show_on_pages, ...row } = input;
   const { data, error } = await supabase.from("sponsors").insert(row).select("id").maybeSingle();
 
   if (error || !data) {
     console.error("createSponsor error:", error);
-    return { error: "Could not create the advert. Please try again." };
+    return { id: null, error: "Could not create the advert. Please try again." };
   }
-  await applyPageVisibility(supabase, (data as { id: string }).id, show_on_pages);
-  return { error: null };
+  const id = (data as { id: string }).id;
+  await applyPageVisibility(supabase, id, show_on_pages);
+  return { id, error: null };
 }
 
 export async function updateSponsor(

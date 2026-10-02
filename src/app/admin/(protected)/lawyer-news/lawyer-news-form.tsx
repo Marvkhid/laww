@@ -1,9 +1,15 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import type { LawyerQAPair } from "@/lib/supabase/types";
 import type { FormState } from "./actions";
+import {
+  autosaveLawyerNewsAction,
+  setLawyerNewsStatusAction,
+  uploadLawyerNewsImageAction,
+} from "./actions";
 import {
   TextField,
   TextAreaField,
@@ -11,8 +17,13 @@ import {
   FormSection,
   fieldEntrance,
 } from "@/components/forms/kit/field";
-import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+  SaveButtons,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -46,6 +57,10 @@ function InlineImageField({
 }) {
   const [preview, setPreview] = useState<string | null>(existingUrl ?? null);
   const [removed, setRemoved] = useState(false);
+  // Upload-on-select writes the resolved URL here so autosave/Save persist
+  // it immediately — the file input itself is cleared after a successful
+  // upload, so this hidden field is now the source of truth.
+  const [url, setUrl] = useState(existingUrl ?? "");
 
   return (
     <motion.div {...fieldEntrance} className="grid gap-3 border-t border-hairline/70 pt-4 sm:grid-cols-[1fr_170px]">
@@ -74,16 +89,20 @@ function InlineImageField({
             label={`Image ${num}`}
             compact
             previewAspect="aspect-[16/9]"
+            upload={uploadLawyerNewsImageAction}
             onFilesSelected={(files) => {
               setPreview(URL.createObjectURL(files[0]));
               setRemoved(false);
+            }}
+            onUploaded={(urls) => {
+              if (urls[0]) setUrl(urls[0]);
             }}
           />
         </div>
         <input
           type="hidden"
           name={`existing_image_${num}_url`}
-          value={removed ? "" : (existingUrl ?? "")}
+          value={removed ? "" : url}
         />
         {preview && !removed ? (
           <button
@@ -156,7 +175,25 @@ export function LawyerNewsForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
   const reduce = useReducedMotion();
+
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveLawyerNewsAction(id, data),
+    initialId: initial?.id ?? null,
+    skip: (data) =>
+      !(data.lawyer_name?.[0] ?? "").trim() ||
+      (!(data.qa_question_0?.[0] ?? "").trim() &&
+        !(data.qa_answer_0?.[0] ?? "").trim()),
+    autoRecover: !initial,
+    onSlugResolved: (slug) => {
+      if (initial?.slug) return;
+      const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+      if (slugInput && !slugInput.readOnly) slugInput.value = slug;
+    },
+  });
 
   const existingQa: LawyerQAPair[] = Array.isArray(initial?.qa_pairs)
     ? initial!.qa_pairs!.filter(
@@ -183,7 +220,15 @@ export function LawyerNewsForm({
   }
 
   return (
-    <form action={formAction} className="flex max-w-3xl flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-3xl flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       {/* ── Basics ── */}
       <FormSection title="Interview" subtitle="Who is being featured." accent="top">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -265,6 +310,7 @@ export function LawyerNewsForm({
           existingHiddenName="existing_cover_image_url"
           existingValue={initial?.cover_image_url ?? ""}
           previewAspect="aspect-[16/9]"
+          upload={uploadLawyerNewsImageAction}
         />
         <TextField
           label="Cover alt text"
@@ -410,16 +456,46 @@ export function LawyerNewsForm({
 
       {/* ── Status ── */}
       <FormSection title="Status" accent="left">
-        <SelectField
-          label="Status"
-          id="status"
-          name="status"
-          defaultValue={initial?.status ?? "pending_review"}
-        >
-          <option value="pending_review">Pending review</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
-        </SelectField>
+        <p className="font-admin text-sm text-ink">
+          Status:{" "}
+          <strong className="font-semibold">
+            {initial?.status === "published"
+              ? "Published"
+              : initial?.status === "archived"
+                ? "Archived"
+                : "Pending review"}
+          </strong>
+          {" "}— Save keeps this state; Publish publishes; nothing publishes automatically.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          {initial?.id && initial.status !== "archived" ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const { error } = await setLawyerNewsStatusAction(initial.id!, "archived");
+                if (!error) router.refresh();
+              }}
+              className="font-admin text-xs font-semibold uppercase tracking-[0.1em] text-stone underline-offset-4 hover:text-ink hover:underline"
+            >
+              Archive now
+            </button>
+          ) : null}
+          {initial?.id && initial.status === "archived" ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const { error } = await setLawyerNewsStatusAction(
+                  initial.id!,
+                  "pending_review"
+                );
+                if (!error) router.refresh();
+              }}
+              className="font-admin text-xs font-semibold uppercase tracking-[0.1em] text-stone underline-offset-4 hover:text-ink hover:underline"
+            >
+              Restore to pending
+            </button>
+          ) : null}
+        </div>
         <p className="font-admin text-xs text-stone">
           {activeCount} active Q&amp;A pair{activeCount === 1 ? "" : "s"}
         </p>
@@ -431,7 +507,23 @@ export function LawyerNewsForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <SaveButtons
+        formRef={formRef}
+        flush={autosave.flush}
+        isPending={isPending}
+        saveLabel={submitLabel}
+        publishLabel="Publish"
+        showPublish={initial?.status !== "published"}
+        showUnpublish={initial?.status === "published"}
+        statusSlot={
+          <AutosaveStatus
+            status={autosave.status}
+            lastSavedAt={autosave.lastSavedAt}
+            errorMessage={autosave.errorMessage}
+            onRetry={autosave.retry}
+          />
+        }
+      />
     </form>
   );
 }
@@ -455,6 +547,20 @@ function QaTextarea({
   rows: number;
 }) {
   const [value, setValue] = useState(initialValue);
+
+  // Recovery restore: this textarea is intentionally nameless (the hidden
+  // input below carries the value), so the generic form-filler can't reach
+  // it — listen for the restore event directly.
+  useEffect(() => {
+    const onRestore = (event: Event) => {
+      const detail = (event as CustomEvent<{ data?: Record<string, string[]> }>)
+        .detail;
+      const raw = detail?.data?.[name]?.[0];
+      if (typeof raw === "string") setValue(raw);
+    };
+    window.addEventListener("autosave:restore", onRestore);
+    return () => window.removeEventListener("autosave:restore", onRestore);
+  }, [name]);
 
   return (
     <>

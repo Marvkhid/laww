@@ -1,13 +1,23 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { IssueRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/issues/actions";
+import {
+  autosaveIssueAction,
+  uploadIssueCoverImageAction,
+  uploadIssuePdfAction,
+} from "@/app/admin/(protected)/issues/actions";
 import { TextField, FormSection } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { PdfFileField } from "@/components/forms/kit/pdf-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -24,6 +34,7 @@ export function IssueForm({
   action: ActionFn;
   initial?: Pick<
     IssueRow,
+    | "id"
     | "issue_number"
     | "season"
     | "year"
@@ -38,12 +49,33 @@ export function IssueForm({
   submitLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
   const [pdfPreview, setPdfPreview] = useState<string | null>(initial?.pdf_url ?? null);
   const [imagePreview, setImagePreview] = useState<string | null>(initial?.cover_image_url ?? null);
   const reduce = useReducedMotion();
 
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveIssueAction(id, data),
+    initialId: initial?.id ?? null,
+    skip: (data) =>
+      !(data.issue_number?.[0] ?? "").trim() ||
+      !(data.year?.[0] ?? "").trim() ||
+      !(data.season?.[0] ?? "").trim() ||
+      !(data.edition?.[0] ?? "").trim(),
+    autoRecover: !initial,
+  });
+
   return (
-    <form action={formAction} className="flex max-w-lg flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-lg flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <FormSection title="Edition" subtitle="The issue's identity on the shelf." accent="top">
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
@@ -100,6 +132,7 @@ export function IssueForm({
           previewAspect="aspect-[3/4]"
           compact
           onFilesSelected={(files) => setImagePreview(URL.createObjectURL(files[0]))}
+          upload={uploadIssueCoverImageAction}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep the current image.
@@ -138,8 +171,11 @@ export function IssueForm({
         ) : (
           <p className="font-admin text-xs text-stone">No PDF uploaded yet.</p>
         )}
-        <PdfFileField />
-        <input type="hidden" name="existing_pdf_url" value={initial?.pdf_url ?? ""} />
+        <PdfFileField
+          existingHiddenName="existing_pdf_url"
+          existingValue={initial?.pdf_url ?? ""}
+          upload={uploadIssuePdfAction}
+        />
       </FormSection>
 
       <FormSection title="Pricing & Release" subtitle="Regional prices and publication date." accent="left">
@@ -180,6 +216,14 @@ export function IssueForm({
           type="date"
           defaultValue={toDateInputValue(initial?.published_at ?? null)}
         />
+        <p className="font-admin text-xs text-stone">
+          Status:{" "}
+          <strong className="font-semibold text-ink">
+            {initial?.published_at ? "Published" : "Not published"}
+          </strong>
+          {" "}— setting a published date (and clicking Save) publishes the issue;
+          autosave never changes it.
+        </p>
       </FormSection>
 
       {state.error ? (
@@ -188,7 +232,15 @@ export function IssueForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <div className="flex flex-wrap items-center gap-4">
+        <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+        <AutosaveStatus
+          status={autosave.status}
+          lastSavedAt={autosave.lastSavedAt}
+          errorMessage={autosave.errorMessage}
+          onRetry={autosave.retry}
+        />
+      </div>
     </form>
   );
 }

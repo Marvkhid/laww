@@ -1,8 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import type { SponsorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/sponsors/actions";
+import {
+  autosaveSponsorAction,
+  uploadSponsorImageAction,
+} from "@/app/admin/(protected)/sponsors/actions";
 import {
   TextField,
   CheckboxField,
@@ -17,6 +21,11 @@ import {
   pagesFromLegacyPlacement,
   pagesForRow,
 } from "@/lib/page-visibility";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -29,6 +38,7 @@ export function SponsorForm({
   action: ActionFn;
   initial?: Pick<
     SponsorRow,
+    | "id"
     | "name"
     | "logo_url"
     | "website_url"
@@ -44,8 +54,17 @@ export function SponsorForm({
   pageTargeting?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
+  const formRef = useRef<HTMLFormElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(initial?.logo_url ?? null);
   const [imagePreview, setImagePreview] = useState<string | null>(initial?.image_url ?? null);
+
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveSponsorAction(id, data),
+    initialId: initial?.id ?? null,
+    skip: (data) => !(data.name?.[0] ?? "").trim(),
+    autoRecover: !initial,
+  });
 
   // Where this advert may appear. Falls back to the legacy `placement`
   // column for rows saved before migration 0025; new adverts default to the
@@ -56,7 +75,15 @@ export function SponsorForm({
     : ["homepage"];
 
   return (
-    <form action={formAction} className="flex max-w-lg flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex max-w-lg flex-col gap-5">
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <FormSection title="Advert" subtitle="The advertisement's name and details." accent="top">
         <TextField
           label="Advert title"
@@ -126,6 +153,7 @@ export function SponsorForm({
           initialPreview={imagePreview}
           previewAspect="aspect-[16/9]"
           onFilesSelected={(files) => setImagePreview(URL.createObjectURL(files[0]))}
+          upload={uploadSponsorImageAction}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB.{" "}
@@ -149,6 +177,7 @@ export function SponsorForm({
           previewAspect="aspect-[16/9]"
           compact
           onFilesSelected={(files) => setLogoPreview(URL.createObjectURL(files[0]))}
+          upload={uploadSponsorImageAction}
         />
         <p className="font-admin text-xs text-stone">
           {initial?.logo_url ? "Leave empty to keep the current logo." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}
@@ -177,6 +206,10 @@ export function SponsorForm({
           description="Only active adverts appear on the public site"
           defaultChecked={initial?.active ?? true}
         />
+        <p className="font-admin text-xs text-stone">
+          New adverts are saved inactive until you click Save with this ticked;
+          for existing adverts, autosave applies this toggle immediately.
+        </p>
       </FormSection>
 
       {state.error ? (
@@ -185,7 +218,15 @@ export function SponsorForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <div className="flex flex-wrap items-center gap-4">
+        <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+        <AutosaveStatus
+          status={autosave.status}
+          lastSavedAt={autosave.lastSavedAt}
+          errorMessage={autosave.errorMessage}
+          onRetry={autosave.retry}
+        />
+      </div>
     </form>
   );
 }

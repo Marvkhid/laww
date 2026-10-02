@@ -50,7 +50,7 @@ export async function AdPlacement({
       alt={advert.name}
       loading="lazy"
       decoding="async"
-      className="mx-auto block h-auto w-full max-w-3xl object-contain"
+      className="block h-auto w-full object-contain"
     />
   );
 

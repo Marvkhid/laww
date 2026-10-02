@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle } from "@tiptap/extension-text-style";
@@ -214,9 +214,37 @@ export function TiptapEditor({
     onUpdate: ({ editor }) => {
       if (hiddenInputRef.current) {
         hiddenInputRef.current.value = JSON.stringify(editor.getJSON());
+        // Notify the autosave hook (and any form listeners) that the body
+        // changed — the hidden input itself does not emit DOM events.
+        hiddenInputRef.current.dispatchEvent(
+          new Event("input", { bubbles: true })
+        );
       }
     },
   });
+
+  // Recovery restore: rehydrate the editor from a local autosave snapshot.
+  // The hook dispatches `autosave:restore` on the form with the full payload;
+  // we take our field from it, setContent (which re-syncs the hidden input
+  // via onUpdate above), and let autosave persist the recovered state.
+  useEffect(() => {
+    const onRestore = (event: Event) => {
+      const detail = (event as CustomEvent<{ data?: Record<string, string[]> }>)
+        .detail;
+      const raw = detail?.data?.[name]?.[0];
+      if (!raw || !editor) return;
+      try {
+        const parsed = JSON.parse(raw) as JSONContent;
+        if (parsed?.type === "doc") {
+          editor.commands.setContent(parsed);
+        }
+      } catch {
+        // Ignore malformed snapshots — the server copy stays authoritative.
+      }
+    };
+    window.addEventListener("autosave:restore", onRestore);
+    return () => window.removeEventListener("autosave:restore", onRestore);
+  }, [editor, name]);
 
   const setLink = useCallback(() => {
     if (!editor) return;

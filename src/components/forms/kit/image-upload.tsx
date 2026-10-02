@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
 /**
@@ -12,6 +12,13 @@ import { useId, useRef, useState } from "react";
  * Pass `existingHiddenName`/`existingValue` to keep the `existing_*` hidden
  * input inside this component (it must remain in the form to preserve
  * already-saved images when no new file is chosen).
+ *
+ * Upload-on-select: when `upload` is provided the file is sent to storage
+ * the moment it is chosen. The resolved URL lands in the hidden
+ * `existing_*` field immediately, so autosave can persist it right away —
+ * the file input is then cleared, which keeps a later explicit Save from
+ * re-uploading the same bytes (no duplicate media). Without `upload`, the
+ * file travels with the form's FormData exactly as before.
  */
 export function ImageUploadZone({
   name,
@@ -24,6 +31,8 @@ export function ImageUploadZone({
   initialPreview,
   previewAspect = "aspect-[16/10]",
   onFilesSelected,
+  upload,
+  onUploaded,
 }: {
   name: string;
   label: string;
@@ -35,24 +44,73 @@ export function ImageUploadZone({
   initialPreview?: string | null;
   previewAspect?: string;
   onFilesSelected?: (files: File[]) => void;
+  /** Upload immediately on selection instead of at submit time. */
+  upload?: (file: File) => Promise<{ url: string | null; error: string | null }>;
+  /** Called with the resolved public URLs once uploads succeed. */
+  onUploaded?: (urls: string[]) => void;
 }) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const reduce = useReducedMotion();
   const [previews, setPreviews] = useState<string[]>(initialPreview ? [initialPreview] : []);
   const [dragActive, setDragActive] = useState(false);
+  const [hiddenValue, setHiddenValue] = useState(existingValue);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const runUpload = (list: File[]) => {
+    if (!upload) return;
+    setUploading(true);
+    setUploadError(null);
+    const results = Promise.all(
+      list.map((file) =>
+        upload(file).catch(() => ({
+          url: null,
+          error: "Upload failed. Check your connection and try again.",
+        }))
+      )
+    );
+    void results
+      .then((resolved) => {
+        setUploading(false);
+        const urls = resolved
+          .map((result) => result.url)
+          .filter((url): url is string => Boolean(url));
+        const firstError = resolved.find((result) => result.error);
+        if (urls.length > 0) {
+          if (!multiple) setHiddenValue(urls[0]);
+          onUploaded?.(urls);
+        }
+        if (firstError?.error) {
+          setUploadError(
+            urls.length > 0
+              ? `${firstError.error} (${urls.length} of ${list.length} uploaded)`
+              : firstError.error
+          );
+        } else {
+          // Clear the file input: the URL is already stored, and a later
+          // Save must not upload the same file again.
+          if (inputRef.current) inputRef.current.value = "";
+        }
+      })
+      .catch(() => {
+        setUploading(false);
+        setUploadError("Upload failed. Check your connection and try again.");
+      });
+  };
 
   const handleFiles = (files: FileList | null) => {
     const list = Array.from(files ?? []);
     if (!list.length) return;
     setPreviews(list.map((f) => URL.createObjectURL(f)));
     onFilesSelected?.(list);
+    runUpload(list);
   };
 
   return (
     <div>
       {existingHiddenName ? (
-        <input type="hidden" name={existingHiddenName} value={existingValue} />
+        <input type="hidden" name={existingHiddenName} value={hiddenValue} />
       ) : null}
 
       <AnimatePresence mode="popLayout" initial={false}>
@@ -104,17 +162,21 @@ export function ImageUploadZone({
           }
           handleFiles(e.dataTransfer.files);
         }}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => (uploading ? undefined : inputRef.current?.click())}
       >
         <motion.span
           animate={reduce ? undefined : dragActive ? { scale: 1.15, y: -2 } : { scale: 1, y: 0 }}
           transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 20 }}
           className="text-digest-red"
         >
-          <ImagePlus size={compact ? 18 : 24} strokeWidth={1.75} />
+          {uploading ? (
+            <Loader2 size={compact ? 18 : 24} strokeWidth={1.75} className="animate-spin" />
+          ) : (
+            <ImagePlus size={compact ? 18 : 24} strokeWidth={1.75} />
+          )}
         </motion.span>
         <span className={`font-admin font-medium text-ink ${compact ? "text-xs" : "text-sm"}`}>
-          {label}
+          {uploading ? "Uploading…" : label}
         </span>
         <span className="font-admin text-[11px] text-stone">
           Drag &amp; drop or click · JPEG, PNG, WEBP, GIF up to 5MB
@@ -126,10 +188,16 @@ export function ImageUploadZone({
           type="file"
           accept={accept}
           multiple={multiple}
+          disabled={uploading}
           onChange={(e) => handleFiles(e.target.files)}
           className="sr-only"
         />
       </motion.div>
+      {uploadError ? (
+        <p role="alert" className="mt-1.5 font-admin text-xs font-medium text-digest-red">
+          {uploadError}
+        </p>
+      ) : null}
     </div>
   );
 }
