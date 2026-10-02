@@ -241,7 +241,10 @@ html {
   margin-top: 1.35rem;
   font-size: 1.05rem;
   line-height: 1.85;
-  max-width: 70ch;
+  /* No hard max-width: the text must occupy the FULL available content
+     width. Where a figure floats beside it, the float (not a width cap)
+     is what shortens the measure — and the text returns to full width
+     once the figure is passed. */
 }
 
 .prose-article p:first-child {
@@ -357,6 +360,55 @@ html {
 
 .editorial-section {
   /* each unit or text section */
+  margin-top: 1.75rem;
+}
+
+.editorial-section:first-child {
+  margin-top: 0;
+}
+
+/* A flowed unit: figure + text share one block formatting context so the
+   text genuinely wraps around the figure instead of sitting in a grid cell
+   beside it. */
+.editorial-flow {
+  display: flow-root;
+}
+
+/* Floated editorial figures (desktop). Width is a share of the column so the
+   text keeps a comfortable measure alongside it. */
+.editorial-figure--float-left {
+  float: left;
+  width: 46%;
+  margin: 0.4rem 2.25rem 1.25rem 0;
+}
+
+.editorial-figure--float-right {
+  float: right;
+  width: 46%;
+  margin: 0.4rem 0 1.25rem 2.25rem;
+}
+
+/* Headings must never be trapped in a sliver beside a float. */
+.editorial-flow .prose-article h2,
+.editorial-flow .prose-article h3 {
+  display: flow-root;
+}
+
+/* Ends the float so the following section returns to the full measure. */
+.editorial-clear {
+  clear: both;
+}
+
+/* Small screens: no floats. Every image becomes full width of its
+   container — still in document order per the admin's position choice,
+   never reordered, and never overflowing horizontally. */
+@media (max-width: 767px) {
+  .editorial-figure--float-left,
+  .editorial-figure--float-right {
+    float: none;
+    width: 100%;
+    margin: 1.5rem 0;
+  }
 }
 
 .editorial-figure {

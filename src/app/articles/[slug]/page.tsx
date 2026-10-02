@@ -220,14 +220,41 @@ export default async function ArticlePage({
               <SocialShareIcons title={article.title} url={articleUrl} />
             </div>
 
-            {/* Author metadata row */}
-            <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-hairline pb-6">
-              <Byline author={article.author} showPhoto page={article.page} />
-              {readingTime ? (
-                <span className="font-utility text-[10px] uppercase tracking-wide text-stone">
-                  · {readingTime} min read
-                </span>
-              ) : null}
+            {/* Author card — at the TOP of the article, immediately above the
+                body content, as a full-width band rather than a narrow rail.
+                A sidebar rail here produced a large empty column beside the
+                body; a horizontal card keeps the reading measure intact. */}
+            <div className="mt-6 border-y border-hairline bg-paper-warm/50 px-5 py-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <ContributorAvatar
+                    name={article.author.name}
+                    photoUrl={article.author.photoUrl}
+                    size="lg"
+                  />
+                  <div>
+                    <p className="font-utility text-[10px] uppercase tracking-[0.2em] text-digest-red">
+                      About the Author
+                    </p>
+                    <p className="mt-1 font-admin text-base font-medium text-ink">
+                      {article.author.name}
+                    </p>
+                    {article.author.credentials ? (
+                      <p className="mt-0.5 font-body text-sm text-stone">
+                        {article.author.credentials}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Byline author={article.author} showPhoto={false} page={article.page} />
+                  {readingTime ? (
+                    <span className="font-utility text-[10px] uppercase tracking-wide text-stone">
+                      · {readingTime} min read
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </Reveal>
 
@@ -324,33 +351,8 @@ export default async function ArticlePage({
         {/* Right sidebar */}
         <aside className="hidden lg:block">
           <div className="sticky top-36 space-y-8">
-            {/* About the Author */}
-            <Reveal delay={0.12}>
-              <div className="border border-hairline p-5">
-                <p className="font-utility text-[10px] uppercase tracking-[0.2em] text-digest-red">
-                  About the Author
-                </p>
-                <div className="mt-4 flex items-start gap-3">
-                  <ContributorAvatar
-                    name={article.author.name}
-                    photoUrl={article.author.photoUrl}
-                    size="md"
-                  />
-                  <div>
-                    <p className="font-admin text-sm font-medium text-ink">
-                      {article.author.name}
-                    </p>
-                    {article.author.credentials ? (
-                      <p className="mt-0.5 font-body text-xs text-stone">
-                        {article.author.credentials}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Related Articles */}
+            {/* Related Articles — the author card now sits above the body,
+                so this rail carries only supporting navigation. */}
             {related.length > 0 ? (
               <Reveal delay={0.16}>
                 <div>
