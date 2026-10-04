@@ -2,6 +2,11 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
+import {
+  REVEAL_ATTRIBUTE,
+  REVEAL_STATIC_ATTRIBUTE,
+  useCanAnimateReveal,
+} from "./reveal-support";
 
 // The editorial "settle onto the page" easing used everywhere motion
 // appears on this site — a single signature curve rather than a different
@@ -20,9 +25,19 @@ export function Reveal({
   className?: string;
 }) {
   const reduceMotion = useReducedMotion();
+  const canAnimate = useCanAnimateReveal(reduceMotion);
 
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
+  if (!canAnimate) {
+    // Visible, not animated. Never leave the content at opacity: 0.
+    return (
+      <div
+        className={className}
+        {...REVEAL_ATTRIBUTE}
+        {...REVEAL_STATIC_ATTRIBUTE}
+      >
+        {children}
+      </div>
+    );
   }
 
   return (
@@ -32,6 +47,7 @@ export function Reveal({
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.7, delay, ease: EDITORIAL_EASE }}
       className={className}
+      {...REVEAL_ATTRIBUTE}
     >
       {children}
     </motion.div>

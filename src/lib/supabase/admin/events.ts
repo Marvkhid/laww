@@ -4,7 +4,8 @@ import type { EventRow, EventImageRow } from "@/lib/supabase/types";
 export type EventInput = {
   slug: string;
   title: string;
-  description: string | null;
+  /** `undefined` = field absent from the payload → column omitted on UPDATE. */
+  description: string | null | undefined;
   cover_image_url: string | null;
   published: boolean;
   event_date: string | null;

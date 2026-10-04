@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getSponsorsForPage } from "@/lib/supabase/queries/sponsors";
 import { Reveal } from "@/components/motion/reveal";
+import { SafeImage } from "@/components/ui/safe-image";
 import type { PageKey } from "@/lib/page-visibility";
 
 /**
@@ -44,12 +45,10 @@ export async function AdPlacement({
 
   const artwork = advert.imageUrl ?? advert.logoUrl ?? "";
   const image = (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <SafeImage
       src={artwork}
       alt={advert.name}
-      loading="lazy"
-      decoding="async"
+      label={advert.name}
       className="block h-auto w-full object-contain"
     />
   );

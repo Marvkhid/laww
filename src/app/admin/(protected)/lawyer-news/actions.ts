@@ -14,6 +14,7 @@ import { uploadLawyerNewsImage } from "@/lib/supabase/admin/storage";
 import type { LawyerNewsStatus } from "@/lib/supabase/types";
 import { slugify } from "@/lib/slugify";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import { readTextOptional } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -123,7 +124,8 @@ async function readInput(
       slug: slugRaw.length > 0 ? slugRaw : slugify(lawyerName),
       lawyer_name: lawyerName,
       lawyer_title: optional("lawyer_title"),
-      intro: optional("intro"),
+      // Absent → omitted from the UPDATE, so it can never be blanked.
+      intro: readTextOptional(formData, "intro"),
       cover_image_url,
       cover_image_alt: optional("cover_image_alt"),
       image_1_url: inlineImages[0].url,

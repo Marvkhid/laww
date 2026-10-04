@@ -126,6 +126,10 @@ export function useAutosave({
   const chainRef = useRef<Promise<unknown>>(Promise.resolve());
   const mountedRef = useRef(true);
   const lastPayloadRef = useRef<AutosaveData | null>(null);
+  /** Number of snapshots currently in flight (create-or-update requests). */
+  const activeRef = useRef(0);
+  /** Set while an onSubmit is already waiting to re-submit. */
+  const submittingRef = useRef(false);
 
   // Callbacks kept in refs so the bind effect never re-runs.
   const saveRef = useRef(save);
@@ -143,6 +147,25 @@ export function useAutosave({
     const data = formDataToData(new FormData(form));
     lastPayloadRef.current = data;
     return data;
+  }, [formRef]);
+
+  /**
+   * Mirror the draft id into the form's `autosave_id` field *imperatively*.
+   *
+   * The field is also React-controlled, but an explicit Save/Publish flushes
+   * pending work first and then reads the id straight out of the DOM. If
+   * React had not committed the state update from a just-created draft yet,
+   * the form would submit an empty id and the server would create a SECOND
+   * row — the duplicate-article defect. Writing the DOM here (and letting
+   * React's later commit write the same value) removes that race entirely.
+   */
+  const syncIdField = useCallback(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const field = form.querySelector<HTMLInputElement>(
+      'input[name="autosave_id"]'
+    );
+    if (field) field.value = idRef.current ?? "";
   }, [formRef]);
 
   const writeSnapshotNow = useCallback((data?: AutosaveData | null) => {
@@ -178,6 +201,9 @@ export function useAutosave({
       setStatus("saving");
       setErrorMessage(null);
 
+      // Counted synchronously, before any await: a form submit that fires
+      // in this window must be able to see that a request is still open.
+      activeRef.current += 1;
       const task = chainRef.current.then(async () => {
         try {
           const result = await saveRef.current(idRef.current, payload);
@@ -187,6 +213,7 @@ export function useAutosave({
           if (result?.id && !idRef.current) {
             idRef.current = result.id;
             setDraftId(result.id);
+            syncIdField();
             onDraftCreatedRef.current?.(result.id);
           }
           if (result?.slug) onSlugResolvedRef.current?.(result.slug);
@@ -222,10 +249,13 @@ export function useAutosave({
           }
         }
       });
+      void task.finally(() => {
+        activeRef.current = Math.max(0, activeRef.current - 1);
+      });
       chainRef.current = task.catch(() => undefined);
       await task;
     },
-    [collect, writeSnapshotNow]
+    [collect, syncIdField, writeSnapshotNow]
   );
 
   const schedule = useCallback(() => {
@@ -282,6 +312,7 @@ export function useAutosave({
     if (snapshot.id) {
       idRef.current = snapshot.id;
       setDraftId(snapshot.id);
+      syncIdField();
       onDraftCreatedRef.current?.(snapshot.id);
     }
     applyDataToForm(form, snapshot.data);
@@ -289,7 +320,7 @@ export function useAutosave({
     setRecovery(null);
     dirtyRef.current = true;
     schedule();
-  }, [formRef, schedule]);
+  }, [formRef, schedule, syncIdField]);
 
   const dismissRecovery = useCallback(() => {
     clearSnapshot(scopeRef.current);
@@ -310,11 +341,38 @@ export function useAutosave({
     // destroyed body text and images after a failed Save.
     const preventReset = (event: Event) => event.preventDefault();
 
-    // An explicit Save/Publish is about to persist everything itself:
-    // stop queued autosaves from racing it.
-    const onSubmit = () => {
+    /**
+     * An explicit Save/Publish is about to persist everything itself:
+     * stop queued autosaves from racing it.
+     *
+     * It must ALSO not race an autosave that is still in flight. If a request
+     * is open, the form still holds an empty or stale `autosave_id`, so the
+     * server would take the "no id" path and create a SECOND record — the
+     * duplicate-content defect (reproduced: a native-submit content type
+     * produced two rows for one fill-in). Wait for the chain to settle — which
+     * writes the real id into the form — then submit exactly once.
+     */
+    const onSubmit = (event: Event) => {
       clearTimers();
       pausedRef.current = true;
+      if (submittingRef.current) return; // this is our own re-submit: go through
+      if (activeRef.current === 0 && !dirtyRef.current) return;
+
+      event.preventDefault();
+      submittingRef.current = true;
+      void (async () => {
+        try {
+          // Flush any pending edit, then wait for every queued request to
+          // settle so the payload carries the id of the row autosave created.
+          await flush();
+        } catch {
+          // Autosave failures are surfaced by the status line; the user's
+          // explicit Save must still be allowed to run.
+        } finally {
+          submittingRef.current = false;
+          form.requestSubmit();
+        }
+      })();
     };
 
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -324,10 +382,29 @@ export function useAutosave({
       }
     };
 
+    /**
+     * A DISCRETE, already-completed change (an image upload resolving, an image
+     * being deleted) is not typing, so it must not sit in the debounce window.
+     *
+     * Leaving it there was a genuine way to lose an upload: the user uploads,
+     * immediately navigates away, the pending timer is cancelled by the
+     * unload, and the best-effort save in the cleanup below is a
+     * fire-and-forget request the browser is free to drop. Saving immediately
+     * removes that window entirely.
+     */
+    const onFlushRequest = () => {
+      if (pausedRef.current || !enabled) return;
+      clearTimers();
+      const data = collect();
+      writeSnapshotNow(data);
+      void enqueue(data);
+    };
+
     form.addEventListener("input", onFormInput);
     form.addEventListener("change", onFormChange);
     form.addEventListener("reset", preventReset);
     form.addEventListener("submit", onSubmit);
+    form.addEventListener("autosave:flush", onFlushRequest);
     window.addEventListener("beforeunload", onBeforeUnload);
 
     // ── Recovery on mount ─────────────────────────────────────────────────
@@ -342,6 +419,7 @@ export function useAutosave({
           if (snapshot.id) {
             idRef.current = snapshot.id;
             setDraftId(snapshot.id);
+            syncIdField();
             onDraftCreatedRef.current?.(snapshot.id);
           }
           applyDataToForm(form, snapshot.data);
@@ -362,6 +440,7 @@ export function useAutosave({
       form.removeEventListener("change", onFormChange);
       form.removeEventListener("reset", preventReset);
       form.removeEventListener("submit", onSubmit);
+      form.removeEventListener("autosave:flush", onFlushRequest);
       window.removeEventListener("beforeunload", onBeforeUnload);
       clearTimers();
       if (retryTimerRef.current !== null) {

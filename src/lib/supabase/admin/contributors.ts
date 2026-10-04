@@ -29,7 +29,12 @@ export type ContributorInput = {
   name: string;
   credentials: string | null;
   role: string;
-  bio: string | null;
+  /**
+   * `undefined` means "the payload did not carry this field" — the column is
+   * then omitted from the UPDATE so the stored bio is never blanked by an
+   * unrelated edit. See lib/form-presence.
+   */
+  bio: string | null | undefined;
   photo_url: string | null;
   is_editorial_board: boolean;
 };

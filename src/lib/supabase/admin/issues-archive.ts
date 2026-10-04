@@ -4,7 +4,8 @@ import type { IssuesArchiveRow } from "@/lib/supabase/types";
 export type ArchiveIssueInput = {
   slug: string;
   title: string;
-  description: string | null;
+  /** `undefined` = field absent from the payload → column omitted on UPDATE. */
+  description: string | null | undefined;
   cover_image_url: string | null;
   issue_number: number | null;
   season: string | null;

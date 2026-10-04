@@ -3,6 +3,11 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { EDITORIAL_EASE } from "@/components/motion/reveal";
+import {
+  REVEAL_ATTRIBUTE,
+  REVEAL_STATIC_ATTRIBUTE,
+  useCanAnimateReveal,
+} from "@/components/motion/reveal-support";
 
 /**
  * StaggerReveal — renders its children with a staggered entrance animation.
@@ -18,13 +23,23 @@ export function StaggerReveal({
   className?: string;
 }) {
   const reduceMotion = useReducedMotion();
+  const canAnimate = useCanAnimateReveal(reduceMotion);
 
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
+  if (!canAnimate) {
+    return (
+      <div
+        className={className}
+        {...REVEAL_ATTRIBUTE}
+        {...REVEAL_STATIC_ATTRIBUTE}
+      >
+        {children}
+      </div>
+    );
   }
 
   return (
     <motion.div
+      {...REVEAL_ATTRIBUTE}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-60px" }}

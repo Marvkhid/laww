@@ -152,6 +152,11 @@ export function TiptapEditor({
   initialContent?: JSONContent | null;
 }) {
   const hiddenInputRef = useRef<HTMLInputElement>(null);
+  // Companion flag: the body field is only trustworthy once the editor has
+  // actually mounted and initialised. Until then the server must PRESERVE the
+  // stored body rather than trust an empty one — this is what stops an
+  // autosave taken before hydration from wiping a real article body.
+  const stateInputRef = useRef<HTMLInputElement>(null);
   const [showTextColor, setShowTextColor] = useState(false);
   const [showHighlightColor, setShowHighlightColor] = useState(false);
 
@@ -210,16 +215,25 @@ export function TiptapEditor({
       if (hiddenInputRef.current) {
         hiddenInputRef.current.value = JSON.stringify(editor.getJSON());
       }
+      // Declare the field trustworthy. Deliberately does NOT emit an input
+      // event: loading a page must never mark the form dirty and fire a
+      // spurious save. Subsequent payloads simply carry the unchanged body.
+      if (stateInputRef.current) {
+        stateInputRef.current.value = "ready";
+      }
     },
     onUpdate: ({ editor }) => {
       if (hiddenInputRef.current) {
         hiddenInputRef.current.value = JSON.stringify(editor.getJSON());
-        // Notify the autosave hook (and any form listeners) that the body
-        // changed — the hidden input itself does not emit DOM events.
-        hiddenInputRef.current.dispatchEvent(
-          new Event("input", { bubbles: true })
-        );
       }
+      if (stateInputRef.current) {
+        stateInputRef.current.value = "ready";
+      }
+      // Notify the autosave hook (and any form listeners) that the body
+      // changed — the hidden input itself does not emit DOM events.
+      hiddenInputRef.current?.dispatchEvent(
+        new Event("input", { bubbles: true })
+      );
     },
   });
 
@@ -580,6 +594,13 @@ export function TiptapEditor({
         name={name}
         defaultValue={initialContent ? JSON.stringify(initialContent) : ""}
       />
+      {/*
+        "ready" once the editor has mounted. A payload WITHOUT this flag
+        means the body in it cannot be trusted (the editor never
+        initialised), so the server leaves the stored body untouched
+        instead of overwriting it with null. See readArticleInput.
+      */}
+      <input ref={stateInputRef} type="hidden" name={`${name}_state`} defaultValue="" />
     </div>
   );
 }

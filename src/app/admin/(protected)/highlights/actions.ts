@@ -9,8 +9,10 @@ import {
   getHighlightByIdForAdmin,
   type HomepageHighlightInput,
 } from "@/lib/supabase/admin/homepage-highlights";
+import type { HomepageHighlightRow } from "@/lib/supabase/types";
 import { uploadHighlightImage } from "@/lib/supabase/admin/storage";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import { readTextPreserving } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -27,14 +29,23 @@ export async function uploadHighlightImageAction(
   return uploadHighlightImage(file);
 }
 
-async function readInput(formData: FormData): Promise<{ input: HomepageHighlightInput | null; error: string | null }> {
+async function readInput(
+  formData: FormData,
+  current?: HomepageHighlightRow | null
+): Promise<{ input: HomepageHighlightInput | null; error: string | null }> {
   const optional = (key: string) => {
     const raw = String(formData.get(key) ?? "").trim();
     return raw.length > 0 ? raw : null;
   };
+  // Presence rule (see lib/form-presence): a key the payload does not carry
+  // was never rendered or never loaded, so keep what is stored rather than
+  // overwriting it. This is what stops an unrelated edit or an early
+  // autosave from emptying the Content field.
+  const preserveable = (key: string, stored: string | null): string =>
+    readTextPreserving(formData, key, stored) ?? "";
 
-  const title = String(formData.get("title") ?? "").trim();
-  const content = String(formData.get("content") ?? "").trim();
+  const title = preserveable("title", current?.title ?? null);
+  const content = preserveable("content", current?.content ?? null);
 
   // Image is the only required field
   // Image upload
@@ -78,7 +89,9 @@ export async function autosaveHighlightAction(
   rawData: Record<string, string[]>
 ): Promise<AutosaveResult> {
   const formData = dataToFormData(rawData);
-  const { input, error: validationError } = await readInput(formData);
+  // Read against the stored row so a partial snapshot cannot empty a field.
+  const existing = id ? await getHighlightByIdForAdmin(id) : null;
+  const { input, error: validationError } = await readInput(formData, existing);
   if (!input) return { id, error: validationError ?? "Invalid highlight." };
 
   if (!id) {
@@ -86,7 +99,7 @@ export async function autosaveHighlightAction(
     return { id: created.id, error: created.error };
   }
 
-  const current = await getHighlightByIdForAdmin(id);
+  const current = existing;
   if (!current) {
     return { id, error: "This draft no longer exists. Reload the editor." };
   }
@@ -99,14 +112,15 @@ export async function createHighlightAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readInput(formData);
-  if (!input) return { error: validationError };
-
   const mode = readSaveMode(formData);
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
+  const existing = autosaveId ? await getHighlightByIdForAdmin(autosaveId) : null;
+  const { input, error: validationError } = await readInput(formData, existing);
+  if (!input) return { error: validationError };
+
   if (autosaveId) {
-    const current = await getHighlightByIdForAdmin(autosaveId);
+    const current = existing;
     if (current) {
       input.published =
         mode === "publish" ? true : mode === "unpublish" ? false : current.published;
@@ -134,12 +148,13 @@ export async function updateHighlightAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readInput(formData);
-  if (!input) return { error: validationError };
-
   const mode = readSaveMode(formData);
   const current = await getHighlightByIdForAdmin(id);
   if (!current) return { error: "This highlight no longer exists." };
+
+  const { input, error: validationError } = await readInput(formData, current);
+  if (!input) return { error: validationError };
+
   input.published =
     mode === "publish" ? true : mode === "unpublish" ? false : current.published;
 

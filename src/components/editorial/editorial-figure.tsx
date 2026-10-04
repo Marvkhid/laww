@@ -1,4 +1,5 @@
 import { ImageReveal } from "@/components/motion/image-reveal";
+import { SafeImage } from "@/components/ui/safe-image";
 
 export type EditorialImageInput = {
   url: string | null;
@@ -47,12 +48,10 @@ export function EditorialFigure({
     <figure className={`editorial-figure ${floatClass} ${className}`}>
       <ImageReveal onScroll>
         <div className="overflow-hidden border border-hairline bg-hairline/10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <SafeImage
             src={url}
             alt={alt ?? ""}
-            loading="lazy"
-            decoding="async"
+            label="Image unavailable"
             className="h-auto w-full object-contain"
           />
         </div>

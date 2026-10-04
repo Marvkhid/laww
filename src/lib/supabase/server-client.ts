@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { fetchWithTimeout } from "@/lib/supabase/fetch-timeout";
 
 // Cookie-aware client for admin Server Components, Server Actions, and
 // Route Handlers — where an authenticated session matters. Distinct from
@@ -12,6 +13,7 @@ export async function createSupabaseAuthServerClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      global: { fetch: fetchWithTimeout },
       cookies: {
         getAll() {
           return cookieStore.getAll();

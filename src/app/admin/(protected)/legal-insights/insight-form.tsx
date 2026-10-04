@@ -1,9 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import type { LegalInsightRow } from "@/lib/supabase/types";
-import type { FormState } from "./actions";
+import {
+  autosaveLegalInsightAction,
+  uploadLegalInsightImageAction,
+  type FormState,
+} from "./actions";
 import {
   TextField,
   TextAreaField,
@@ -12,6 +16,11 @@ import {
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import { useAutosave } from "@/components/forms/kit/use-autosave";
+import {
+  AutosaveRecoveryBanner,
+  AutosaveStatus,
+} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -39,6 +48,27 @@ export function InsightForm({
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
   const reduce = useReducedMotion();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Background autosave, sharing the same action stack as every other admin
+  // content type. It persists the current question (creating the draft row on
+  // the first valid snapshot and updating that same row afterwards), never
+  // publishes, and mirrors the server's required fields so no snapshot can be
+  // rejected as invalid.
+  const autosave = useAutosave({
+    formRef,
+    save: (id, data) => autosaveLegalInsightAction(id, data),
+    initialId: entityId ?? null,
+    skip: (data) => {
+      const title = (data.title?.[0] ?? "").trim();
+      const content = (data.content?.[0] ?? "").trim();
+      const options = [0, 1, 2, 3, 4, 5].filter((i) =>
+        (data[`option_${i}`]?.[0] ?? "").trim()
+      ).length;
+      return !title || !content || options < 2;
+    },
+    autoRecover: !entityId,
+  });
 
   const existingOptions: string[] = Array.isArray(initial?.answer_options)
     ? initial!.answer_options.filter((opt) => typeof opt === "string")
@@ -65,8 +95,24 @@ export function InsightForm({
   }
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="flex max-w-2xl flex-col gap-5"
+    >
       {entityId ? <input type="hidden" name="entity_id" value={entityId} /> : null}
+      <input
+        type="hidden"
+        name="autosave_id"
+        value={autosave.draftId ?? ""}
+      />
+      {autosave.recovery ? (
+        <AutosaveRecoveryBanner
+          recovery={autosave.recovery}
+          onRecover={autosave.recover}
+          onDismiss={autosave.dismissRecovery}
+        />
+      ) : null}
       <input type="hidden" name="correct_option" value={correctOption ?? ""} />
 
       <FormSection title="Question" subtitle="The legal question readers will answer." accent="top">
@@ -217,6 +263,7 @@ export function InsightForm({
           existingHiddenName="existing_image_url"
           existingValue={initial?.image_url ?? ""}
           previewAspect="aspect-[16/9]"
+          upload={uploadLegalInsightImageAction}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep current image.
@@ -241,7 +288,19 @@ export function InsightForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+      <div className="flex flex-wrap items-center gap-4">
+        <SubmitButton
+          label={submitLabel}
+          pendingLabel="Saving…"
+          isPending={isPending}
+        />
+        <AutosaveStatus
+          status={autosave.status}
+          lastSavedAt={autosave.lastSavedAt}
+          errorMessage={autosave.errorMessage}
+          onRetry={autosave.retry}
+        />
+      </div>
     </form>
   );
 }

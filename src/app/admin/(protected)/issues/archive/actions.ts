@@ -10,6 +10,7 @@ import {
 } from "@/lib/supabase/admin/issues-archive";
 import { uploadArchiveCoverImage, uploadIssuePdf } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
+import { readTextOptional } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -52,7 +53,8 @@ async function readArchiveInput(formData: FormData): Promise<{ input: ArchiveIss
     input: {
       slug,
       title,
-      description: optional("description"),
+      // Absent → omitted from the UPDATE, so it can never be blanked.
+      description: readTextOptional(formData, "description"),
       cover_image_url,
       issue_number: issueNumberRaw ? Number(issueNumberRaw) : null,
       season: optional("season"),

@@ -11,6 +11,7 @@ import {
 import { uploadPracticeAreaImage } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import { readTextOptional } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -72,7 +73,8 @@ export async function autosavePracticeAreaAction(
 type PracticeAreaPayload = {
   slug: string;
   name: string;
-  description: string | null;
+  /** `undefined` = absent from the payload → column omitted on UPDATE. */
+  description: string | null | undefined;
   image_url: string | null;
   image_alt: string | null;
   display_order: number;
@@ -117,10 +119,9 @@ function readInput(formData: FormData) {
   return {
     name,
     slug: slugRaw.length > 0 ? slugRaw : slugify(name),
-    description: (() => {
-      const raw = String(formData.get("description") ?? "").trim();
-      return raw.length > 0 ? raw : null;
-    })(),
+    // Absent → omitted from the UPDATE, so an image or name edit can never
+    // blank the description.
+    description: readTextOptional(formData, "description"),
     displayOrder: Number.isFinite(displayOrder) ? displayOrder : 0,
   };
 }

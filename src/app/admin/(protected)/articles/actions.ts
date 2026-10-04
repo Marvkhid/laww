@@ -7,10 +7,12 @@ import {
   updateArticle,
   deleteArticle,
   getArticleByIdForAdmin,
+  getArticleBySlugForAdmin,
   setArticleStatus,
   type ArticleInput,
   type ContributorSelection,
 } from "@/lib/supabase/admin/articles";
+import type { ArticleRow } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
 import { uploadArticleCoverImage } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
@@ -19,6 +21,11 @@ import {
   pagesFromFormData,
 } from "@/lib/page-visibility";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import {
+  readBodyPreserving,
+  readTextPreserving,
+  storedText as storedTextOf,
+} from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -35,8 +42,7 @@ function isEmptyDoc(doc: JSONContent): boolean {
   );
 }
 
-function readArticleBody(formData: FormData): JSONContent | null {
-  const raw = String(formData.get("body") ?? "").trim();
+function parseArticleBodyFromString(raw: string): JSONContent | null {
   if (!raw) return null;
   let parsed: JSONContent;
   try {
@@ -47,6 +53,22 @@ function readArticleBody(formData: FormData): JSONContent | null {
   if (parsed?.type !== "doc") return null;
   if (isEmptyDoc(parsed)) return null;
   return parsed;
+}
+
+/**
+ * The body is only read when the editor says it is ready (`body_state`,
+ * written by TiptapEditor on mount). Before that the stored body is kept
+ * intact rather than being overwritten with null by a snapshot that fired
+ * too early. When the flag IS present, an empty body is a deliberate clear
+ * and is written as null.
+ */
+function readBody(
+  formData: FormData,
+  current?: ArticleRow | null
+): JSONContent | null {
+  return readBodyPreserving(formData, current?.body ?? null, (raw) =>
+    parseArticleBodyFromString(raw)
+  );
 }
 
 // A new file upload always takes priority. If none was selected, the
@@ -68,13 +90,47 @@ async function readCoverImageUrl(
   return { url: existing.length > 0 ? existing : null, error: null };
 }
 
+/**
+ * Read the article form into an ArticleInput.
+ *
+ * `current` is the row as it exists right now, and it exists to make the
+ * update path non-destructive. Two classes of field must never be nulled by
+ * a payload that simply did not carry them:
+ *
+ *  1. **The body.** The rich-text editor only becomes trustworthy once it
+ *     has mounted, which it reports through the `body_state` field. A
+ *     snapshot taken before that (a fast autosave, a restored tab, an
+ *     upload that fired first) carries an empty body — writing it would
+ *     destroy the article. When `body_state` is absent we keep the stored
+ *     body instead.
+ *  2. **Any field absent from the payload.** Presence is the signal: a key
+ *     that is *present* — even empty — is a deliberate value (that is how
+ *     the Delete button clears an image), while a key that is *absent* was
+ *     never rendered or never loaded and must be preserved.
+ *
+ * This is what stops an unrelated edit (title, alt text, ordering) from
+ * wiping the body and the four inline images.
+ */
 async function readArticleInput(
-  formData: FormData
+  formData: FormData,
+  current?: ArticleRow | null
 ): Promise<{ input: ArticleInput | null; error: string | null }> {
   const optional = (key: string) => {
     const raw = String(formData.get(key) ?? "").trim();
     return raw.length > 0 ? raw : null;
   };
+
+  // Presence rule (see lib/form-presence): present → deliberate value,
+  // absent → keep what is stored. This is what stops an unrelated edit from
+  // wiping the body or the inline images.
+  const preserveable = (
+    key: string,
+    stored: string | null | undefined
+  ): string | null => readTextPreserving(formData, key, stored);
+
+  /** Read a text column off the stored row; null when there is no row. */
+  const storedText = (key: keyof ArticleRow): string | null =>
+    storedTextOf(current, key);
 
   const slugRaw = String(formData.get("slug") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
@@ -92,10 +148,15 @@ async function readArticleInput(
     return { input: null, error: "Page number must be a whole number." };
   }
 
-  const { url: cover_image_url, error: coverImageError } = await readCoverImageUrl(formData);
+  const { url: resolvedCoverUrl, error: coverImageError } =
+    await readCoverImageUrl(formData);
   if (coverImageError) {
     return { input: null, error: coverImageError };
   }
+  // A cover the form never rendered must not be cleared.
+  const cover_image_url = formData.has("existing_cover_image_url")
+    ? resolvedCoverUrl
+    : (storedText("cover_image_url") ?? resolvedCoverUrl);
 
   // Inline images (up to 4)
   const inlineImages: {
@@ -103,7 +164,13 @@ async function readArticleInput(
     url: string | null; alt: string | null; position: string | null;
   }[] = [];
   for (let i = 1; i <= 4; i++) {
-    let imgUrl: string | null = optional(`existing_image_${i}_url`);
+    const urlKey = `existing_image_${i}_url`;
+    // Present-and-empty means the Delete button cleared this slot.
+    // Absent means this slot was never part of the payload — keep it.
+    let imgUrl: string | null = preserveable(
+      urlKey,
+      storedText(`image_${i}_url` as keyof ArticleRow)
+    );
     const imgFile = formData.get(`image_${i}_file`);
     if (imgFile instanceof File && imgFile.size > 0) {
       const { url, error: imgError } = await uploadArticleCoverImage(imgFile);
@@ -115,8 +182,14 @@ async function readArticleInput(
       alt_key: `image_${i}_alt`,
       pos_key: `image_${i}_position`,
       url: imgUrl,
-      alt: optional(`image_${i}_alt`),
-      position: optional(`image_${i}_position`),
+      alt: preserveable(
+        `image_${i}_alt`,
+        storedText(`image_${i}_alt` as keyof ArticleRow)
+      ),
+      position: preserveable(
+        `image_${i}_position`,
+        storedText(`image_${i}_position` as keyof ArticleRow)
+      ),
     });
   }
 
@@ -173,7 +246,7 @@ async function readArticleInput(
       ...(show_on_pages ? { show_on_pages } : {}),
       issue_id: optional("issue_id"),
       practice_area_id: optional("practice_area_id"),
-      body: readArticleBody(formData),
+      body: readBody(formData, current),
     },
     error: null,
   };
@@ -235,7 +308,13 @@ export async function autosaveArticleAction(
   rawData: Record<string, string[]>
 ): Promise<AutosaveResult> {
   const formData = dataToFormData(rawData);
-  const { input, error: validationError } = await readArticleInput(formData);
+  // Fetch the row FIRST so updates can preserve anything the payload does
+  // not carry. This is the guard that makes partial snapshots non-destructive.
+  const current = id ? await getArticleByIdForAdmin(id) : null;
+  const { input, error: validationError } = await readArticleInput(
+    formData,
+    current
+  );
   if (!input) return { id, error: validationError ?? "Invalid article." };
   const contributors = readContributorSelections(formData);
 
@@ -257,7 +336,6 @@ export async function autosaveArticleAction(
     return { id: created.id, error: created.error };
   }
 
-  const current = await getArticleByIdForAdmin(id);
   if (!current) {
     return { id, error: "This draft no longer exists. Reload the editor." };
   }
@@ -274,17 +352,24 @@ export async function createArticleAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readArticleInput(formData);
-  if (!input) return { error: validationError };
-
   const contributors = readContributorSelections(formData);
   const mode = readSaveMode(formData);
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
   // Autosave already created the draft row — continue in it, so the id the
-  // client holds never goes stale and no second row is produced.
+  // client holds never goes stale and no second row is produced. Read the
+  // input against that row so a field the form did not render is preserved.
+  const existing = autosaveId
+    ? await getArticleByIdForAdmin(autosaveId)
+    : null;
+  const { input, error: validationError } = await readArticleInput(
+    formData,
+    existing
+  );
+  if (!input) return { error: validationError };
+
   if (autosaveId) {
-    const current = await getArticleByIdForAdmin(autosaveId);
+    const current = existing;
     if (current) {
       const status =
         mode === "publish"
@@ -303,6 +388,25 @@ export async function createArticleAction(
     }
   }
 
+  // No id reached us. That can happen when an in-flight autosave created the
+  // draft microseconds before this submit, but React had not yet committed the
+  // id into `autosave_id`. Blindly creating would then produce a DUPLICATE
+  // row — and, worse, the slug-conflict retry below would knowingly create a
+  // second one under a suffixed slug. A slug is unique by definition, so a row
+  // already holding this slug IS this article: adopt it instead of copying it.
+  const bySlug = await getArticleBySlugForAdmin(input.slug);
+  if (bySlug) {
+    const status = mode === "publish" ? "published" : bySlug.status;
+    const { error } = await updateArticle(
+      bySlug.id,
+      { ...input, status },
+      contributors
+    );
+    if (error) return { error };
+    revalidateArticlePaths(input.slug);
+    redirect("/admin/articles");
+  }
+
   // Save never publishes a brand-new article; only Publish does.
   input.status = mode === "publish" ? "published" : "draft";
 
@@ -318,13 +422,17 @@ export async function updateArticleAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readArticleInput(formData);
+  const current = await getArticleByIdForAdmin(id);
+  if (!current) return { error: "This article no longer exists." };
+
+  const { input, error: validationError } = await readArticleInput(
+    formData,
+    current
+  );
   if (!input) return { error: validationError };
 
   const contributors = readContributorSelections(formData);
   const mode = readSaveMode(formData);
-  const current = await getArticleByIdForAdmin(id);
-  if (!current) return { error: "This article no longer exists." };
 
   input.status =
     mode === "publish"

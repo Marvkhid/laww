@@ -20,6 +20,7 @@ import {
   pagesFromFormData,
 } from "@/lib/page-visibility";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import { readTextOptional } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -82,7 +83,9 @@ async function readEventInput(formData: FormData): Promise<{ input: EventInput |
     input: {
       slug,
       title,
-      description: optional("description"),
+      // Absent → the column is omitted from the UPDATE entirely, so an
+      // unrelated edit or an early autosave can never empty it.
+      description: readTextOptional(formData, "description"),
       cover_image_url,
       published: formData.get("published") === "on",
       event_date: optional("event_date"),

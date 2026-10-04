@@ -3,7 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
-import { getPracticeAreas } from "@/lib/supabase/queries/practice-areas";
+import {
+  getPracticeAreaBySlug,
+  getPracticeAreas,
+} from "@/lib/supabase/queries/practice-areas";
 import { getArticles } from "@/lib/supabase/queries/articles";
 import { SITE_URL } from "@/lib/constants";
 import {
@@ -34,7 +37,9 @@ export async function generateMetadata({
   const { slug } = await params;
   const supabase = createSupabaseServerClient();
   const areas = await getPracticeAreas(supabase);
-  const area = areas.find((a) => a.slug === slug);
+  const area =
+    areas.find((a) => a.slug === slug) ??
+    (await getPracticeAreaBySlug(supabase, slug));
   if (!area) return {};
 
   const editorial = getPracticeAreaEditorial(slug);
@@ -265,7 +270,12 @@ export default async function PracticeAreaPage({
     getPracticeAreas(supabase),
     getArticles(supabase),
   ]);
-  const area = areas.find((a) => a.slug === slug);
+  // Prefer the list, but never 404 purely because the build-time list was
+  // stale: fall back to a direct by-slug read before giving up. See
+  // getPracticeAreaBySlug for why the list can be behind.
+  const area =
+    areas.find((a) => a.slug === slug) ??
+    (await getPracticeAreaBySlug(supabase, slug));
 
   if (!area) {
     notFound();
@@ -276,24 +286,32 @@ export default async function PracticeAreaPage({
     (article) => article.practiceArea === area.name
   );
 
+  // This area's own artwork, or this area's own editorial hero. Deliberately
+  // no shared stock fallback: a single default image standing in for every
+  // area is exactly the "why does my practice area show someone else's
+  // image" problem. With neither, the hero renders as a plain band.
+  const heroImage = area.imageUrl ?? editorial?.heroImage ?? null;
+
   return (
     <article className="min-h-screen">
       {/* ─── Hero ─── */}
       <Reveal>
         <header className="relative">
-          <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
-            <Image
-              src={
-                area.imageUrl ??
-                editorial?.heroImage ??
-                "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=80"
-              }
-              alt={area.imageAlt ?? editorial?.heroAlt ?? area.name}
-              fill
-              className="object-contain"
-              priority
-              sizes="100vw"
-            />
+          <div
+            data-testid="practice-area-hero"
+            data-has-image={heroImage ? "true" : "false"}
+            className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-[#171717]"
+          >
+            {heroImage ? (
+              <Image
+                src={heroImage}
+                alt={area.imageAlt ?? editorial?.heroAlt ?? area.name}
+                fill
+                className="object-contain"
+                priority
+                sizes="100vw"
+              />
+            ) : null}
             <div className="absolute inset-0 bg-gradient-to-t from-[#171717]/85 via-[#171717]/40 to-transparent" />
             <div className="absolute inset-0 flex flex-col justify-end">
               <div className="mx-auto w-full max-w-5xl px-6 pb-14">

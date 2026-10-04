@@ -53,7 +53,8 @@ export async function getLegalUpdateByIdForAdmin(id: string): Promise<LegalUpdat
 export type LegalUpdateInput = {
   headline: string;
   slug: string;
-  summary: string | null;
+  /** `undefined` = field absent from the payload → column omitted on UPDATE. */
+  summary: string | null | undefined;
   source_name: string;
   body: string | null;
   cover_image_url: string | null;

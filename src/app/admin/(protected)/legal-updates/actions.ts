@@ -11,10 +11,16 @@ import {
   type LegalUpdateInput,
 } from "@/lib/supabase/admin/legal-updates";
 import { uploadLegalUpdateImage } from "@/lib/supabase/admin/storage";
-import type { LegalUpdateStatus } from "@/lib/supabase/types";
+import type { LegalUpdateRow, LegalUpdateStatus } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
 import { slugify } from "@/lib/slugify";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import {
+  readBodyPreserving,
+  readTextOptional,
+  readTextPreserving,
+  storedText as storedTextOf,
+} from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -52,8 +58,27 @@ function isEmptyDoc(doc: JSONContent): boolean {
   );
 }
 
-function readBody(formData: FormData): JSONContent | null {
-  const raw = String(formData.get("body") ?? "").trim();
+/**
+ * Read the body, but only trust it when the editor reports it has mounted.
+ *
+ * `body_state` is written by TiptapEditor on mount. Without it the body in
+ * this payload is an artefact of an editor that never initialised — an
+ * autosave that fired too early, or a restored tab — and writing it would
+ * wipe a real body with null. Same guard as the article editor.
+ */
+function readBody(
+  formData: FormData,
+  current?: LegalUpdateRow | null
+): JSONContent | null {
+  return readBodyPreserving(
+    formData,
+    current?.body ?? null,
+    parseBodyString
+  );
+}
+
+/** Parse the hidden body field; null for empty/malformed/empty-doc input. */
+function parseBodyString(raw: string): JSONContent | null {
   if (!raw) return null;
   try {
     const parsed: JSONContent = JSON.parse(raw);
@@ -84,17 +109,22 @@ async function readImageUpload(
 }
 
 async function readInput(
-  formData: FormData
+  formData: FormData,
+  current?: LegalUpdateRow | null
 ): Promise<{ input: LegalUpdateInput | null; error: string | null }> {
-  const optional = (key: string) => {
-    const raw = String(formData.get(key) ?? "").trim();
-    return raw.length > 0 ? raw : null;
-  };
+  // Presence rule (see lib/form-presence): present → deliberate value,
+  // absent → keep what is stored.
+  const preserveable = (
+    key: string,
+    stored: string | null | undefined
+  ): string | null => readTextPreserving(formData, key, stored);
+
+  const storedText = (key: keyof LegalUpdateRow): string | null =>
+    storedTextOf(current, key);
 
   const headline = String(formData.get("headline") ?? "").trim();
   const slugRaw = String(formData.get("slug") ?? "").trim();
   const source_name = String(formData.get("source_name") ?? "").trim();
-  const summaryRaw = String(formData.get("summary") ?? "").trim();
   const practiceAreaRaw = String(formData.get("practice_area_id") ?? "").trim();
   const statusRaw = String(formData.get("status") ?? "").trim();
 
@@ -102,22 +132,35 @@ async function readInput(
   if (!source_name) return { input: null, error: "Source name is required." };
 
   // Cover image
-  const { url: cover_image_url, error: coverErr } = await readImageUpload(
+  const { url: resolvedCover, error: coverErr } = await readImageUpload(
     formData, "cover_image_file", "existing_cover_image_url"
   );
   if (coverErr) return { input: null, error: coverErr };
+  const cover_image_url = formData.has("existing_cover_image_url")
+    ? resolvedCover
+    : (storedText("cover_image_url") ?? resolvedCover);
 
   // Inline images (1–4)
   const imgs: { url: string | null; alt: string | null; position: string | null }[] = [];
   for (let i = 1; i <= 4; i++) {
-    const { url, error: imgErr } = await readImageUpload(
+    const { url: resolvedUrl, error: imgErr } = await readImageUpload(
       formData, `image_${i}_file`, `existing_image_${i}_url`
     );
     if (imgErr) return { input: null, error: imgErr };
     imgs.push({
-      url,
-      alt: optional(`image_${i}_alt`),
-      position: optional(`image_${i}_position`),
+      // Present (even empty) → the resolved value is deliberate; absent →
+      // this slot was never in the payload, so keep what is stored.
+      url: formData.has(`existing_image_${i}_url`)
+        ? resolvedUrl
+        : (storedText(`image_${i}_url` as keyof LegalUpdateRow) ?? resolvedUrl),
+      alt: preserveable(
+        `image_${i}_alt`,
+        storedText(`image_${i}_alt` as keyof LegalUpdateRow)
+      ),
+      position: preserveable(
+        `image_${i}_position`,
+        storedText(`image_${i}_position` as keyof LegalUpdateRow)
+      ),
     });
   }
 
@@ -125,9 +168,13 @@ async function readInput(
     input: {
       headline,
       slug: slugRaw.length > 0 ? slugRaw : slugify(headline),
-      summary: summaryRaw.length > 0 ? summaryRaw : null,
+      // Absent → omitted from the UPDATE, so it can never be blanked.
+      summary: readTextOptional(formData, "summary"),
       source_name,
-      body: readBody(formData) ? JSON.stringify(readBody(formData)) : null,
+      body: (() => {
+        const parsed = readBody(formData, current);
+        return parsed ? JSON.stringify(parsed) : null;
+      })(),
       cover_image_url,
       image_1_url: imgs[0].url,
       image_1_alt: imgs[0].alt,
@@ -159,7 +206,10 @@ export async function autosaveLegalUpdateAction(
   rawData: Record<string, string[]>
 ): Promise<AutosaveResult> {
   const formData = dataToFormData(rawData);
-  const { input, error: validationError } = await readInput(formData);
+  // Read against the stored row so a partial snapshot cannot null a field
+  // it never carried (most importantly the body).
+  const existing = id ? await getLegalUpdateByIdForAdmin(id) : null;
+  const { input, error: validationError } = await readInput(formData, existing);
   if (!input) return { id, error: validationError ?? "Invalid update." };
 
   if (!id) {
@@ -176,7 +226,7 @@ export async function autosaveLegalUpdateAction(
     return { id: created.id, error: created.error };
   }
 
-  const current = await getLegalUpdateByIdForAdmin(id);
+  const current = existing;
   if (!current) {
     return { id, error: "This update no longer exists. Reload the editor." };
   }
@@ -189,14 +239,17 @@ export async function createLegalUpdateAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readInput(formData);
-  if (!input) return { error: validationError ?? "Invalid input." };
-
   const mode = readSaveMode(formData);
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
+  const existing = autosaveId
+    ? await getLegalUpdateByIdForAdmin(autosaveId)
+    : null;
+  const { input, error: validationError } = await readInput(formData, existing);
+  if (!input) return { error: validationError ?? "Invalid input." };
+
   if (autosaveId) {
-    const current = await getLegalUpdateByIdForAdmin(autosaveId);
+    const current = existing;
     if (current) {
       const status: LegalUpdateStatus =
         mode === "publish"
@@ -226,12 +279,13 @@ export async function updateLegalUpdateAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readInput(formData);
+  const current = await getLegalUpdateByIdForAdmin(id);
+  if (!current) return { error: "This update no longer exists." };
+
+  const { input, error: validationError } = await readInput(formData, current);
   if (!input) return { error: validationError ?? "Invalid input." };
 
   const mode = readSaveMode(formData);
-  const current = await getLegalUpdateByIdForAdmin(id);
-  if (!current) return { error: "This update no longer exists." };
   input.status =
     mode === "publish"
       ? "published"

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getPracticeAreas } from "@/lib/supabase/queries/practice-areas";
@@ -6,6 +5,15 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { LegalScales } from "@/components/ui/editorial-illustration";
 
+/**
+ * Homepage "Coverage areas" index.
+ *
+ * Deliberately text-only. A practice area's uploaded image belongs to that
+ * area's own dedicated page (/practice-areas/[slug]) — it must not be
+ * promoted onto the homepage just because it was uploaded, and a shared
+ * default image must never stand in for every area. The homepage links to
+ * each area and lets the dedicated page present its own artwork.
+ */
 export async function PracticeAreas() {
   const supabase = createSupabaseServerClient();
   const practiceAreas = await getPracticeAreas(supabase);
@@ -27,19 +35,6 @@ export async function PracticeAreas() {
                   href={`/practice-areas/${area.slug}`}
                   className="block bg-paper transition-colors duration-300 hover:bg-ink hover:text-paper"
                 >
-                  {area.imageUrl ? (
-                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-hairline/20">
-                      <div className="relative aspect-[16/9] w-full overflow-hidden bg-hairline/20">
-                        <Image
-                          src={area.imageUrl}
-                          alt={area.imageAlt ?? area.name}
-                          fill
-                          sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-                          className="block h-auto w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  ) : null}
                   <div className="px-5 py-5">
                     <span className="block font-admin text-[14px] font-semibold uppercase">
                       {area.name}

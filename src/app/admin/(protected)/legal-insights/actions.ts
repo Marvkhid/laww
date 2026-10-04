@@ -11,14 +11,10 @@ import {
 } from "@/lib/supabase/admin/legal-insights";
 import { uploadLegalInsightImage } from "@/lib/supabase/admin/storage";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import { readTextPreserving } from "@/lib/form-presence";
+import type { LegalInsightRow } from "@/lib/supabase/types";
 
 export type FormState = { error: string | null };
-
-/** Save vs Publish — autosave and Enter-key submits always stay draft-safe. */
-function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
-  const mode = String(formData.get("save_mode") ?? "save");
-  return mode === "publish" || mode === "unpublish" ? mode : "save";
-}
 
 /** Upload-on-select for quiz images. */
 export async function uploadLegalInsightImageAction(
@@ -28,15 +24,21 @@ export async function uploadLegalInsightImageAction(
 }
 
 async function readInput(
-  formData: FormData
+  formData: FormData,
+  current?: LegalInsightRow | null
 ): Promise<{ input: LegalInsightInput | null; error: string | null }> {
   const optional = (key: string) => {
     const raw = String(formData.get(key) ?? "").trim();
     return raw.length > 0 ? raw : null;
   };
+  // Presence rule (see lib/form-presence): a key the payload does not carry
+  // keeps its stored value, so an unrelated edit or an early autosave can
+  // never empty the Explanation content.
+  const preserveable = (key: string, stored: string | null): string =>
+    readTextPreserving(formData, key, stored) ?? "";
 
-  const title = String(formData.get("title") ?? "").trim();
-  const content = String(formData.get("content") ?? "").trim();
+  const title = preserveable("title", current?.title ?? null);
+  const content = preserveable("content", current?.content ?? null);
   const category = String(formData.get("category") ?? "general").trim();
 
   if (!title) {
@@ -103,7 +105,8 @@ export async function autosaveLegalInsightAction(
   rawData: Record<string, string[]>
 ): Promise<AutosaveResult> {
   const formData = dataToFormData(rawData);
-  const { input, error: validationError } = await readInput(formData);
+  const existing = id ? await getLegalInsightByIdForAdmin(id) : null;
+  const { input, error: validationError } = await readInput(formData, existing);
   if (!input) return { id, error: validationError ?? "Invalid question." };
 
   if (!id) {
@@ -111,7 +114,7 @@ export async function autosaveLegalInsightAction(
     return { id: created.id, error: created.error };
   }
 
-  const current = await getLegalInsightByIdForAdmin(id);
+  const current = existing;
   if (!current) {
     return { id, error: "This question no longer exists. Reload the editor." };
   }
@@ -124,17 +127,20 @@ export async function createLegalInsightAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readInput(formData);
-  if (!input) return { error: validationError };
-
-  const mode = readSaveMode(formData);
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
+  const existing = autosaveId
+    ? await getLegalInsightByIdForAdmin(autosaveId)
+    : null;
+  const { input, error: validationError } = await readInput(formData, existing);
+  if (!input) return { error: validationError };
+
   if (autosaveId) {
-    const current = await getLegalInsightByIdForAdmin(autosaveId);
+    const current = existing;
     if (current) {
-      input.published =
-        mode === "publish" ? true : mode === "unpublish" ? false : current.published;
+      // `published` comes from the form's Published checkbox (readInput).
+      // The old code consulted a `save_mode` field this form never renders,
+      // so it always fell back to "save" and silently ignored the checkbox.
       const { error } = await updateLegalInsight(autosaveId, input);
       if (error) return { error };
       revalidatePath("/admin/legal-insights");
@@ -142,9 +148,6 @@ export async function createLegalInsightAction(
       redirect("/admin/legal-insights");
     }
   }
-
-  // Save never publishes a brand-new question; only Publish does.
-  input.published = mode === "publish";
 
   const { error } = await createLegalInsight(input);
   if (error) return { error };
@@ -159,14 +162,11 @@ export async function updateLegalInsightAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { input, error: validationError } = await readInput(formData);
-  if (!input) return { error: validationError };
-
-  const mode = readSaveMode(formData);
   const current = await getLegalInsightByIdForAdmin(id);
   if (!current) return { error: "This question no longer exists." };
-  input.published =
-    mode === "publish" ? true : mode === "unpublish" ? false : current.published;
+
+  const { input, error: validationError } = await readInput(formData, current);
+  if (!input) return { error: validationError };
 
   const { error } = await updateLegalInsight(id, input);
   if (error) return { error };

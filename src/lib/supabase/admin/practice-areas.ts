@@ -35,7 +35,8 @@ export async function getPracticeAreaByIdForAdmin(
 export async function createPracticeArea(input: {
   slug: string;
   name: string;
-  description: string | null;
+  /** `undefined` = absent from the payload → column omitted on UPDATE. */
+  description: string | null | undefined;
   image_url: string | null;
   image_alt: string | null;
   display_order: number;
@@ -64,7 +65,8 @@ export async function updatePracticeArea(
   input: {
     slug: string;
     name: string;
-    description: string | null;
+    /** `undefined` = absent from the payload → column omitted on UPDATE. */
+    description: string | null | undefined;
     image_url: string | null;
     image_alt: string | null;
     display_order: number;

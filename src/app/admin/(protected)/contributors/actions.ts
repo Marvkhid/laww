@@ -12,6 +12,7 @@ import {
 import { uploadContributorPhoto } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
+import { readTextOptional } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
@@ -82,7 +83,8 @@ async function readInput(formData: FormData): Promise<ContributorInput> {
     name,
     credentials: optional("credentials"),
     role: String(formData.get("role") ?? "").trim(),
-    bio: optional("bio"),
+    // Absent → omitted from the UPDATE, so it can never be blanked.
+    bio: readTextOptional(formData, "bio"),
     photo_url,
     is_editorial_board: formData.get("is_editorial_board") === "on",
   };

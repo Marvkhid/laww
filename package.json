@@ -2,11 +2,19 @@
   "name": "law-digest",
   "version": "0.1.0",
   "private": true,
+  "browserslist": [
+    "chrome >= 111",
+    "edge >= 111",
+    "firefox >= 128",
+    "safari >= 16.4",
+    "ios_saf >= 16.4"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -31,6 +39,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",

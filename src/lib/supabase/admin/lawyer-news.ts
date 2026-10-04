@@ -5,7 +5,8 @@ export type LawyerNewsInput = {
   slug: string;
   lawyer_name: string;
   lawyer_title: string | null;
-  intro: string | null;
+  /** `undefined` = field absent from the payload → column omitted on UPDATE. */
+  intro: string | null | undefined;
   cover_image_url: string | null;
   cover_image_alt: string | null;
   image_1_url: string | null;

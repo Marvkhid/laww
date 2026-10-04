@@ -25,6 +25,20 @@ export async function getArticleByIdForAdmin(id: string): Promise<ArticleRow | n
   return data as ArticleRow;
 }
 
+export async function getArticleBySlugForAdmin(
+  slug: string
+): Promise<ArticleRow | null> {
+  const supabase = await requireAdmin();
+  const { data, error } = await supabase
+    .from("articles")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as ArticleRow;
+}
+
 export async function getArticleContributorLinksForAdmin(
   articleId: string
 ): Promise<ArticleContributorRow[]> {

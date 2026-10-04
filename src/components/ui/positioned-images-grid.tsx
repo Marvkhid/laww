@@ -1,4 +1,5 @@
 import type { ArticleImage } from "@/lib/types";
+import { SafeImage } from "@/components/ui/safe-image";
 
 /**
  * Fallback rendering for the Image 1–4 position system.
@@ -48,19 +49,22 @@ export function PositionedImageGrid({
   });
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
+    <div
+      data-testid="positioned-image-grid"
+      className="grid gap-6 sm:grid-cols-2"
+    >
       {ordered.map((image, index) => (
         <figure
           key={`${image.url}-${index}`}
+          data-testid="positioned-image"
+          data-position={image.position ?? ""}
+          data-full-width={isFullWidth(image.position) ? "true" : "false"}
           className={isFullWidth(image.position) ? "sm:col-span-2" : undefined}
         >
           <div className="overflow-hidden border border-hairline bg-hairline/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <SafeImage
               src={image.url ?? ""}
               alt={image.alt ?? `${title} — Image ${index + 1}`}
-              loading="lazy"
-              decoding="async"
               className="h-auto w-full object-contain"
             />
           </div>

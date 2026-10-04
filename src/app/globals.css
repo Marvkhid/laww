@@ -54,6 +54,107 @@ body {
   outline-offset: 2px;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Scroll-reveal safety net
+   ─────────────────────────────────────────────────────────────────────────
+   `Reveal` / `ImageReveal` (components/motion) start every wrapped block at
+   opacity:0 and rely on a client-side IntersectionObserver to fade it in.
+   That hidden state is baked into the server-rendered HTML as an inline
+   style, so if hydration never completes — a blocked script, a privacy
+   extension, a JS exception — the page renders as a blank column instead of
+   degrading to static content.
+
+   These rules make "no scripting" and "no IntersectionObserver" first-class
+   states: the content is simply visible. Only browsers that can actually run
+   the reveal ever see the hidden start state.
+   ------------------------------------------------------------------------- */
+@media (scripting: none) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Children such as `StaggerItem` carry their own inline `opacity: 0`. */
+  [data-reveal] > * {
+    opacity: 1 !important;
+  }
+}
+
+html.no-intersection-observer [data-reveal],
+[data-reveal][data-reveal-static] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Watchdog — the third way a reveal never fires.
+   `BootFlag` + the inline script in the root layout cover the case where
+   scripting is enabled but the app bundle never boots: a stale hashed chunk
+   after a deploy, a blocked /_next/static request, a privacy extension, or a
+   hydration exception. The script marks <html> `no-hydration` after 2.5s and
+   also normalises the inline styles motion left behind, so the rescue works
+   even if the stylesheet itself failed to load. Direct children get their
+   opacity back too (`StaggerItem` renders `opacity: 0` inline without
+   carrying `data-reveal`), but their transform is left alone — it may be
+   class-driven layout (a Tailwind translate), not animation state. */
+html.no-hydration [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+html.no-hydration [data-reveal] > * {
+  opacity: 1 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   No-JavaScript state
+   ─────────────────────────────────────────────────────────────────────────
+   React's streamed Suspense content is swapped in by inline scripts. With
+   scripting disabled those never run, so the page would otherwise sit on its
+   `animate-pulse` skeleton forever — a permanent, animated spinner. The
+   skeleton pulse is stopped and the notice in the root layout (hidden by
+   default) is shown instead, so the state is explained rather than endless. */
+.nojs-notice {
+  display: none;
+  margin: 0 auto;
+  max-width: 42rem;
+  padding: 2.5rem 1.5rem;
+  border-bottom: 1px solid var(--color-hairline);
+  color: var(--color-stone);
+  font-family: var(--font-utility);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  line-height: 1.8;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+@media (scripting: none) {
+  .animate-pulse {
+    animation: none !important;
+    opacity: 0.35;
+  }
+
+  .nojs-notice {
+    display: block;
+  }
+}
+
+/* Placeholder box for remote editorial/advert artwork that has not decoded
+   yet or failed outright. Reserves the slot so a slow or blocked third-party
+   image cannot collapse the layout to zero height. */
+.media-fallback {
+  display: flex;
+  min-height: 8rem;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-hairline);
+  color: var(--color-stone);
+  font-family: var(--font-utility);
+  font-size: 0.6875rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
 /* Smooth scroll for anchor links */
 html {
   scroll-behavior: smooth;

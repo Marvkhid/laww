@@ -224,7 +224,10 @@ export default async function ArticlePage({
                 body content, as a full-width band rather than a narrow rail.
                 A sidebar rail here produced a large empty column beside the
                 body; a horizontal card keeps the reading measure intact. */}
-            <div className="mt-6 border-y border-hairline bg-paper-warm/50 px-5 py-5">
+            <div
+              data-testid="article-author"
+              className="mt-6 border-y border-hairline bg-paper-warm/50 px-5 py-5"
+            >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <ContributorAvatar

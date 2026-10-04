@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { EDITORIAL_EASE } from "@/components/motion/reveal";
+import { REVEAL_ATTRIBUTE } from "@/components/motion/reveal-support";
 
 export function CoverHeroMotion({
   eyebrow,
@@ -24,6 +25,7 @@ export function CoverHeroMotion({
   return (
     <div className="cover-story-overlay">
       <motion.p
+        {...REVEAL_ATTRIBUTE}
         initial={hidden}
         animate={shown}
         transition={{ duration: 0.5, ease: EDITORIAL_EASE }}
@@ -33,6 +35,7 @@ export function CoverHeroMotion({
       </motion.p>
 
       <motion.div
+        {...REVEAL_ATTRIBUTE}
         initial={hidden}
         animate={shown}
         transition={{ duration: 0.4, delay: 0.08, ease: EDITORIAL_EASE }}
@@ -43,6 +46,7 @@ export function CoverHeroMotion({
       </motion.div>
 
       <motion.h1
+        {...REVEAL_ATTRIBUTE}
         initial={hidden}
         animate={shown}
         transition={{ duration: 0.7, delay: 0.15, ease: EDITORIAL_EASE }}
@@ -52,6 +56,7 @@ export function CoverHeroMotion({
       </motion.h1>
 
       <motion.p
+        {...REVEAL_ATTRIBUTE}
         initial={hidden}
         animate={shown}
         transition={{ duration: 0.5, delay: 0.25, ease: EDITORIAL_EASE }}
@@ -62,6 +67,7 @@ export function CoverHeroMotion({
 
       {dek ? (
         <motion.div
+          {...REVEAL_ATTRIBUTE}
           initial={hidden}
           animate={shown}
           transition={{ duration: 0.5, delay: 0.3, ease: EDITORIAL_EASE }}
@@ -75,6 +81,7 @@ export function CoverHeroMotion({
       ) : null}
 
       <motion.div
+        {...REVEAL_ATTRIBUTE}
         initial={hidden}
         animate={shown}
         transition={{ duration: 0.5, delay: 0.4, ease: EDITORIAL_EASE }}

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/client";
 import { getPublishedLegalUpdates } from "@/lib/supabase/queries/legal-updates";
 import { Reveal } from "@/components/motion/reveal";
+import { withTimeout } from "@/lib/supabase/fetch-timeout";
 
 function relativeTime(iso: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -12,7 +13,14 @@ function relativeTime(iso: string) {
 
 export async function BreakingLegalUpdates() {
   const supabase = createSupabaseServerClient();
-  const updates = await getPublishedLegalUpdates(supabase, 10);
+  // Bounded: this component sits directly behind a <Suspense> skeleton in the
+  // root layout, so an unanswered query would leave the skeleton spinning with
+  // no way out. An empty ticker is a real state; a permanent loader is not.
+  const updates = await withTimeout(
+    getPublishedLegalUpdates(supabase, 10),
+    undefined,
+    []
+  );
 
   if (updates.length === 0) {
     return null;

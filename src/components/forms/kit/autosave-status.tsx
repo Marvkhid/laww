@@ -115,20 +115,33 @@ export function SaveButtons({
   showUnpublish?: boolean;
   statusSlot?: React.ReactNode;
 }) {
+  // `save_mode` MUST be React-controlled state, not an imperatively-set
+  // uncontrolled value. This was a real, reproduced publishing defect: the
+  // submit handler set the hidden input to "publish" and then `await`ed the
+  // flush; React re-wrote the uncontrolled input's defaultValue back to
+  // "save" during that window, the form submitted with save_mode="save", and
+  // the article was silently left as a DRAFT (the "it keeps asking me to
+  // publish" report). A controlled value is rewritten by React to the correct
+  // mode on every commit, so the race cannot happen.
+  const [mode, setMode] = useState<"save" | "publish" | "unpublish">("save");
   const [flushing, setFlushing] = useState(false);
   const busy = isPending || flushing;
 
-  const submit = async (mode: "save" | "publish" | "unpublish") => {
+  const submit = async (next: "save" | "publish" | "unpublish") => {
     if (busy) return;
     const form = formRef.current;
     if (!form) return;
-    const modeInput = form.querySelector<HTMLInputElement>(
-      'input[name="save_mode"]'
-    );
-    if (modeInput) modeInput.value = mode;
+    setMode(next);
     setFlushing(true);
     try {
       await flush({ pause: true });
+      // Belt-and-braces: also write the DOM value immediately before submit,
+      // in case React has not committed the state update yet. Both paths agree
+      // on `next`, so this can never disagree with the controlled value.
+      const modeInput = form.querySelector<HTMLInputElement>(
+        'input[name="save_mode"]'
+      );
+      if (modeInput) modeInput.value = next;
       form.requestSubmit();
     } finally {
       setFlushing(false);
@@ -140,7 +153,7 @@ export function SaveButtons({
 
   return (
     <div className="flex flex-col gap-3">
-      <input type="hidden" name="save_mode" defaultValue="save" />
+      <input type="hidden" name="save_mode" value={mode} readOnly />
       <div className="flex flex-wrap items-center gap-3">
         <motion.button
           type="button"

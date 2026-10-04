@@ -42,22 +42,46 @@ fi
 # featured / in this issue / editorial insights) own their own article; the
 # generic "Latest Stories" section owns the rest. Assert the invariant per
 # article rather than asserting a specific section heading exists.
-SLUG="understanding-the-rule-of-law-in-nigeria-why-it-matters-to-every-citizen"
-OCCURRENCES=$(echo "$HTML" | grep -o "$SLUG" | wc -l | tr -d ' ')
-if [ "$OCCURRENCES" -ge 1 ]; then
-  echo "PASS: E1 published homepage-eligible article appears on homepage ($OCCURRENCES link(s))"
-  PASS=$((PASS+1))
-else
-  echo "FAIL: E1 published article missing from homepage"
-  FAIL=$((FAIL+1))
+#
+# The slug list is read from the CMS at runtime rather than hardcoded, so the
+# suite keeps testing the invariant as content changes. An article is
+# homepage-eligible when published and either show_on_pages is empty/absent
+# (legacy rows) or explicitly lists "homepage".
+if [ -f "${SCRIPT_DIR:-.}/.env.local" ]; then
+  set -a; . "${SCRIPT_DIR:-.}/.env.local"; set +a
 fi
+ELIGIBLE_SLUGS=$(curl -s -H "apikey: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" \
+  "${NEXT_PUBLIC_SUPABASE_URL:-}/rest/v1/articles?select=slug,show_on_pages&status=eq.published" 2>/dev/null \
+  | node -e '
+let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{
+  try{
+    const rows=JSON.parse(d);
+    const ok=rows.filter(r=>!Array.isArray(r.show_on_pages)||r.show_on_pages.length===0||r.show_on_pages.includes("homepage"));
+    process.stdout.write(ok.map(r=>r.slug).join("\n"));
+  }catch(e){process.stdout.write("");}
+});' 2>/dev/null || true)
 
-if [ "$OCCURRENCES" -le 4 ]; then
-  echo "PASS: E2 published article not duplicated beyond its nav/placement links"
-  PASS=$((PASS+1))
+if [ -z "$ELIGIBLE_SLUGS" ]; then
+  echo "SKIP: E1/E2 could not read published articles from the CMS"
 else
-  echo "FAIL: E2 published article appears $OCCURRENCES times (possible duplication)"
-  FAIL=$((FAIL+1))
+  while IFS= read -r SLUG; do
+    [ -z "$SLUG" ] && continue
+    OCCURRENCES=$(echo "$HTML" | grep -o "$SLUG" | wc -l | tr -d ' ')
+    if [ "$OCCURRENCES" -ge 1 ]; then
+      echo "PASS: E1 $SLUG appears on homepage ($OCCURRENCES link(s))"
+      PASS=$((PASS+1))
+    else
+      echo "FAIL: E1 published article missing from homepage: $SLUG"
+      FAIL=$((FAIL+1))
+    fi
+    if [ "$OCCURRENCES" -le 4 ]; then
+      echo "PASS: E2 $SLUG not duplicated beyond its nav/placement links"
+      PASS=$((PASS+1))
+    else
+      echo "FAIL: E2 $SLUG appears $OCCURRENCES times (possible duplication)"
+      FAIL=$((FAIL+1))
+    fi
+  done <<< "$ELIGIBLE_SLUGS"
 fi
 
 # Test G (public observable): adverts targeted to a page appear only on that page.
