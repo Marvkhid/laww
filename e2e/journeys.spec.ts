@@ -8,6 +8,7 @@ import {
   waitForNoBrokenImages,
   reportFaults,
 } from "./fixtures";
+import { PUBLIC_ARTICLE_SLUG } from "./public-article";
 
 /**
  * Critical public journeys: homepage, article listing, article page, author
@@ -19,7 +20,15 @@ import {
  * time" is exactly the class of report we received.
  */
 
-const ARTICLE_PATH = "/articles/the-headline";
+/**
+ * The article path is not hard-coded: the suite provisions its own published
+ * fixture article (see public-article.ts) and this turns that into a route.
+ */
+const articleJourney = (slug: string) => ({
+  path: `/articles/${slug}`,
+  name: "article page",
+  heading: /.+/,
+});
 
 const JOURNEYS: Array<{
   path: string;
@@ -29,7 +38,6 @@ const JOURNEYS: Array<{
 }> = [
   { path: "/", name: "homepage", heading: /digest/i },
   { path: "/articles", name: "article listing", heading: /latest|article/i },
-  { path: ARTICLE_PATH, name: "article page", heading: /.+/ },
   { path: "/about", name: "about / author information", heading: /about/i },
   { path: "/issues", name: "issues archive", heading: /issue/i },
   { path: "/events", name: "events", heading: /event/i },
@@ -39,14 +47,25 @@ const JOURNEYS: Array<{
   { path: "/contact", name: "contact", heading: /contact/i },
 ];
 
+/** Every journey, with the article journey resolved from the fixture. */
+function journeys() {
+  return [...JOURNEYS, articleJourney(PUBLIC_ARTICLE_SLUG)];
+}
+
 test.describe("public journeys", () => {
   test.setTimeout(120_000);
 
-  for (const { path, name, heading } of JOURNEYS) {
+  for (const { path, name, heading } of journeys()) {
     test(`${name} loads, renders and leaves the browser healthy`, async ({
       page,
       useFaults,
+      publicArticle,
     }) => {
+      test.skip(
+        !publicArticle.provisioned,
+        "Could not provision the published fixture article — no E2E_ADMIN_EMAIL / " +
+          "E2E_ADMIN_PASSWORD, or the database rejected the seed."
+      );
       const res = await gotoClean(page, path);
       expect(res?.status(), `${path} should be served successfully`).toBe(200);
 
@@ -88,10 +107,16 @@ test.describe("public journeys", () => {
     });
   }
 
-  for (const { path, name } of JOURNEYS) {
+  for (const { path, name } of journeys()) {
     test(`${name}: nothing left invisible, no image fails`, async ({
       page,
+      publicArticle,
     }) => {
+      test.skip(
+        !publicArticle.provisioned,
+        "Could not provision the published fixture article — no E2E_ADMIN_EMAIL / " +
+          "E2E_ADMIN_PASSWORD, or the database rejected the seed."
+      );
       await gotoClean(page, path);
       await revealAll(page);
 

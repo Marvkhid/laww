@@ -25,7 +25,8 @@ export default async function IssuesPage() {
     <div className="mx-auto max-w-6xl px-6 py-16">
       <Reveal>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <SectionHeading eyebrow="Issues" title="Issue archive" />
+          <SectionHeading eyebrow="Issues" title="Issue archive" 
+            level="h1"/>
           <Gavel className="h-20 w-20 shrink-0 opacity-20" />
         </div>
 

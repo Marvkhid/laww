@@ -42,6 +42,12 @@ export function PracticeAreaForm({
   // zone so its preview and the existing_image_url hidden input reset.
   const [imageVersion, setImageVersion] = useState(0);
   const [imageRemoved, setImageRemoved] = useState(false);
+  // React state, not an uncontrolled hidden input: React rewrites an
+  // uncontrolled hidden input's live `.value` from `defaultValue` on every
+  // commit, so an unrelated re-render (image upload, autosave status) used to
+  // wipe the live-tracked slug back to "" and the save then regenerated it —
+  // losing the conflict-free slug the autosave had already resolved.
+  const [slugValue, setSlugValue] = useState(initial?.slug ?? "");
 
   const onNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,10 +57,7 @@ export function PracticeAreaForm({
         const generated = slugify(e.target.value);
         const slugInput = document.getElementById("slug") as HTMLInputElement | null;
         if (slugInput) slugInput.value = generated;
-        const hidden = document.getElementById("slug_hidden") as HTMLInputElement | null;
-        if (hidden) hidden.value = generated;
-        const display = document.getElementById("slug_display") as HTMLElement | null;
-        if (display) display.textContent = generated || "auto-generated from name";
+        setSlugValue(generated);
       }
     },
     [initial?.slug],
@@ -82,10 +85,7 @@ export function PracticeAreaForm({
     autoRecover: !initial,
     onSlugResolved: (slug) => {
       if (initial?.slug) return;
-      const hidden = document.getElementById("slug_hidden") as HTMLInputElement | null;
-      if (hidden) hidden.value = slug;
-      const display = document.getElementById("slug_display");
-      if (display) display.textContent = slug;
+      setSlugValue(slug);
     },
   });
 
@@ -111,10 +111,10 @@ export function PracticeAreaForm({
           index={0}
           onChange={onNameChange}
         />
-        <input type="hidden" id="slug_hidden" name="slug" defaultValue={initial?.slug ?? ""} />
+        <input type="hidden" id="slug_hidden" name="slug" value={slugValue} readOnly />
         <p className="font-admin text-xs text-stone">
           Slug: <span id="slug_display" className="font-medium text-ink">
-            {initial?.slug ?? "auto-generated from name"}
+            {slugValue || "auto-generated from name"}
           </span>
           {initial?.slug
             ? " — preserved to keep the public URL stable."

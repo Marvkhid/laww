@@ -14,9 +14,18 @@ import { test, expect, gotoClean, revealAll } from "./fixtures";
  * is in use — reported as skipped, never silently passed.
  */
 
-const ARTICLE = "/articles/the-headline";
 
 type Mode = "flow" | "grid" | "none";
+
+/** The suite provisions its own article; skip loudly if it could not. */
+function articleUrl(article: { slug: string; provisioned: boolean }): string {
+  test.skip(
+    !article.provisioned,
+    "Could not provision the published fixture article — no E2E_ADMIN_EMAIL / " +
+      "E2E_ADMIN_PASSWORD, or the database rejected the seed."
+  );
+  return `/articles/${article.slug}`;
+}
 
 async function detectMode(
   page: import("@playwright/test").Page
@@ -35,8 +44,9 @@ test.describe("article layout on desktop", () => {
 
   test("images render, are positioned, and are never cropped", async ({
     page,
+    publicArticle,
   }) => {
-    await gotoClean(page, ARTICLE);
+    await gotoClean(page, articleUrl(publicArticle));
     await revealAll(page);
 
     const mode = await detectMode(page);
@@ -82,8 +92,9 @@ test.describe("article layout on desktop", () => {
 
   test("cover hero and author avatar are present and inside the viewport", async ({
     page,
+    publicArticle,
   }) => {
-    await gotoClean(page, ARTICLE);
+    await gotoClean(page, articleUrl(publicArticle));
     await revealAll(page);
 
     const geometry = await page.evaluate(() => {
@@ -113,8 +124,9 @@ test.describe("article layout on desktop", () => {
 
   test("float flow: figures float, stay inset, and text wraps beside them", async ({
     page,
+    publicArticle,
   }) => {
-    await gotoClean(page, ARTICLE);
+    await gotoClean(page, articleUrl(publicArticle));
     await revealAll(page);
 
     const mode = await detectMode(page);
@@ -137,7 +149,7 @@ test.describe("article layout on desktop", () => {
         [];
       for (const p of document.querySelectorAll(".prose-article p")) {
         const textNode = [...p.childNodes].find(
-          (n) => n.nodeType === 3 && n.textContent.trim().length > 0
+          (n) => n.nodeType === 3 && (n.textContent ?? "").trim().length > 0
         );
         if (!textNode) continue;
         const range = document.createRange();
@@ -212,8 +224,9 @@ test.describe("article layout on desktop", () => {
 
   test("grid fallback: full-width images span the row, others do not", async ({
     page,
+    publicArticle,
   }) => {
-    await gotoClean(page, ARTICLE);
+    await gotoClean(page, articleUrl(publicArticle));
     await revealAll(page);
 
     const mode = await detectMode(page);
@@ -246,8 +259,8 @@ test.describe("article layout on mobile", () => {
   test.use({ viewport: { width: 390, height: 844 } });
   test.setTimeout(120_000);
 
-  test("figures drop the float and take the full column", async ({ page }) => {
-    await gotoClean(page, ARTICLE);
+  test("figures drop the float and take the full column", async ({ page, publicArticle }) => {
+    await gotoClean(page, articleUrl(publicArticle));
     await revealAll(page);
 
     const mode = await detectMode(page);

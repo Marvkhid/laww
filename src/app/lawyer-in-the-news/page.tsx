@@ -16,7 +16,8 @@ export default async function LawyerNewsIndexPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
-      <SectionHeading eyebrow="Cover Story" title="Lawyer in the News" />
+      <SectionHeading eyebrow="Cover Story" title="Lawyer in the News" 
+            level="h1"/>
       <p className="-mt-4 font-body text-stone">
         Exclusive interviews with the lawyers making headlines across Nigeria and beyond.
       </p>

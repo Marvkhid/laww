@@ -87,12 +87,22 @@ async function readInput(formData: FormData): Promise<{ input: IssueInput | null
   };
 }
 
-function revalidateIssuePaths() {
+// The public issue route is `/issues/issue-<issue_number>` (see
+// app/issues/[slug]/page.tsx), so an issue's slug is derived from its
+// number — which is editable. Re-deriving it here and passing every affected
+// number (old *and* new on a rename) is what stops a stale, year-long ISR
+// page from outliving an edited or deleted issue.
+function revalidateIssuePaths(...issueNumbers: Array<number | null | undefined>) {
   revalidatePath("/admin/issues");
+  revalidatePath("/admin/issues/archive");
   revalidatePath("/issues");
   revalidatePath("/");
   revalidatePath("/articles/[slug]", "page");
-  revalidatePath("/issues/[slug]", "page");
+  for (const n of issueNumbers) {
+    if (typeof n === "number" && Number.isFinite(n)) {
+      revalidatePath(`/issues/issue-${n}`);
+    }
+  }
 }
 
 /**
@@ -140,7 +150,8 @@ export async function createIssueAction(
     if (current) {
       const { error } = await updateIssue(autosaveId, input);
       if (error) return { error };
-      revalidateIssuePaths();
+      // The number may have been edited: invalidate the old page too.
+      revalidateIssuePaths(current.issue_number, input.issue_number);
       redirect("/admin/issues");
     }
   }
@@ -148,7 +159,7 @@ export async function createIssueAction(
   const { error } = await createIssue(input);
   if (error) return { error };
 
-  revalidateIssuePaths();
+  revalidateIssuePaths(input.issue_number);
   redirect("/admin/issues");
 }
 
@@ -160,17 +171,26 @@ export async function updateIssueAction(
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError };
 
+  // Read first: the public slug is derived from the *stored* issue number, so
+  // a renumber has to invalidate the page that is currently live.
+  const current = await getIssueByIdForAdmin(id);
+  if (!current) return { error: "This issue no longer exists. Reload the editor." };
+
   const { error } = await updateIssue(id, input);
   if (error) return { error };
 
-  revalidateIssuePaths();
+  revalidateIssuePaths(current.issue_number, input.issue_number);
   redirect("/admin/issues");
 }
 
 export async function deleteIssueAction(id: string) {
+  // Read the number before deleting — afterwards there is nothing left to
+  // derive the now-orphaned `/issues/issue-<n>` URL from.
+  const current = await getIssueByIdForAdmin(id);
+
   const { error } = await deleteIssue(id);
   if (error) return { error };
 
-  revalidateIssuePaths();
+  revalidateIssuePaths(current?.issue_number);
   return { error: null };
 }

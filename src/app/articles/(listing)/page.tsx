@@ -28,7 +28,8 @@ export default async function ArticlesPage() {
     <div className="mx-auto max-w-6xl px-6 py-16">
       <Reveal>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <SectionHeading eyebrow="Articles" title={`${issueLabel} — all articles`} />
+          <SectionHeading eyebrow="Articles" title={`${issueLabel} — all articles`} 
+            level="h1"/>
           <OpenBook className="h-16 w-16 shrink-0 opacity-20" />
         </div>
         <ul className="divide-y divide-hairline border-y border-hairline">

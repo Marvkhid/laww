@@ -266,6 +266,42 @@ test.describe("article publish workflow", () => {
       // the referenced URLs rather than on one component's markup.
 
       expect(useFaults.pageErrors, "the publish flow threw").toEqual([]);
+
+      // ── Unpublishing must take the public page offline ───────────────
+      // `/articles/[slug]` is statically prerendered with a one-year
+      // s-maxage, so a page that has already been served survives in the ISR
+      // cache. Only the admin action's revalidatePath can retire it. The
+      // regression this guards: toggleArticleStatusAction used to revalidate
+      // the listing paths but not the article's own slug, so an unpublished
+      // article kept serving its public URL for up to a year.
+      await gotoClean(page, "/admin/articles");
+      const listRow = page.locator("li").filter({ hasText: title });
+      await expect(listRow, "the article vanished from the admin list").toHaveCount(1, {
+        timeout: 20_000,
+      });
+      await clickStable(listRow.getByRole("button", { name: /^Unpublish$/ }));
+      await expect(
+        listRow,
+        "Unpublish did not take effect in the admin list"
+      ).toContainText(/draft/i, { timeout: 20_000 });
+
+      const { data: afterUnpublish } = await sb
+        .from("articles")
+        .select("status")
+        .eq("title", title);
+      expect(
+        afterUnpublish?.[0]?.status,
+        "the database row was not set back to draft"
+      ).toBe("draft");
+
+      const gone = await page.request.get(`/articles/${slug}`, {
+        headers: { "cache-control": "no-cache" },
+      });
+      expect(
+        gone.status(),
+        "the public page survived unpublishing — a stale ISR entry is still being served " +
+          `(cache-control: ${gone.headers()["x-nextjs-cache"] ?? "n/a"})`
+      ).toBe(404);
     } finally {
       await deleteByTitle(page, title);
     }
@@ -287,7 +323,15 @@ test.describe("article publish workflow", () => {
       await page.locator('input[name="option_0"]').fill("First option");
       await page.locator('input[name="option_1"]').fill("Second option");
       const correct = page.locator('input[name="correct_option_radio"]').first();
-      await clickStable(correct);
+      // Firefox intermittently lands the click on a node the AnimatePresence
+      // row is about to re-create: the click reports success but React's
+      // onChange never runs, so the radio stays unticked. Retrying the click
+      // until it sticks is the honest fix — a single click is not a
+      // reliable assertion here in any engine.
+      await expect(async () => {
+        await clickStable(correct, 2);
+        await expect(correct).toBeChecked({ timeout: 2_000 });
+      }).toPass({ timeout: 20_000 });
       await expect(correct, "the correct-option radio did not get ticked").toBeChecked();
       // "Published" is ticked by default; the server used to ignore it.
       await clickStable(page.getByRole("button", { name: "Create Question" }));

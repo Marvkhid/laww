@@ -16,7 +16,8 @@ export default function ContactPage() {
     <div className="mx-auto max-w-6xl px-6 py-16">
       <Reveal>
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <SectionHeading eyebrow="Contact" title="Get in touch" />
+          <SectionHeading eyebrow="Contact" title="Get in touch" 
+            level="h1"/>
           <Handshake className="h-24 w-24 shrink-0 opacity-30" />
         </div>
       </Reveal>

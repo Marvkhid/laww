@@ -188,6 +188,20 @@ test.describe("cross-content-type autosave and publish", () => {
       await waitForQuiet(page);
       await waitForSaved(page);
 
+      // The upload above re-rendered the form. That must not have disturbed
+      // the editor's hidden `body` field: React used to rewrite an
+      // uncontrolled hidden input's live value from `defaultValue` on every
+      // commit, so the typed document was silently reset to "" while
+      // `body_state` fell back to "" as well — and the server, seeing an
+      // untrusted body, kept the stored one, which is null for a new record.
+      await expect
+        .poll(() => page.locator('input[name="body"]').inputValue(), {
+          timeout: 15_000,
+          message: "the body field was emptied by a re-render",
+        })
+        .toContain(marker);
+      await expect(page.locator('input[name="body_state"]')).toHaveValue("ready");
+
       await clickStable(page.getByRole("button", { name: /^Publish$/ }));
       await page.waitForURL(/\/admin\/legal-updates(\/)?$/, { timeout: 40_000 });
       await expect(

@@ -41,11 +41,13 @@ export async function uploadLegalUpdateImageAction(
 // breaking-news bar, so every mutation must invalidate those routes too —
 // revalidating only the admin list is how published content ends up
 // missing from the homepage until an unrelated rebuild.
-function revalidateLegalUpdatePaths(slug?: string) {
+function revalidateLegalUpdatePaths(...slugs: Array<string | null | undefined>) {
   revalidatePath("/admin/legal-updates");
   revalidatePath("/legal-updates");
   revalidatePath("/");
-  if (slug) revalidatePath(`/legal-updates/${slug}`);
+  // Public detail pages are cached for a year: an update that does not name
+  // its slug leaves the previous version of the page live.
+  for (const slug of slugs) if (slug) revalidatePath(`/legal-updates/${slug}`);
 }
 
 const VALID_STATUSES: LegalUpdateStatus[] = ["pending_review", "published", "rejected"];
@@ -296,22 +298,26 @@ export async function updateLegalUpdateAction(
   const { error } = await updateLegalUpdate(id, input);
   if (error) return { error };
 
-  revalidateLegalUpdatePaths(input.slug);
+  revalidateLegalUpdatePaths(current.slug, input.slug);
   redirect("/admin/legal-updates");
 }
 
 export async function deleteLegalUpdateAction(id: string) {
+  // Read the slug BEFORE the row is gone, or the cached detail page for a
+  // deleted update stays publicly readable for the rest of the cache window.
+  const current = await getLegalUpdateByIdForAdmin(id);
   const { error } = await deleteLegalUpdate(id);
   if (error) return { error };
 
-  revalidateLegalUpdatePaths();
+  revalidateLegalUpdatePaths(current?.slug);
   return { error: null };
 }
 
 export async function setLegalUpdateStatusAction(id: string, status: LegalUpdateStatus) {
+  const current = await getLegalUpdateByIdForAdmin(id);
   const { error } = await setLegalUpdateStatus(id, status);
   if (error) return { error };
 
-  revalidateLegalUpdatePaths();
+  revalidateLegalUpdatePaths(current?.slug);
   return { error: null };
 }

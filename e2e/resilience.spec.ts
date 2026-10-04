@@ -9,11 +9,15 @@ import { test, expect, gotoClean, revealAll, waitForAppReady } from "./fixtures"
  * transport/canonical configuration the client can actually observe.
  */
 
-const ROUTES = ["/", "/articles", "/articles/the-headline", "/about"];
+// == PROVISIONED ROUTES (see public-article.ts) ==
+const ROUTES = (slug: string) => ["/", "/articles", `/articles/${slug}`, "/about"];
 
 test.describe("loading states always settle", () => {
-  test("no skeleton or spinner survives a settled page", async ({ page }) => {
-    for (const route of ROUTES) {
+  test("no skeleton or spinner survives a settled page", async ({
+    page,
+    publicArticle,
+  }) => {
+    for (const route of ROUTES(publicArticle.slug)) {
       await gotoClean(page, route);
       await waitForAppReady(page);
       // Any element still marked aria-busy after the page has settled is a
@@ -50,16 +54,30 @@ test.describe("loading states always settle", () => {
 test.describe("third-party image resilience", () => {
   test("advert artwork failure does not collapse the page", async ({
     page,
+    publicArticle,
   }) => {
     // Simulate the exact production failure mode: a privacy setting or
     // extension blocking images from the Supabase Storage origin.
-    // Confirm the block is actually taking effect before asserting on it.
+    //
+    // The artwork is served through next/image, so the browser never asks for
+    // the storage URL directly — it asks this origin's `/_next/image` and the
+    // optimizer fetches upstream. Blocking only `**/*supabase.co/**` therefore
+    // intercepted nothing and the test failed for a reason that had nothing to
+    // do with the site. A predicate matches both forms.
     let blocked = 0;
-    await page.route("**/*supabase.co/**", (route) => {
-      blocked += 1;
-      return route.abort();
-    });
-    await gotoClean(page, "/events");
+    await page.route(
+      (url) =>
+        /supabase\.co\/storage/.test(url.href) ||
+        (url.pathname === "/_next/image" &&
+          /supabase\.co\/storage/.test(url.searchParams.get("url") ?? "")),
+      (route) => {
+        blocked += 1;
+        return route.abort();
+      }
+    );
+    // The published fixture article is the page guaranteed to carry real
+    // Supabase Storage artwork (cover hero plus four inline figures).
+    await gotoClean(page, `/articles/${publicArticle.slug}`);
     await revealAll(page);
     await waitForAppReady(page);
     expect(

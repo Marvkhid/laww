@@ -1,4 +1,9 @@
 import { test as base, expect, type Locator, type Page } from "@playwright/test";
+import {
+  ensurePublicArticle,
+  revalidateThroughAdmin,
+  type PublicArticle,
+} from "./public-article";
 
 /**
  * Browser-health fixture.
@@ -64,7 +69,29 @@ export type PageFaults = {
   httpErrors: string[];
 };
 
-export const test = base.extend<{ useFaults: PageFaults }>({
+export const test = base.extend<
+  { useFaults: PageFaults; publicArticle: PublicArticle },
+  { workerPublicArticle: PublicArticle }
+>({
+  /**
+   * One published, fully-populated article for the whole worker — see
+   * `public-article.ts` for why the suite provisions it instead of assuming a
+   * seeded row still exists.
+   */
+  workerPublicArticle: [
+    async ({ browser }, use) => {
+      const article = await ensurePublicArticle();
+      if (article.provisioned) await revalidateThroughAdmin(browser);
+      await use(article);
+    },
+    { scope: "worker" },
+  ],
+
+  publicArticle: async ({ workerPublicArticle }, use) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    await use(workerPublicArticle);
+  },
+
   useFaults: async ({ page }, use) => {
     const faults: PageFaults = {
       consoleErrors: [],

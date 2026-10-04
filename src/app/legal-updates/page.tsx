@@ -23,6 +23,7 @@ export default async function LegalUpdatesPage() {
           <SectionHeading
             eyebrow="Legal Updates"
             title="Breaking Legal News"
+            level="h1"
           />
           <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-stone">
             Stay informed with the latest legal developments, court decisions,

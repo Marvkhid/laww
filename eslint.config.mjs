@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright's HTML report bundles a copy of the trace viewer (CodeMirror,
+    // a service worker, source maps). It is gitignored but ESLint does not read
+    // .gitignore, so a single run added ~3000 findings from generated vendor
+    // code and buried the real ones.
+    "reports/playwright-html/**",
   ]),
 ]);
 

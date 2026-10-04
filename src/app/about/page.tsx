@@ -22,7 +22,8 @@ export default async function AboutPage() {
       {/* Hero Section */}
       <Reveal>
         <div className="mb-16">
-          <SectionHeading eyebrow="About" title="Africa's Premier Law Journal" />
+          <SectionHeading eyebrow="About" title="Africa's Premier Law Journal" 
+            level="h1"/>
           <p className="mt-6 max-w-3xl font-body text-lg leading-relaxed text-stone">
             Law Digest is a quarterly international publication published in the UK and distributed
             in the US, London, Ghana, South Africa, Canada, Nigeria, and East Africa.

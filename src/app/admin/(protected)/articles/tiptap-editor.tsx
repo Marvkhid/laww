@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
@@ -157,8 +157,31 @@ export function TiptapEditor({
   // stored body rather than trust an empty one — this is what stops an
   // autosave taken before hydration from wiping a real article body.
   const stateInputRef = useRef<HTMLInputElement>(null);
+  // Both hidden fields are React STATE, not uncontrolled inputs with a
+  // `defaultValue`. React rewrites an uncontrolled hidden input's live `.value`
+  // from `defaultValue` on every commit, so any unrelated re-render (a cover
+  // upload resolving, a toolbar toggle, the autosave status changing) silently
+  // reset `body` back to the initial content and `body_state` back to "".
+  // The server then saw "editor never mounted" plus an empty body and kept the
+  // stored one — which is null for a new record, so the body vanished between
+  // typing it and pressing Publish.
+  const [bodyValue, setBodyValue] = useState(() =>
+    initialContent ? JSON.stringify(initialContent) : ""
+  );
+  const [bodyReady, setBodyReady] = useState(false);
   const [showTextColor, setShowTextColor] = useState(false);
   const [showHighlightColor, setShowHighlightColor] = useState(false);
+
+  // Mirror the editor into both state (what React renders) and the DOM input
+  // (what FormData reads), so a flush taken in the same tick as an edit still
+  // sees the new document.
+  const syncBody = useCallback((ed: Editor) => {
+    const json = JSON.stringify(ed.getJSON());
+    if (hiddenInputRef.current) hiddenInputRef.current.value = json;
+    setBodyValue(json);
+    if (stateInputRef.current) stateInputRef.current.value = "ready";
+    setBodyReady(true);
+  }, []);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -212,23 +235,13 @@ export function TiptapEditor({
       },
     },
     onCreate: ({ editor }) => {
-      if (hiddenInputRef.current) {
-        hiddenInputRef.current.value = JSON.stringify(editor.getJSON());
-      }
-      // Declare the field trustworthy. Deliberately does NOT emit an input
-      // event: loading a page must never mark the form dirty and fire a
-      // spurious save. Subsequent payloads simply carry the unchanged body.
-      if (stateInputRef.current) {
-        stateInputRef.current.value = "ready";
-      }
+      syncBody(editor);
+      // Deliberately does NOT emit an input event: loading a page must never
+      // mark the form dirty and fire a spurious save. Subsequent payloads
+      // simply carry the unchanged body.
     },
     onUpdate: ({ editor }) => {
-      if (hiddenInputRef.current) {
-        hiddenInputRef.current.value = JSON.stringify(editor.getJSON());
-      }
-      if (stateInputRef.current) {
-        stateInputRef.current.value = "ready";
-      }
+      syncBody(editor);
       // Notify the autosave hook (and any form listeners) that the body
       // changed — the hidden input itself does not emit DOM events.
       hiddenInputRef.current?.dispatchEvent(
@@ -592,7 +605,8 @@ export function TiptapEditor({
         ref={hiddenInputRef}
         type="hidden"
         name={name}
-        defaultValue={initialContent ? JSON.stringify(initialContent) : ""}
+        value={bodyValue}
+        readOnly
       />
       {/*
         "ready" once the editor has mounted. A payload WITHOUT this flag
@@ -600,7 +614,13 @@ export function TiptapEditor({
         initialised), so the server leaves the stored body untouched
         instead of overwriting it with null. See readArticleInput.
       */}
-      <input ref={stateInputRef} type="hidden" name={`${name}_state`} defaultValue="" />
+      <input
+        ref={stateInputRef}
+        type="hidden"
+        name={`${name}_state`}
+        value={bodyReady ? "ready" : ""}
+        readOnly
+      />
     </div>
   );
 }

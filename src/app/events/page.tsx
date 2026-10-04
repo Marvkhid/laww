@@ -20,7 +20,8 @@ export default async function EventsPage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
       <Reveal>
-        <SectionHeading eyebrow="Events" title="Law Digest Events" />
+        <SectionHeading eyebrow="Events" title="Law Digest Events" 
+            level="h1"/>
         <p className="max-w-2xl font-body text-base leading-relaxed text-stone">
           Law Digest events spotlight the programmes, conferences, and editorial
           activities that bring Nigeria&rsquo;s legal community together. Browse

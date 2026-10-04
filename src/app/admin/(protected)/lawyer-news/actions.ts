@@ -261,14 +261,23 @@ export async function updateLawyerNewsAction(
   revalidatePath("/admin/lawyer-news");
   revalidatePath("/");
   revalidatePath(`/lawyer-in-the-news/${input.slug}`);
+  // A rename leaves the previous URL cached under the old slug, and public
+  // detail pages are cached for a year — invalidate both.
+  if (current.slug !== input.slug) {
+    revalidatePath(`/lawyer-in-the-news/${current.slug}`);
+  }
   redirect("/admin/lawyer-news");
 }
 
 export async function deleteLawyerNewsAction(id: string) {
+  // Read the slug BEFORE the row is gone, or the cached detail page for a
+  // deleted entry stays publicly readable for the rest of the cache window.
+  const current = await getLawyerNewsByIdForAdmin(id);
   const { error } = await deleteLawyerNews(id);
   if (error) return { error };
 
   revalidatePath("/admin/lawyer-news");
   revalidatePath("/");
+  if (current?.slug) revalidatePath(`/lawyer-in-the-news/${current.slug}`);
   return { error: null };
 }

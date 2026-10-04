@@ -19,7 +19,8 @@ export default async function PracticeAreasPage() {
     <div className="mx-auto max-w-6xl px-6 py-16">
       <Reveal>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <SectionHeading eyebrow="Practice Areas" title="Coverage areas" />
+          <SectionHeading eyebrow="Practice Areas" title="Coverage areas" 
+            level="h1"/>
           <LegalScales className="h-20 w-20 shrink-0 opacity-20" />
         </div>
         <ul className="grid gap-px overflow-hidden border border-hairline bg-hairline sm:grid-cols-2 md:grid-cols-3">

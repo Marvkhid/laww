@@ -126,11 +126,18 @@ async function applyGalleryChanges(eventId: string, formData: FormData): Promise
   }
 }
 
-function revalidateEventPaths(slug?: string) {
+/**
+ * Invalidate every route an event mutation can change.
+ *
+ * Public detail pages are prerendered with a one-year `s-maxage`, so an
+ * unlisted route stays readable long after the event was edited or deleted.
+ * Takes a list of slugs because a rename leaves the previous URL cached.
+ */
+function revalidateEventPaths(...slugs: Array<string | null | undefined>) {
   revalidatePath("/admin/events");
   revalidatePath("/events");
   revalidatePath("/");
-  if (slug) revalidatePath(`/events/${slug}`);
+  for (const slug of slugs) if (slug) revalidatePath(`/events/${slug}`);
 }
 
 /** Upload-on-select for event covers and gallery images. */
@@ -244,16 +251,17 @@ export async function updateEventAction(
 
   await applyGalleryChanges(eventId, formData);
 
-  revalidateEventPaths(input.slug);
+  revalidateEventPaths(current.slug, input.slug);
   redirect("/admin/events");
 }
 
 export async function deleteEventAction(id: string) {
+  // Read the slug BEFORE the row is gone: without it the event's own page
+  // (cached for a year) keeps serving after the delete.
+  const current = await getEventByIdForAdmin(id);
   const { error } = await deleteEvent(id);
   if (error) return { error };
 
-  revalidatePath("/admin/events");
-  revalidatePath("/events");
-  revalidatePath("/");
+  revalidateEventPaths(current?.slug);
   return { error: null };
 }

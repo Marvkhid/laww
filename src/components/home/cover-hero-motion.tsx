@@ -45,7 +45,14 @@ export function CoverHeroMotion({
         <span className="block h-1 w-1 bg-digest-red" />
       </motion.div>
 
-      <motion.h1
+      {/*
+        `h2`, not `h1`: this is the cover STORY's title, not the page's. The
+        page heading is the visually hidden `h1` in app/(home)/page.tsx, which
+        is always present — the cover story is optional, so keying the page's
+        only `h1` to it left the homepage with no heading at all whenever no
+        cover story was chosen.
+      */}
+      <motion.h2
         {...REVEAL_ATTRIBUTE}
         initial={hidden}
         animate={shown}
@@ -53,7 +60,7 @@ export function CoverHeroMotion({
         className="mt-3 font-display text-2xl italic leading-snug text-ink md:text-3xl lg:text-[2rem]"
       >
         {subjectName}
-      </motion.h1>
+      </motion.h2>
 
       <motion.p
         {...REVEAL_ATTRIBUTE}

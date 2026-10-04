@@ -10,7 +10,8 @@ export const metadata: Metadata = {
 export default function SearchPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <SectionHeading eyebrow="Search" title="Find what you're looking for" />
+      <SectionHeading eyebrow="Search" title="Find what you're looking for" 
+            level="h1"/>
       <SearchInput />
       <p className="mt-6 font-body text-sm text-stone">
         Search results aren&rsquo;t wired up yet — this page is the interface shell,

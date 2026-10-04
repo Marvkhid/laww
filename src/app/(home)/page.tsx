@@ -21,6 +21,17 @@ import { HomepageEvents } from "@/components/home/homepage-events";
 export default function Home() {
   return (
     <>
+      {/*
+        The homepage opens straight into the cover story, so it has no visible
+        page title — but every page still needs one `h1`, otherwise its heading
+        hierarchy starts at `h2` and neither a screen reader nor a crawler can
+        name the page from its own content. Visually hidden so the design is
+        unchanged.
+      */}
+      <h1 className="sr-only">
+        NG Law Digest — Nigerian legal news, updates and insights
+      </h1>
+
       {/* 1. Hero / Featured Story */}
       <CoverHero />
 

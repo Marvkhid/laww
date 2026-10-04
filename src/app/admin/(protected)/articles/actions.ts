@@ -276,14 +276,23 @@ function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
   return mode === "publish" || mode === "unpublish" ? mode : "save";
 }
 
-function revalidateArticlePaths(slug?: string) {
+/**
+ * Invalidate everything an article mutation can change.
+ *
+ * Public detail pages are prerendered with a one-year `s-maxage`, so a route
+ * that is not explicitly invalidated here stays publicly readable long after
+ * the content was edited, unpublished or deleted. That is why this takes the
+ * slug — and why it takes a LIST: a rename leaves the previous URL cached
+ * under the old slug, so both have to be invalidated.
+ */
+function revalidateArticlePaths(...slugs: Array<string | null | undefined>) {
   revalidatePath("/admin/articles");
   revalidatePath("/articles");
   revalidatePath("/");
   revalidatePath("/practice-areas/[slug]", "page");
   revalidatePath("/issues/[slug]", "page");
   revalidatePath("/contributors/[slug]", "page");
-  if (slug) revalidatePath(`/articles/${slug}`);
+  for (const slug of slugs) if (slug) revalidatePath(`/articles/${slug}`);
 }
 
 /** Upload-on-select: images persist the moment they are chosen. */
@@ -383,7 +392,7 @@ export async function createArticleAction(
         contributors
       );
       if (error) return { error };
-      revalidateArticlePaths(input.slug);
+      revalidateArticlePaths(current.slug, input.slug);
       redirect("/admin/articles");
     }
   }
@@ -403,7 +412,7 @@ export async function createArticleAction(
       contributors
     );
     if (error) return { error };
-    revalidateArticlePaths(input.slug);
+    revalidateArticlePaths(bySlug.slug, input.slug);
     redirect("/admin/articles");
   }
 
@@ -444,14 +453,18 @@ export async function updateArticleAction(
   const { error } = await updateArticle(id, input, contributors);
   if (error) return { error };
 
-  revalidateArticlePaths(input.slug);
+  revalidateArticlePaths(current.slug, input.slug);
   redirect("/admin/articles");
 }
 
 export async function toggleArticleStatusAction(id: string, nextStatus: "draft" | "published") {
   const { error } = await setArticleStatus(id, nextStatus);
   if (error) return { error };
-  revalidateArticlePaths();
+  // Unpublishing from the admin list used to revalidate nothing but the
+  // listings: the article's own page stayed live and readable, because that
+  // route is cached for a year and was never invalidated.
+  const current = await getArticleByIdForAdmin(id);
+  revalidateArticlePaths(current?.slug);
   return { error: null };
 }
 
