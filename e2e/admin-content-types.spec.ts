@@ -28,9 +28,14 @@ import { test, expect, gotoClean, clickStable } from "./fixtures";
  *   exactly one row, the body/description/fields present, publication state
  *   correct, and a reopen of /edit restoring everything.
  *
- * Cleanup is done through the admin client rather than the UI: these rows are
- * created only to be asserted on and removed, and the UI delete path is
- * already covered by the article specs.
+ * Cleanup goes through the admin UI, not straight to the database. The public
+ * listing pages are statically prerendered (`○ /events`, `○ /articles` in the
+ * build output), so they are only refreshed when an admin action calls
+ * `revalidatePath`. Deleting the row with PostgREST leaves the prerendered HTML
+ * in place — which is how a deleted event's cover image survived on the public
+ * /events page as a broken image, and made the resilience spec's storage-block
+ * assertion see zero requests. Clicking Delete in the admin runs the real
+ * action, which revalidates, so the CMS is left exactly as it was found.
  */
 
 const EMAIL = process.env.E2E_ADMIN_EMAIL;
@@ -94,6 +99,38 @@ async function waitForSaved(page: Page) {
     page.getByText(SAVED).first(),
     "autosave never reported a confirmed save"
   ).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * Delete the row that contains `rowText` by clicking its Delete button.
+ *
+ * The three list pages mark up their rows differently (`li` on legal updates
+ * and call for papers, a bordered `div` on events), so the row is found by
+ * asking for the innermost element that both contains the text and holds a
+ * Delete button, rather than by assuming one container shape.
+ */
+async function deleteRowViaUi(
+  page: Page,
+  listPath: string,
+  rowText: string
+) {
+  try {
+    await gotoClean(page, listPath);
+    const row = page
+      .locator(
+        `xpath=//*[contains(normalize-space(string(.)), ${JSON.stringify(rowText)})][.//button[normalize-space()='Delete']][last()]`
+      )
+      .first();
+    if (!(await row.count())) return;
+    page.once("dialog", (d) => d.accept());
+    await row.getByRole("button", { name: /^Delete$/ }).click();
+    await expect(
+      page.getByText(rowText).first(),
+      "the row was not removed from the admin list"
+    ).toHaveCount(0, { timeout: 20_000 });
+  } catch {
+    // Cleanup must never mask the real result; the rows are prefixed [E2E].
+  }
 }
 
 /** Type into the shared rich-text editor. */
@@ -193,6 +230,7 @@ test.describe("cross-content-type autosave and publish", () => {
 
       expect(useFaults.pageErrors, "the legal-update flow threw").toEqual([]);
     } finally {
+      await deleteRowViaUi(page, "/admin/legal-updates", headline);
       await sb.from("legal_updates").delete().eq("headline", headline);
     }
   });
@@ -263,6 +301,7 @@ test.describe("cross-content-type autosave and publish", () => {
         "the description was lost on reopen"
       ).toHaveValue(new RegExp("must survive"));
     } finally {
+      await deleteRowViaUi(page, "/admin/events", title);
       await sb.from("events").delete().eq("title", title);
     }
   });
@@ -309,6 +348,7 @@ test.describe("cross-content-type autosave and publish", () => {
       await expect(page.locator('input[name="contact_email"]')).toHaveValue(email);
       await expect(page.locator('input[name="word_limit"]')).toHaveValue("1500");
     } finally {
+      await deleteRowViaUi(page, "/admin/call-for-papers", issueMonth);
       await sb.from("call_for_papers").delete().eq("issue_month", issueMonth);
     }
   });
