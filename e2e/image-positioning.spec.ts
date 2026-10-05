@@ -204,6 +204,43 @@ async function seedArticle(
   return { id: data.id, slug: data.slug };
 }
 
+/**
+ * Take a seeded row back out through the admin's Delete button.
+ *
+ * These rows are inserted straight into Postgres, so a cleanup that only
+ * calls `.delete()` never reaches `revalidatePath` — and because `/`,
+ * `/articles` and `/articles/<slug>` are statically prerendered, the cached
+ * HTML keeps listing (and serving) the row long after it is gone. That is
+ * exactly how "[E2E] …" probe titles ended up visible on the live site.
+ *
+ * The admin delete action revalidates every path the row appeared on, so the
+ * UI path runs first; the direct `.delete()` stays behind it as a fallback
+ * for when the row cannot be reached in the list (failed login, list still
+ * loading, test aborted early).
+ */
+async function removeSeededArticle(
+  page: import("@playwright/test").Page,
+  id: string,
+  title: string,
+  sb: Awaited<ReturnType<typeof adminClient>>
+) {
+  try {
+    await gotoClean(page, "/admin/articles");
+    const row = page.locator("li").filter({ hasText: title });
+    if (await row.count()) {
+      page.once("dialog", (d) => d.accept());
+      await row.first().getByRole("button", { name: /^Delete$/ }).click();
+      await expect(page.locator("li").filter({ hasText: title })).toHaveCount(0, {
+        timeout: 20_000,
+      });
+      return;
+    }
+  } catch {
+    // Cleanup must never mask the real result; fall through to the raw delete.
+  }
+  await sb.from("articles").delete().eq("id", id);
+}
+
 test.describe("image positioning (Images 1–4)", () => {
   test.setTimeout(240_000);
   test.skip(!HAS_CREDS, "No E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD supplied.");
@@ -301,7 +338,7 @@ test.describe("image positioning (Images 1–4)", () => {
         "images are stacking vertically after the article text"
       ).toBeLessThanOrEqual(1);
     } finally {
-      await sb.from("articles").delete().eq("id", created.id);
+      await removeSeededArticle(page, created.id, title, sb);
     }
   });
 
@@ -347,7 +384,7 @@ test.describe("image positioning (Images 1–4)", () => {
         "rows with no stored position fell back to stacking after the text"
       ).toBe(0);
     } finally {
-      await sb.from("articles").delete().eq("id", created.id);
+      await removeSeededArticle(page, created.id, title, sb);
     }
   });
 
@@ -378,7 +415,7 @@ test.describe("image positioning (Images 1–4)", () => {
         ).toHaveValue(chosen[i]);
       }
     } finally {
-      await sb.from("articles").delete().eq("id", created.id);
+      await removeSeededArticle(page, created.id, title, sb);
     }
   });
 });

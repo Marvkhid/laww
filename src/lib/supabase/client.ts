@@ -26,6 +26,35 @@ export type UntypedSupabaseClient = SupabaseClient;
 // instances detected" warning during SSR streaming.
 let cachedClient: SupabaseClient | null = null;
 
+/**
+ * How long one Supabase read may be reused by Next's data cache.
+ *
+ * WHY THIS EXISTS (measured, not theoretical)
+ * --------------------------------------------
+ * Next caches GET `fetch`es in `.next/cache/fetch-cache`. With no explicit
+ * TTL it keeps them for a YEAR (`revalidate: 31536000`) and, crucially,
+ * `next build` reads that entry back on the next build instead of asking
+ * Postgres again. Observed on this project: the cached row for
+ * `warehouse-got-burnt-in-laspotech-nigeria` still said `body: 8 blocks,
+ * image_1..4_url: null` while the live row held 48 blocks and all four image
+ * URLs — so every rebuild silently prerendered a months-old article, the
+ * four uploaded images never reached the page, and listings could resurrect
+ * rows that had since been deleted.
+ *
+ * Admin writes already invalidate their own data: `revalidatePath` expires
+ * the implicit `_N_T_<pathname>` tag, which is one of the soft tags every
+ * fetch on that pathname is read with. What was missing is a ceiling for
+ * everything else — a rebuild, a Supabase dashboard edit, a test that writes
+ * straight to the table. This TTL is that ceiling: the page re-renders at
+ * most this old, and admin actions still refresh it instantly.
+ *
+ * It must NOT be `no-store`: that turns every public page dynamic and was
+ * measured here to empty the prerendered output at build time (see
+ * `fetch-timeout.ts`). `revalidate` keeps the pages static/ISR and only
+ * bounds how stale their data may be.
+ */
+export const CMS_DATA_REVALIDATE_SECONDS = 300;
+
 export function createSupabaseServerClient(): UntypedSupabaseClient {
   if (cachedClient) return cachedClient;
 
@@ -41,6 +70,16 @@ export function createSupabaseServerClient(): UntypedSupabaseClient {
 
   cachedClient = createClient(url, key, {
     auth: { persistSession: false },
+    global: {
+      // Every read carries an explicit TTL, so no query can silently opt in
+      // to the one-year default. Writes (POST/PATCH/DELETE) are never cached
+      // by Next, so this changes nothing about saving.
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, {
+          ...init,
+          next: { revalidate: CMS_DATA_REVALIDATE_SECONDS },
+        }),
+    },
   });
   return cachedClient;
 }

@@ -90,6 +90,32 @@ async function deleteByTitle(page: Page, title: string) {
   }
 }
 
+/**
+ * Remove a seeded row through the admin list, not around it.
+ *
+ * A direct `.delete()` never reaches `revalidatePath`, so the prerendered
+ * HTML for `/`, `/articles` and the public listings keeps serving the row
+ * after it is gone — that is where the visible "[E2E] …" probe titles on the
+ * live site came from. The admin delete button goes through the server
+ * action, which revalidates; the raw delete below is only the fallback.
+ */
+async function deleteViaUi(page: Page, listPath: string, title: string) {
+  try {
+    await gotoClean(page, listPath);
+    const row = page
+      .locator(
+        `xpath=//*[contains(normalize-space(string(.)), ${JSON.stringify(title)})][.//button[normalize-space()='Delete']][last()]`
+      )
+      .first();
+    if (!(await row.count())) return;
+    page.once("dialog", (d) => d.accept());
+    await row.getByRole("button", { name: /^Delete$/ }).click();
+    await expect(row).toHaveCount(0, { timeout: 20_000 });
+  } catch {
+    // Cleanup must never mask the real result.
+  }
+}
+
 /** The columns this test asserts on, typed explicitly (PostgREST cannot infer
  *  a row type from a concatenated select string). */
 type SavedArticle = {
@@ -366,6 +392,7 @@ test.describe("article publish workflow", () => {
       expect(JSON.stringify(data![0].content)).toContain(question);
       expect(data![0].answer_options?.length).toBe(2);
     } finally {
+      await deleteViaUi(page, "/admin/legal-insights", question);
       await sb.from("legal_insights").delete().eq("title", question);
     }
   });
@@ -455,8 +482,8 @@ test.describe("article publish workflow", () => {
         "the cover uploaded after the draft was deleted was lost"
       ).toBeTruthy();
     } finally {
-      await sb.from("articles").delete().eq("title", title);
       await deleteByTitle(page, title);
+      await sb.from("articles").delete().eq("title", title);
     }
   });
 });

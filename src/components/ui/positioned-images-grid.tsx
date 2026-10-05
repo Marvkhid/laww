@@ -22,7 +22,13 @@ import {
  * The position vocabulary itself lives in `@/lib/image-position`, so this grid
  * and `EditorialBody` can never disagree about what a position means.
  *
- * Aspect ratios are preserved (width 100%, height auto), so nothing is
+ * SIZE. Images 1–4 are editorial artwork, not heroes: they render at ~42% of
+ * the container from `md` up (the same order of magnitude as the 46% floated
+ * figures in `EditorialBody`), and take the full column below `md` so a phone
+ * never gets a postage-stamp image. `full-width` keeps its meaning and spans
+ * the container at every breakpoint.
+ *
+ * Aspect ratios are preserved (height auto, `object-contain`), so nothing is
  * distorted, cropped or overlapped, on any viewport.
  */
 const BAND_ORDER = { top: 0, center: 1, bottom: 2 } as const;
@@ -54,7 +60,7 @@ export function PositionedImageGrid({
   return (
     <div
       data-testid="positioned-image-grid"
-      className="grid gap-6 sm:grid-cols-2"
+      className="flex flex-wrap gap-6"
     >
       {ordered.map((image, index) => (
         <figure
@@ -62,7 +68,9 @@ export function PositionedImageGrid({
           data-testid="positioned-image"
           data-position={image.position ?? ""}
           data-full-width={isFullWidthPosition(image.position) ? "true" : "false"}
-          className={isFullWidthPosition(image.position) ? "sm:col-span-2" : undefined}
+          className={
+            isFullWidthPosition(image.position) ? "w-full" : "w-full md:w-[42%]"
+          }
         >
           <div className="overflow-hidden border border-hairline bg-hairline/10">
             <SafeImage
