@@ -1,5 +1,10 @@
 import type { ArticleImage } from "@/lib/types";
 import { SafeImage } from "@/components/ui/safe-image";
+import {
+  bandFromPosition,
+  isFullWidthPosition,
+  parseImagePosition,
+} from "@/lib/image-position";
 
 /**
  * Fallback rendering for the Image 1–4 position system.
@@ -9,27 +14,25 @@ import { SafeImage } from "@/components/ui/safe-image";
  * entirely is exactly the "uploaded but never rendered" failure this system
  * exists to prevent. This grid honours the admin's position choice instead:
  *
- *   top-*     → first row      bottom-* → last row
- *   *-left    → left column    *-right  → right column
+ *   top-*      → first row      bottom-* → last row
+ *   centre-*   → middle row
+ *   *-left     → left column    *-right  → right column
  *   full-width → spans both columns
+ *
+ * The position vocabulary itself lives in `@/lib/image-position`, so this grid
+ * and `EditorialBody` can never disagree about what a position means.
  *
  * Aspect ratios are preserved (width 100%, height auto), so nothing is
  * distorted, cropped or overlapped, on any viewport.
  */
+const BAND_ORDER = { top: 0, center: 1, bottom: 2 } as const;
+
 function band(position: string | null | undefined): number {
-  const p = (position ?? "").toLowerCase();
-  if (p.includes("top")) return 0;
-  if (p.includes("bottom")) return 2;
-  return 1;
+  return BAND_ORDER[bandFromPosition(position)];
 }
 
 function isLeft(position: string | null | undefined): boolean {
-  return (position ?? "").toLowerCase().includes("left");
-}
-
-function isFullWidth(position: string | null | undefined): boolean {
-  const p = (position ?? "").toLowerCase();
-  return p.includes("full") || p === "center";
+  return parseImagePosition(position).side === "left";
 }
 
 export function PositionedImageGrid({
@@ -58,8 +61,8 @@ export function PositionedImageGrid({
           key={`${image.url}-${index}`}
           data-testid="positioned-image"
           data-position={image.position ?? ""}
-          data-full-width={isFullWidth(image.position) ? "true" : "false"}
-          className={isFullWidth(image.position) ? "sm:col-span-2" : undefined}
+          data-full-width={isFullWidthPosition(image.position) ? "true" : "false"}
+          className={isFullWidthPosition(image.position) ? "sm:col-span-2" : undefined}
         >
           <div className="overflow-hidden border border-hairline bg-hairline/10">
             <SafeImage

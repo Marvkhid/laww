@@ -205,16 +205,22 @@ export function useAutosave({
       // in this window must be able to see that a request is still open.
       activeRef.current += 1;
       const task = chainRef.current.then(async () => {
+        const hadId = idRef.current !== null;
         try {
           const result = await saveRef.current(idRef.current, payload);
           if (result && result.error) {
             throw new Error(result.error);
           }
-          if (result?.id && !idRef.current) {
+          // Adopt any id the server hands back that differs from the one we
+          // hold. Previously this only ran when we held NO id, which meant a
+          // stale id (a draft deleted in another tab, or one named by a local
+          // recovery snapshot) could never be replaced: every autosave kept
+          // failing against a row that no longer existed.
+          if (result?.id && result.id !== idRef.current) {
             idRef.current = result.id;
             setDraftId(result.id);
             syncIdField();
-            onDraftCreatedRef.current?.(result.id);
+            if (!hadId) onDraftCreatedRef.current?.(result.id);
           }
           if (result?.slug) onSlugResolvedRef.current?.(result.slug);
           writeSnapshotNow(payload);
@@ -355,7 +361,23 @@ export function useAutosave({
     const onSubmit = (event: Event) => {
       clearTimers();
       pausedRef.current = true;
-      if (submittingRef.current) return; // this is our own re-submit: go through
+
+      // This IS our own re-submit, coming back from `requestSubmit()` below.
+      // Clear the guard here — not in the `finally` block before the
+      // re-submit is dispatched — and let the submit proceed.
+      //
+      // Clearing it too early was an infinite loop: a FAILED autosave leaves
+      // `dirtyRef` true, so on re-entry the guard was already down, the
+      // "nothing to wait for" test failed, and the handler cancelled the
+      // submit again. The user's Save/Publish button therefore spun forever
+      // and nothing was ever written. The guard has to stay up across
+      // exactly one re-submit, and the explicit Save must always get through
+      // even when autosave is failing.
+      if (submittingRef.current) {
+        submittingRef.current = false;
+        return;
+      }
+
       if (activeRef.current === 0 && !dirtyRef.current) return;
 
       event.preventDefault();
@@ -369,7 +391,6 @@ export function useAutosave({
           // Autosave failures are surfaced by the status line; the user's
           // explicit Save must still be allowed to run.
         } finally {
-          submittingRef.current = false;
           form.requestSubmit();
         }
       })();

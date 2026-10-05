@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
-import { test, expect, gotoClean, waitForAppReady, clickStable } from "./fixtures";
+import { test, expect, gotoClean, waitForAppReady, clickStable, clickUntilNavigation } from "./fixtures";
 
 /** A signed-in Supabase client, for asserting what actually reached the DB. */
 async function adminClient() {
@@ -102,6 +102,12 @@ type SavedArticle = {
 } & Record<string, unknown>;
 
 test.describe("article publish workflow", () => {
+  // This drives the entire lifecycle in one test — five uploads, autosave,
+  // Publish, database assertions, the public page, then Unpublish and a 404
+  // check — so it needs more than the 90s global default. WebKit sits right at
+  // that ceiling, where a slow run was reported as a product failure.
+  test.setTimeout(180_000);
+
   test.skip(
     !HAS_CREDS,
     "No E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD supplied — the publish workflow " +
@@ -163,8 +169,11 @@ test.describe("article publish workflow", () => {
       await expect(page.getByText(SAVED).first()).toBeVisible({ timeout: 40_000 });
 
       // ── Save & Publish ────────────────────────────────────────────────
-      await clickStable(page.getByRole("button", { name: /^Publish$/ }));
-      await page.waitForURL(/\/admin\/articles(\/)?$/, { timeout: 40_000 });
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /^Publish$/ }),
+        /\/admin\/articles(\/)?$/
+      );
 
       // Exactly one row, and it is published (not left as a draft).
       const row = page.locator("li").filter({ hasText: title });
@@ -214,11 +223,17 @@ test.describe("article publish workflow", () => {
 
       // Re-submitting Publish must not duplicate it. Open the editor and
       // publish again; the list must still hold exactly one row.
-      await row.getByRole("link", { name: "Edit" }).click();
-      await page.waitForURL(/\/admin\/articles\/.+\/edit/, { timeout: 30_000 });
+      await clickUntilNavigation(
+        page,
+        row.getByRole("link", { name: "Edit" }),
+        /\/admin\/articles\/.+\/edit/
+      );
       const slug = saved.slug;
-      await clickStable(page.getByRole("button", { name: /Save & Publish|^Publish$/ }));
-      await page.waitForURL(/\/admin\/articles(\/)?$/, { timeout: 40_000 });
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /Save & Publish|^Publish$/ }),
+        /\/admin\/articles(\/)?$/
+      );
       await expect(
         page.locator("li").filter({ hasText: title }),
         "a second Publish created a duplicate article"
@@ -352,6 +367,96 @@ test.describe("article publish workflow", () => {
       expect(data![0].answer_options?.length).toBe(2);
     } finally {
       await sb.from("legal_insights").delete().eq("title", question);
+    }
+  });
+
+  /**
+   * A draft that disappears must not wedge the editor.
+   *
+   * Reproduced from the client report "Save failed. Retry. This draft no longer
+   * exists. Reload the editor", "images are not saving", and "Save/Publish just
+   * rolls". The editor adopts the id of the draft row it created; if that row
+   * goes away (deleted in another tab, or named by a stale localStorage
+   * recovery snapshot) every autosave used to fail hard. And because a failed
+   * autosave leaves the form dirty, the submit handler kept cancelling its own
+   * re-submit — an infinite loop, so Save and Publish never wrote anything and
+   * the uploaded cover was silently lost.
+   */
+  test("a deleted draft does not wedge the editor — autosave heals, Publish still works", async ({
+    page,
+  }) => {
+    await login(page);
+    const ts = Date.now();
+    const title = `[E2E] deleted draft ${ts}`;
+    const marker = `E2EDEAD${ts}`;
+    const sb = await adminClient();
+
+    try {
+      await gotoClean(page, "/admin/articles/new");
+      await page.locator('input[name="title"]').first().fill(title);
+      const box = page.locator(".ProseMirror").first();
+      await expect(box, "the rich-text editor did not render").toBeVisible({
+        timeout: 20_000,
+      });
+      await box.click();
+      await page.keyboard.type(`${marker} first paragraph.`);
+      await expect(page.getByText(SAVED).first()).toBeVisible({ timeout: 30_000 });
+
+      // The draft row now exists and the form is holding its id.
+      const draftId = await page.locator('input[name="autosave_id"]').inputValue();
+      expect(draftId, "autosave never created a draft row").toBeTruthy();
+
+      // …and now it disappears, exactly as if deleted in another tab.
+      await sb.from("articles").delete().eq("id", draftId);
+
+      // Keep editing. Autosave must recover on its own.
+      await box.click();
+      await page.keyboard.type(` ${marker} written after the draft was deleted.`);
+      await expect(
+        page.getByText(SAVED).first(),
+        "autosave never recovered from the deleted draft"
+      ).toBeVisible({ timeout: 30_000 });
+      await expect(
+        page.getByText(/Save failed/i),
+        "autosave reported a failure instead of recovering"
+      ).toHaveCount(0);
+
+      // An upload after the loss must survive too.
+      await page
+        .locator('input[name="cover_image_file"]')
+        .setInputFiles({ name: "cover.png", mimeType: "image/png", buffer: PNG_1PX });
+      await expect(
+        page.locator('img[alt="Upload cover image"], img[alt="Replace cover image"]').first()
+      ).toBeVisible({ timeout: 30_000 });
+      await waitForQuiet(page);
+      await expect(page.getByText(SAVED).first()).toBeVisible({ timeout: 40_000 });
+
+      // Publish must actually publish — this is the step that used to spin
+      // forever without ever submitting.
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /^Publish$/ }),
+        /\/admin\/articles(\/)?$/
+      );
+
+      const { data: raw } = await sb
+        .from("articles")
+        .select("id,status,body,cover_image_url")
+        .eq("title", title);
+      const rows = raw as unknown as Array<Record<string, unknown>> | null;
+      expect(rows?.length, "the article was not created exactly once").toBe(1);
+      expect(rows![0].status, "the article was not published").toBe("published");
+      expect(
+        JSON.stringify(rows![0].body),
+        "the body written after the draft was deleted was lost"
+      ).toContain(marker);
+      expect(
+        rows![0].cover_image_url,
+        "the cover uploaded after the draft was deleted was lost"
+      ).toBeTruthy();
+    } finally {
+      await sb.from("articles").delete().eq("title", title);
+      await deleteByTitle(page, title);
     }
   });
 });

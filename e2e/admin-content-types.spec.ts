@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
-import { test, expect, gotoClean, clickStable } from "./fixtures";
+import { test, expect, gotoClean, clickUntilNavigation } from "./fixtures";
 
 /**
  * Cross-content-type regression: the same workflow the article specs assert,
@@ -202,8 +202,11 @@ test.describe("cross-content-type autosave and publish", () => {
         .toContain(marker);
       await expect(page.locator('input[name="body_state"]')).toHaveValue("ready");
 
-      await clickStable(page.getByRole("button", { name: /^Publish$/ }));
-      await page.waitForURL(/\/admin\/legal-updates(\/)?$/, { timeout: 40_000 });
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /^Publish$/ }),
+        /\/admin\/legal-updates(\/)?$/
+      );
       await expect(
         page.getByText(headline).first(),
         "the update does not appear in the admin list"
@@ -284,8 +287,11 @@ test.describe("cross-content-type autosave and publish", () => {
       await waitForQuiet(page);
       await waitForSaved(page);
 
-      await clickStable(page.getByRole("button", { name: /^Publish$/ }));
-      await page.waitForURL(/\/admin\/events(\/)?$/, { timeout: 40_000 });
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /^Publish$/ }),
+        /\/admin\/events(\/)?$/
+      );
       await expect(
         page.getByText(title).first(),
         "the event does not appear in the admin list"
@@ -341,8 +347,11 @@ test.describe("cross-content-type autosave and publish", () => {
 
       // The submit races an in-flight autosave by design (autosave has already
       // created the row), so this is exactly where a duplicate would appear.
-      await clickStable(page.getByRole("button", { name: /^Create$/ }));
-      await page.waitForURL(/\/admin\/call-for-papers(\/)?$/, { timeout: 40_000 });
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /^Create$/ }),
+        /\/admin\/call-for-papers(\/)?$/
+      );
 
       const { data } = await sb
         .from("call_for_papers")

@@ -185,7 +185,14 @@ export async function autosaveEventAction(
 
   const current = await getEventByIdForAdmin(id);
   if (!current) {
-    return { id, error: "This draft no longer exists. Reload the editor." };
+    // Stale id (row deleted elsewhere, or named by an old recovery snapshot).
+    // Recover instead of wedging: the editor still holds the user's work, so
+    // start a fresh draft and hand its id back. See articles/actions.ts.
+    input.published = false;
+    const recreated = await createEvent(input);
+    if (recreated.id) await attachEventImages(recreated.id, readPendingGallery(formData));
+    if (recreated.error) return { id, error: recreated.error };
+    return { id: recreated.id, error: null };
   }
   input.published = current.published;
   const { error } = await updateEvent(id, input);

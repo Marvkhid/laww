@@ -101,7 +101,12 @@ export async function autosaveHighlightAction(
 
   const current = existing;
   if (!current) {
-    return { id, error: "This draft no longer exists. Reload the editor." };
+    // Stale id (row deleted elsewhere, or named by an old recovery snapshot).
+    // Recover instead of wedging: the editor still holds the user's work, so
+    // start a fresh draft and hand its id back. See articles/actions.ts.
+    const recreated = await createHighlight({ ...input, published: false });
+    if (recreated.error) return { id, error: recreated.error };
+    return { id: recreated.id, error: null };
   }
   const { error } = await updateHighlight(id, { ...input, published: current.published });
   if (error) return { id, error };

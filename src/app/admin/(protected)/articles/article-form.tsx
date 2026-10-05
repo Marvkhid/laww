@@ -25,6 +25,10 @@ import {
   pagesForRow,
 } from "@/lib/page-visibility";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
+import {
+  IMAGE_POSITIONS,
+  defaultPositionForSlot,
+} from "@/lib/image-position";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
 import {
   AutosaveRecoveryBanner,
@@ -34,17 +38,9 @@ import {
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
-const POSITION_OPTIONS = [
-  ["top-right", "Top / Right"],
-  ["top-left", "Top / Left"],
-  ["bottom-right", "Bottom / Right"],
-  ["bottom-left", "Bottom / Left"],
-  ["center-right", "Centre / Right"],
-  ["center-left", "Centre / Left"],
-  ["full-width", "Full Width"],
-] as const;
-
-const DEFAULT_POSITIONS = ["top-right", "bottom-left", "center-right", "center-left"] as const;
+// One vocabulary for every admin form and both published-page renderers —
+// see `@/lib/image-position`.
+const POSITION_OPTIONS = IMAGE_POSITIONS;
 
 export function ArticleForm({
   action,
@@ -369,11 +365,11 @@ export function ArticleForm({
                 <SelectField
                   label="Position"
                   name={posKey}
-                  defaultValue={initial?.[posKey] ?? DEFAULT_POSITIONS[num - 1]}
+                  defaultValue={initial?.[posKey] ?? defaultPositionForSlot(num)}
                   index={i}
                 >
-                  {POSITION_OPTIONS.map(([value, text]) => (
-                    <option key={value} value={value}>{text}</option>
+                  {POSITION_OPTIONS.map((pos) => (
+                    <option key={pos.value} value={pos.value}>{pos.label}</option>
                   ))}
                 </SelectField>
               </div>

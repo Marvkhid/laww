@@ -116,7 +116,12 @@ export async function autosaveLegalInsightAction(
 
   const current = existing;
   if (!current) {
-    return { id, error: "This question no longer exists. Reload the editor." };
+    // Stale id (row deleted elsewhere, or named by an old recovery snapshot).
+    // Recover instead of wedging: the editor still holds the user's work, so
+    // start a fresh draft and hand its id back. See articles/actions.ts.
+    const recreated = await createLegalInsight({ ...input, published: false });
+    if (recreated.error) return { id, error: recreated.error };
+    return { id: recreated.id, error: null };
   }
   const { error } = await updateLegalInsight(id, { ...input, published: current.published });
   if (error) return { id, error };

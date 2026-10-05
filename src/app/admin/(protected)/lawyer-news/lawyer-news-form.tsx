@@ -24,25 +24,18 @@ import {
   AutosaveStatus,
   SaveButtons,
 } from "@/components/forms/kit/autosave-status";
+import {
+  IMAGE_POSITIONS,
+  defaultPositionForSlot,
+} from "@/lib/image-position";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
-const POSITIONS = [
-  { value: "top-right", label: "Top / Right" },
-  { value: "top-left", label: "Top / Left" },
-  { value: "bottom-right", label: "Bottom / Right" },
-  { value: "bottom-left", label: "Bottom / Left" },
-  { value: "center-right", label: "Centre / Right" },
-  { value: "center-left", label: "Centre / Left" },
-  { value: "full-width", label: "Full Width" },
-];
-
-const DEFAULT_POSITIONS: Record<number, string> = {
-  1: "top-right",
-  2: "bottom-left",
-  3: "center-right",
-  4: "center-left",
-};
+// The position vocabulary and per-slot defaults are defined once in
+// `@/lib/image-position` and shared with the article editor, the legal-update
+// editor and both published-page renderers, so a position cannot mean one
+// thing in the dropdown and another on the page.
+const POSITIONS = IMAGE_POSITIONS;
 
 function InlineImageField({
   num,
@@ -130,7 +123,7 @@ function InlineImageField({
           label="Position"
           id={`image_${num}_position`}
           name={`image_${num}_position`}
-          defaultValue={existingPosition ?? DEFAULT_POSITIONS[num]}
+          defaultValue={existingPosition ?? defaultPositionForSlot(num)}
         >
           {POSITIONS.map((pos) => (
             <option key={pos.value} value={pos.value}>

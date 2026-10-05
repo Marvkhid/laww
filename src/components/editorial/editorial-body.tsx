@@ -29,6 +29,11 @@ import {
   EditorialFullFigure,
   type EditorialImageInput,
 } from "./editorial-figure";
+import {
+  BAND_TARGET,
+  parseImagePosition,
+  type ImageBand,
+} from "@/lib/image-position";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -48,18 +53,15 @@ function isEmbeddedImage(block: JSONContent): boolean {
 }
 
 function isFullWidthPosition(position?: string | null): boolean {
-  const p = (position ?? "").toLowerCase();
-  return p.includes("full") || p.includes("center");
+  return parseImagePosition(position).span === "full";
 }
 
 function sideFromPosition(
   position: string | null | undefined,
   altIndex: number
 ): "left" | "right" {
-  const p = (position ?? "").toLowerCase();
-  if (p.includes("right")) return "right";
-  if (p.includes("left")) return "left";
-  return altIndex % 2 === 0 ? "left" : "right";
+  const spec = parseImagePosition(position);
+  return spec.side ?? (altIndex % 2 === 0 ? "left" : "right");
 }
 
 // ─── Segment planning ──────────────────────────────────────────────────────
@@ -106,18 +108,27 @@ export function planEditorialLayout(
 
   if (textItems.length === 0 && anchors.length === 0) return [];
 
-  // Images that float alongside text vs. images that break out full width.
-  const floatable = images.filter((i) => i.url && !isFullWidthPosition(i.position));
-  const fullWidthImages = images.filter((i) => i.url && isFullWidthPosition(i.position));
+  // Every uploaded image gets a place in the document derived from its
+  // position: the band (top / centre / bottom) says WHERE, and the side
+  // (left / right) says WHICH SIDE once it is there.
+  //
+  // Previously only floated images were placed — by even character-proportion
+  // spreading, which ignored the band entirely — and full-width images were
+  // appended after every segment, so they always ended up below the article
+  // regardless of the slot they occupied.
+  const placeable = images.filter((i) => i.url);
+  const floatCount = placeable.filter((i) => !isFullWidthPosition(i.position)).length;
 
-  if (floatable.length > 0 && textItems.length > 0) {
+  if (placeable.length > 0 && textItems.length > 0) {
     const totalChars = textItems.reduce((s, b) => s + nodeChars(b), 0);
     const usedPositions = new Set(anchors.map((a) => a.textIndex));
 
-    floatable.forEach((img, k) => {
-      // Spread images evenly through the article by character proportion, so
-      // text before and after every image still has room to breathe.
-      const target = totalChars > 0 ? (totalChars * (k + 1)) / (floatable.length + 1) : 0;
+    // Resolve each image's band to an index, keeping document order stable:
+    // earlier bands land earlier even when two images pick the same index.
+    const wanted = placeable.map((image) => {
+      const band: ImageBand = parseImagePosition(image.position).band;
+      const fraction = BAND_TARGET[band];
+      const target = totalChars * fraction;
       let cum = 0;
       let idx = textItems.length;
       for (let i = 0; i < textItems.length; i++) {
@@ -127,15 +138,46 @@ export function planEditorialLayout(
           break;
         }
       }
-      while (usedPositions.has(idx) && idx < textItems.length) idx++;
-      usedPositions.add(idx);
-      anchors.push({ image: img, textIndex: idx, embedded: false });
+      return { image, band, idx };
     });
+
+    // Two images can resolve to the same index (e.g. top-left and top-right,
+    // or several images sharing one band). Spread them apart instead of
+    // dropping one.
+    //
+    // The cascade has to run in DOCUMENT order, not slot order: the default
+    // positions are top, bottom, centre, centre, so slot order is not band
+    // order. Cascading in slot order pushed a later image's earlier band past
+    // the end of the article. Sorting by resolved index first makes the
+    // sequence monotonic, so each image only ever moves forward from its own
+    // band target.
+    wanted.sort((a, b) => a.idx - b.idx);
+    for (let i = 1; i < wanted.length; i++) {
+      if (wanted[i].idx <= wanted[i - 1].idx) wanted[i].idx = wanted[i - 1].idx + 1;
+    }
+    // Leave at least one block of text after the last image, so a floated
+    // image always has prose to wrap beside instead of collapsing into a
+    // full-width breakout at the very end.
+    const maxIdx = Math.max(0, textItems.length - 1);
+    wanted.forEach(({ image, idx }) => {
+      let final = Math.min(idx, maxIdx);
+      let guard = 0;
+      while (usedPositions.has(final) && final < maxIdx && guard < textItems.length) {
+        final++;
+        guard++;
+      }
+      usedPositions.add(final);
+      anchors.push({ image, textIndex: final, embedded: false });
+    });
+  } else {
+    for (const image of placeable) {
+      anchors.push({ image, textIndex: textItems.length, embedded: false });
+    }
   }
 
   anchors.sort((a, b) => a.textIndex - b.textIndex || (a.embedded ? -1 : 1));
 
-  if (anchors.length === 0 && floatable.length === 0 && fullWidthImages.length === 0) {
+  if (anchors.length === 0) {
     return [{ kind: "text", blocks: textItems }];
   }
 
@@ -143,19 +185,35 @@ export function planEditorialLayout(
   let cursor = 0;
   let altCounter = 0;
 
-  for (const anchor of anchors) {
+  for (let a = 0; a < anchors.length; a++) {
+    const anchor = anchors[a];
+    // Never let one image's text run past the next image's anchor. Without
+    // this a single unit's generous budget swallows the remainder of the
+    // article, and every later image — including a full-width one — ends up
+    // rendered after all the text, which is the bug being fixed here.
+    const nextAnchorIndex = a + 1 < anchors.length ? anchors[a + 1].textIndex : textItems.length;
+    const limit = Math.max(anchor.textIndex, nextAnchorIndex);
+
     if (cursor < anchor.textIndex) {
       segments.push({ kind: "text", blocks: textItems.slice(cursor, anchor.textIndex) });
       cursor = anchor.textIndex;
     }
 
-    // Take the following text that sits beside this image. The budget is a
+    // A full-width image breaks out of the flow at exactly the point its
+    // position chose, and deliberately takes no text beside it.
+    if (isFullWidthPosition(anchor.image.position)) {
+      segments.push({ kind: "figure", image: anchor.image });
+      continue;
+    }
+
+    // Take the following text that sits beside this image, stopping at the
+    // next image so document order is preserved. The character budget is a
     // floor, not a ceiling: a single long paragraph is still included so no
     // text is ever dropped.
     const unitBlocks: JSONContent[] = [];
     let chars = 0;
-    const budget = MAX_SIDE_CHARS * (floatable.length + 1);
-    while (cursor < textItems.length) {
+    const budget = MAX_SIDE_CHARS * (floatCount + 1);
+    while (cursor < limit) {
       const c = nodeChars(textItems[cursor]);
       if (unitBlocks.length > 0 && chars + c > budget) break;
       unitBlocks.push(textItems[cursor]);
@@ -164,6 +222,12 @@ export function planEditorialLayout(
     }
 
     if (unitBlocks.length === 0) {
+      // Nothing left to wrap beside (a very short article, or every block is
+      // already claimed by an earlier image). Emitting a full-width figure
+      // here would be misleading — the admin did not choose Full Width — so
+      // the text is emitted on its own and the image follows it.
+      segments.push({ kind: "text", blocks: textItems.slice(cursor, limit) });
+      cursor = limit;
       segments.push({ kind: "figure", image: anchor.image });
     } else {
       segments.push({
@@ -177,10 +241,6 @@ export function planEditorialLayout(
 
   if (cursor < textItems.length) {
     segments.push({ kind: "text", blocks: textItems.slice(cursor) });
-  }
-
-  for (const img of fullWidthImages) {
-    segments.push({ kind: "figure", image: img });
   }
 
   return segments;

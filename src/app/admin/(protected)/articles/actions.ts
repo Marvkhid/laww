@@ -346,7 +346,33 @@ export async function autosaveArticleAction(
   }
 
   if (!current) {
-    return { id, error: "This draft no longer exists. Reload the editor." };
+    // The id we were given names a row that is gone — deleted in another tab,
+    // or left behind by a local recovery snapshot. Failing here wedged the
+    // editor permanently: autosave could never succeed, so every image
+    // upload was lost too, and the user was told to reload — which throws
+    // away the work sitting in front of them.
+    //
+    // The user still has all of it in the form, so recover instead: adopt a
+    // row already holding this slug if there is one (a slug is unique, so it
+    // is this article), otherwise start a fresh draft row and hand its id
+    // back. Either way the editor keeps the id it is holding from now on.
+    const bySlug = await getArticleBySlugForAdmin(input.slug);
+    if (bySlug) {
+      const { error } = await updateArticle(
+        bySlug.id,
+        { ...input, status: bySlug.status },
+        contributors
+      );
+      if (error) return { id, error };
+      return { id: bySlug.id, error: null };
+    }
+
+    const recreated = await createArticle(
+      { ...input, status: "draft" },
+      contributors
+    );
+    if (recreated.error) return { id, error: recreated.error };
+    return { id: recreated.id, error: null, slug: input.slug };
   }
   const { error } = await updateArticle(
     id,

@@ -130,7 +130,12 @@ export async function autosaveIssueAction(
 
   const current = await getIssueByIdForAdmin(id);
   if (!current) {
-    return { id, error: "This issue no longer exists. Reload the editor." };
+    // Stale id (row deleted elsewhere, or named by an old recovery snapshot).
+    // Recover instead of wedging: the editor still holds the user's work, so
+    // start a fresh draft and hand its id back. See articles/actions.ts.
+    const recreated = await createIssue({ ...input, published_at: null });
+    if (recreated.error) return { id, error: recreated.error };
+    return { id: recreated.id, error: null };
   }
   const { error } = await updateIssue(id, { ...input, published_at: current.published_at });
   if (error) return { id, error };

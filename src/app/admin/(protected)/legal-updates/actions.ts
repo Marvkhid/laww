@@ -230,7 +230,12 @@ export async function autosaveLegalUpdateAction(
 
   const current = existing;
   if (!current) {
-    return { id, error: "This update no longer exists. Reload the editor." };
+    // Stale id (row deleted elsewhere, or named by an old recovery snapshot).
+    // Recover instead of wedging: the editor still holds the user's work, so
+    // start a fresh draft and hand its id back. See articles/actions.ts.
+    const recreated = await createLegalUpdate({ ...input, status: "pending_review" });
+    if (recreated.error) return { id, error: recreated.error };
+    return { id: recreated.id, error: null };
   }
   const { error } = await updateLegalUpdate(id, { ...input, status: current.status });
   if (error) return { id, error };

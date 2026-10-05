@@ -179,6 +179,42 @@ export async function clickStable(locator: Locator, attempts = 3) {
   throw lastError;
 }
 
+/**
+ * Click something that is supposed to navigate, and keep clicking until it
+ * actually does.
+ *
+ * `clickStable` handles a click that *errors* (bouncing off the sticky header,
+ * or an element still animating). It cannot help when the click reports
+ * success but the app router simply never responds — which happens
+ * intermittently on a client-side navigation dispatched right after a
+ * server-action redirect, when the destination route has not finished
+ * hydrating. Without a retry that is a 30–40 s `waitForURL` timeout that says
+ * nothing about the application.
+ *
+ * Retrying the click is the honest fix: the user would click again too.
+ */
+export async function clickUntilNavigation(
+  page: Page,
+  locator: Locator,
+  url: RegExp,
+  attempts = 4
+) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      // clickStable first: it centres the element and survives a click that
+      // bounces off the sticky header or an animating parent.
+      await clickStable(locator, 2);
+      await page.waitForURL(url, { timeout: 10_000 });
+      return;
+    } catch (err) {
+      lastError = err;
+      await page.waitForTimeout(1_000);
+    }
+  }
+  throw lastError;
+}
+
 /** Navigate, wait for the app to settle, and assert the page is fault-free. */
 export async function gotoClean(page: Page, path: string) {
   const res = await page.goto(path, { waitUntil: "domcontentloaded" });
