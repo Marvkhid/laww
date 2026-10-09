@@ -279,7 +279,25 @@ export function ImageUploadZone({
                   type="button"
                   data-testid="image-remove"
                   onClick={removeImage}
-                  className="inline-flex items-center gap-1.5 border border-digest-red/40 px-2.5 py-1 font-admin text-[11px] font-semibold uppercase tracking-[0.08em] text-digest-red transition-colors hover:bg-digest-red hover:text-paper"
+                  // Touch reliability (real, reproduced on a 390–412px phone
+                  // viewport): the painted control is only 27px tall and is
+                  // boxed in by the preview image 6px above it and the upload
+                  // zone a few px below, so a finger landing just off-centre
+                  // hit inert pixels and "Delete image" did nothing — while a
+                  // tap a little lower opened the file picker instead.
+                  //  · `relative` + the invisible ::before grow the HIT area to
+                  //    ~45x148px (the 44px platform minimum) without moving or
+                  //    resizing the painted button, so desktop looks identical.
+                  //  · it only covers pixels that have no handler (the gap,
+                  //    the inert preview image, the row's spare width); the
+                  //    upload zone paints above it, so it can never steal a tap
+                  //    meant for "Replace cover image".
+                  //  · `touch-manipulation` stops the browser treating the tap
+                  //    as a double-tap-zoom/pan gesture, and `select-none`
+                  //    stops a long press becoming a text selection that
+                  //    swallows the click — the two other ways a touch tap on
+                  //    this button never produced a click.
+                  className="relative inline-flex items-center gap-1.5 border border-digest-red/40 px-2.5 py-1 font-admin text-[11px] font-semibold uppercase tracking-[0.08em] text-digest-red transition-colors hover:bg-digest-red hover:text-paper select-none touch-manipulation before:absolute before:-top-3.5 before:-bottom-1 before:-left-3 before:-right-3 before:content-['']"
                   style={{ borderRadius: 2 }}
                 >
                   <Trash2 size={12} strokeWidth={2.5} />
