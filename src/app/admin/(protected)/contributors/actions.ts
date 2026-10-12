@@ -9,19 +9,13 @@ import {
   getContributorByIdForAdmin,
   type ContributorInput,
 } from "@/lib/supabase/admin/contributors";
-import { uploadContributorPhoto } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 import { readTextOptional } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
-/** Upload-on-select for contributor photos. */
-export async function uploadContributorPhotoAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadContributorPhoto(file);
-}
+
 
 /**
  * Autosave — contributors have no publication state; every valid snapshot
@@ -66,14 +60,10 @@ async function readInput(formData: FormData): Promise<ContributorInput> {
     return raw.length > 0 ? raw : null;
   };
 
-  // Photo upload takes priority; fall back to hidden field for existing URL
-  let photo_url: string | null = optional("existing_photo_url");
-  const photoFile = formData.get("photo_file");
-  if (photoFile instanceof File && photoFile.size > 0) {
-    const { url, error: photoError } = await uploadContributorPhoto(photoFile);
-    if (photoError) throw new Error(photoError);
-    photo_url = url;
-  }
+  // The URL comes from the hidden existing_photo_url field, which the upload
+  // zone fills the moment a file is selected. No server action reads file
+  // bytes: that request is what the host rejects with 413 (request-limits.ts).
+  const photo_url: string | null = optional("existing_photo_url");
 
   const name = String(formData.get("name") ?? "").trim();
   const slugRaw = String(formData.get("slug") ?? "").trim();

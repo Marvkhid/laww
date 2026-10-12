@@ -8,19 +8,13 @@ import {
   deletePracticeArea,
   getPracticeAreaByIdForAdmin,
 } from "@/lib/supabase/admin/practice-areas";
-import { uploadPracticeAreaImage } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 import { readTextOptional } from "@/lib/form-presence";
 
 export type FormState = { error: string | null };
 
-/** Upload-on-select for practice-area images. */
-export async function uploadPracticeAreaImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadPracticeAreaImage(file);
-}
+
 
 /**
  * Autosave — practice areas have no publication state; every valid
@@ -85,17 +79,10 @@ async function resolveImage(
   existingUrl: string | null,
   existingAlt: string | null
 ): Promise<{ url: string | null; alt: string | null; error: string | null }> {
-  const file = formData.get("image_file");
-  const hasNewFile = file instanceof File && file.size > 0;
-
-  if (hasNewFile) {
-    const { url, error } = await uploadPracticeAreaImage(file as File);
-    if (error) return { url: null, alt: null, error };
-    const alt = String(formData.get("image_alt") ?? "").trim() || existingAlt;
-    return { url, alt, error: null };
-  }
-
-  // No new file: keep the existing image unless a "remove" flag was set.
+  // The URL comes from the hidden existing_image_url field, which the upload
+  // zone writes the moment a file is selected. No server action reads file
+  // bytes: a File in an action body is the 413 path (src/lib/request-limits.ts).
+  // Keep the existing image unless a "remove" flag was set.
   const remove = String(formData.get("remove_image") ?? "") === "1";
   if (remove) return { url: null, alt: null, error: null };
 

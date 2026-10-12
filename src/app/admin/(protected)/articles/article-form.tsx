@@ -4,10 +4,7 @@ import { useActionState, useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import type { ArticleRow, IssueRow, PracticeAreaRow, ContributorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/articles/actions";
-import {
-  autosaveArticleAction,
-  uploadArticleImageAction,
-} from "@/app/admin/(protected)/articles/actions";
+import { autosaveArticleAction } from "@/app/admin/(protected)/articles/actions";
 import { TiptapEditor } from "@/app/admin/(protected)/articles/tiptap-editor";
 import { slugify } from "@/lib/slugify";
 import {
@@ -24,6 +21,9 @@ import {
   ARTICLE_PAGE_OPTIONS,
   pagesForRow,
 } from "@/lib/page-visibility";
+import {
+  uploadArticleImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import {
   IMAGE_POSITIONS,
@@ -313,7 +313,7 @@ export function ArticleForm({
           existingValue={initial?.cover_image_url ?? ""}
           initialPreview={coverPreview}
           onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
-          upload={uploadArticleImageAction}
+          upload={uploadArticleImage}
         />
         <p className="font-admin text-xs text-stone">
           {initial?.cover_image_url ? "Leave empty to keep the current image." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}
@@ -349,7 +349,7 @@ export function ArticleForm({
                     existingValue={initial?.[urlKey] ?? ""}
                     compact
                     previewAspect="aspect-[16/9]"
-                    upload={uploadArticleImageAction}
+                    upload={uploadArticleImage}
                   />
                 </div>
               </div>

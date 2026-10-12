@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { login } from "@/app/admin/actions";
 import { TextField } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { PUBLIC_FIELD_LIMITS } from "@/lib/request-limits";
 
 export function LoginForm() {
   const [error, formAction, isPending] = useActionState(login, null);
@@ -16,6 +17,7 @@ export function LoginForm() {
         name="email"
         type="email"
         required
+        maxLength={PUBLIC_FIELD_LIMITS.email}
         autoComplete="username"
         placeholder="admin@nglawdigest.com"
         index={0}

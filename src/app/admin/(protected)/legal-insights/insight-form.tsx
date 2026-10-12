@@ -3,11 +3,8 @@
 import { useActionState, useRef, useState } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import type { LegalInsightRow } from "@/lib/supabase/types";
-import {
-  autosaveLegalInsightAction,
-  uploadLegalInsightImageAction,
-  type FormState,
-} from "./actions";
+import { autosaveLegalInsightAction,
+  type FormState } from "./actions";
 import {
   TextField,
   TextAreaField,
@@ -15,6 +12,9 @@ import {
   FormSection,
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import {
+  uploadLegalInsightImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
 import {
@@ -263,7 +263,7 @@ export function InsightForm({
           existingHiddenName="existing_image_url"
           existingValue={initial?.image_url ?? ""}
           previewAspect="aspect-[16/9]"
-          upload={uploadLegalInsightImageAction}
+          upload={uploadLegalInsightImage}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep current image.

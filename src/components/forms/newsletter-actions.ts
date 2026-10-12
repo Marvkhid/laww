@@ -7,6 +7,7 @@ import {
   adminNotificationHtml,
 } from "@/lib/newsletter-emails";
 import type { NewsletterFormState } from "./newsletter-types";
+import { PUBLIC_FIELD_LIMITS } from "@/lib/request-limits";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -63,6 +64,13 @@ export async function subscribeToNewsletterAction(
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
+
+  // Cap before anything else touches the value: an unbounded field is a body
+  // that grows with input, and even the pattern test should never have to run
+  // on a multi-megabyte string (see src/lib/request-limits.ts).
+  if (email.length > PUBLIC_FIELD_LIMITS.email) {
+    return { status: "error", message: "That email address is too long." };
+  }
 
   if (!email || !EMAIL_PATTERN.test(email)) {
     return { status: "error", message: "Enter a valid email address." };

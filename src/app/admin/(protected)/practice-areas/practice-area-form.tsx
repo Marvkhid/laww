@@ -3,10 +3,7 @@
 import { useActionState, useRef, useState, useCallback } from "react";
 import type { PracticeAreaRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/practice-areas/actions";
-import {
-  autosavePracticeAreaAction,
-  uploadPracticeAreaImageAction,
-} from "@/app/admin/(protected)/practice-areas/actions";
+import { autosavePracticeAreaAction } from "@/app/admin/(protected)/practice-areas/actions";
 import { slugify } from "@/lib/slugify";
 import {
   TextField,
@@ -14,6 +11,9 @@ import {
   FormSection,
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import {
+  uploadPracticeAreaImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
 import {
@@ -144,7 +144,7 @@ export function PracticeAreaForm({
           initialPreview={currentPreview}
           previewAspect="aspect-[16/9]"
           onFilesSelected={onFilesSelected}
-          upload={uploadPracticeAreaImageAction}
+          upload={uploadPracticeAreaImage}
         />
         {/* Server action reads this flag to drop a previously saved image. */}
         <input type="hidden" name="remove_image" value={imageRemoved ? "1" : ""} />

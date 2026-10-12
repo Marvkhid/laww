@@ -10,6 +10,14 @@ export async function GET(request: Request) {
     return new NextResponse("Missing token.", { status: 400 });
   }
 
+  // A base64url address is a few hundred characters at most. Capping it keeps
+  // this query string from being the one input on a GET route that grows
+  // without bound (the host rejects oversized requests with 413 before a
+  // Function runs — see src/lib/request-limits.ts).
+  if (token.length > 512) {
+    return new NextResponse("Invalid token.", { status: 400 });
+  }
+
   let email: string;
   try {
     email = Buffer.from(token, "base64url").toString("utf-8");

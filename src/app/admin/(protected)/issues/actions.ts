@@ -9,23 +9,13 @@ import {
   getIssueByIdForAdmin,
   type IssueInput,
 } from "@/lib/supabase/admin/issues";
-import { uploadIssuePdf, uploadIssueCoverImage } from "@/lib/supabase/admin/storage";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 
 export type FormState = { error: string | null };
 
-/** Upload-on-select for issue covers and PDFs. */
-export async function uploadIssueCoverImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadIssueCoverImage(file);
-}
 
-export async function uploadIssuePdfAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadIssuePdf(file);
-}
+
+
 
 async function readInput(formData: FormData): Promise<{ input: IssueInput | null; error: string | null }> {
   const optional = (key: string) => {
@@ -52,23 +42,14 @@ async function readInput(formData: FormData): Promise<{ input: IssueInput | null
 
   const publishedAtRaw = String(formData.get("published_at") ?? "").trim();
 
-  // Cover image upload — independent of PDF
-  let cover_image_url: string | null = optional("existing_cover_image_url");
-  const imageFile = formData.get("cover_image_file");
-  if (imageFile instanceof File && imageFile.size > 0) {
-    const { url, error: imageError } = await uploadIssueCoverImage(imageFile);
-    if (imageError) return { input: null, error: imageError };
-    cover_image_url = url;
-  }
+  // Cover image — independent of the PDF. Both URLs are resolved in the
+  // browser the moment a file is selected and arrive here as hidden fields.
+  // No server action reads file bytes: a File in an action body is the request
+  // the production host rejects with 413 (see src/lib/request-limits.ts).
+  const cover_image_url: string | null = optional("existing_cover_image_url");
 
-  // PDF upload — independent of cover image
-  let pdf_url: string | null = optional("existing_pdf_url");
-  const pdfFile = formData.get("pdf_file");
-  if (pdfFile instanceof File && pdfFile.size > 0) {
-    const { url, error: pdfError } = await uploadIssuePdf(pdfFile);
-    if (pdfError) return { input: null, error: pdfError };
-    pdf_url = url;
-  }
+  // PDF — same rule as the cover image.
+  const pdf_url: string | null = optional("existing_pdf_url");
 
   return {
     input: {

@@ -1,6 +1,10 @@
 "use server";
 
 import { getTransporter, getFromAddress } from "@/lib/smtp";
+import {
+  PUBLIC_FIELD_LIMITS,
+  exceededLimitMessage,
+} from "@/lib/request-limits";
 
 export type ContactFormState = {
   status: "idle" | "success" | "error" | "sending";
@@ -18,6 +22,20 @@ export async function sendContactMessage(
   const subject = String(formData.get("subject") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
+
+  // Hard caps first: this form accepts free text from anyone, and an
+  // unbounded field is what turns one submission into a request the host
+  // rejects with 413 before the action ever runs.
+  const tooLong = exceededLimitMessage([
+    ["Your name", name, PUBLIC_FIELD_LIMITS.name],
+    ["Your email address", email, PUBLIC_FIELD_LIMITS.email],
+    ["The subject", subject, PUBLIC_FIELD_LIMITS.subject],
+    ["The category", category, PUBLIC_FIELD_LIMITS.category],
+    ["Your message", message, PUBLIC_FIELD_LIMITS.message],
+  ]);
+  if (tooLong) {
+    return { status: "error", message: tooLong };
+  }
 
   if (!name || name.length < 2) {
     return { status: "error", message: "Please enter your name." };

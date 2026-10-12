@@ -3,16 +3,16 @@
 import { useActionState, useRef, useState } from "react";
 import type { SponsorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/sponsors/actions";
-import {
-  autosaveSponsorAction,
-  uploadSponsorImageAction,
-} from "@/app/admin/(protected)/sponsors/actions";
+import { autosaveSponsorAction } from "@/app/admin/(protected)/sponsors/actions";
 import {
   TextField,
   CheckboxField,
   FormSection,
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import {
+  uploadSponsorImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { PageVisibilityField } from "@/components/forms/kit/page-visibility";
 import { PageTargetingNotice } from "@/app/admin/(protected)/page-targeting-notice";
@@ -153,7 +153,7 @@ export function SponsorForm({
           initialPreview={imagePreview}
           previewAspect="aspect-[16/9]"
           onFilesSelected={(files) => setImagePreview(URL.createObjectURL(files[0]))}
-          upload={uploadSponsorImageAction}
+          upload={uploadSponsorImage}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB.{" "}
@@ -177,7 +177,7 @@ export function SponsorForm({
           previewAspect="aspect-[16/9]"
           compact
           onFilesSelected={(files) => setLogoPreview(URL.createObjectURL(files[0]))}
-          upload={uploadSponsorImageAction}
+          upload={uploadSponsorImage}
         />
         <p className="font-admin text-xs text-stone">
           {initial?.logo_url ? "Leave empty to keep the current logo." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}

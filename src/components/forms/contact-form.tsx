@@ -11,6 +11,7 @@ import {
   FormSection,
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import { PUBLIC_FIELD_LIMITS } from "@/lib/request-limits";
 
 const CATEGORIES = [
   "General Enquiry",
@@ -54,7 +55,15 @@ export function ContactForm() {
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    // React resets a form once its action settles. On a FAILED send that
+    // silently wiped everything the visitor had typed (a transient SMTP error
+    // cost them their whole message), so the reset is suppressed here — the
+    // success state replaces the form anyway.
+    <form
+      action={formAction}
+      className="flex flex-col gap-5"
+      onReset={(event) => event.preventDefault()}
+    >
       <FormSection title="Your Details" subtitle="So we know who's writing and how to reply." accent="top">
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
@@ -62,6 +71,7 @@ export function ContactForm() {
             name="name"
             type="text"
             required
+            maxLength={PUBLIC_FIELD_LIMITS.name}
             autoComplete="name"
             placeholder="Your full name"
             index={0}
@@ -71,6 +81,7 @@ export function ContactForm() {
             name="email"
             type="email"
             required
+            maxLength={PUBLIC_FIELD_LIMITS.email}
             autoComplete="email"
             placeholder="you@example.com"
             index={1}
@@ -87,6 +98,7 @@ export function ContactForm() {
           name="subject"
           type="text"
           required
+          maxLength={PUBLIC_FIELD_LIMITS.subject}
           placeholder="What is this about?"
         />
         <TextAreaField
@@ -94,6 +106,8 @@ export function ContactForm() {
           name="message"
           rows={6}
           required
+          maxLength={PUBLIC_FIELD_LIMITS.message}
+          helper={`${PUBLIC_FIELD_LIMITS.message.toLocaleString("en-US")} characters maximum`}
           placeholder="Tell us how we can help…"
         />
       </FormSection>

@@ -8,7 +8,6 @@ import {
   deleteArchiveIssue,
   type ArchiveIssueInput,
 } from "@/lib/supabase/admin/issues-archive";
-import { uploadArchiveCoverImage, uploadIssuePdf } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
 import { readTextOptional } from "@/lib/form-presence";
 
@@ -28,23 +27,12 @@ async function readArchiveInput(formData: FormData): Promise<{ input: ArchiveIss
   }
   const slug = slugRaw.length > 0 ? slugRaw : slugify(title);
 
-  // Cover image upload
-  let cover_image_url: string | null = optional("existing_cover_image_url");
-  const coverFile = formData.get("cover_image_file");
-  if (coverFile instanceof File && coverFile.size > 0) {
-    const { url, error } = await uploadArchiveCoverImage(coverFile);
-    if (error) return { input: null, error };
-    cover_image_url = url;
-  }
-
-  // PDF upload
-  let pdf_url: string | null = optional("existing_pdf_url");
-  const pdfFile = formData.get("pdf_file");
-  if (pdfFile instanceof File && pdfFile.size > 0) {
-    const { url, error } = await uploadIssuePdf(pdfFile);
-    if (error) return { input: null, error };
-    pdf_url = url;
-  }
+  // Cover image and PDF URLs are both resolved in the browser on selection and
+  // arrive as hidden fields. No server action reads file bytes — a large File
+  // in an action body is the request the host rejects with 413
+  // (see src/lib/request-limits.ts).
+  const cover_image_url: string | null = optional("existing_cover_image_url");
+  const pdf_url: string | null = optional("existing_pdf_url");
 
   const issueNumberRaw = String(formData.get("issue_number") ?? "").trim();
   const yearRaw = String(formData.get("year") ?? "").trim();

@@ -8,6 +8,7 @@ import {
   NEWSLETTER_IDLE_STATE,
   type NewsletterFormState,
 } from "@/components/forms/newsletter-types";
+import { PUBLIC_FIELD_LIMITS } from "@/lib/request-limits";
 
 export function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -54,6 +55,7 @@ export function NewsletterForm() {
             id="newsletter-email"
             type="email"
             required
+            maxLength={PUBLIC_FIELD_LIMITS.email}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             onFocus={() => setFocused(true)}

@@ -3,17 +3,17 @@
 import { useActionState, useState, useCallback, useRef } from "react";
 import type { EventRow, EventImageRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/events/actions";
-import {
-  autosaveEventAction,
-  removePendingGalleryImageAction,
-  uploadEventImageAction,
-} from "@/app/admin/(protected)/events/actions";
+import { autosaveEventAction,
+  removePendingGalleryImageAction } from "@/app/admin/(protected)/events/actions";
 import { slugify } from "@/lib/slugify";
 import {
   TextField,
   TextAreaField,
   FormSection,
 } from "@/components/forms/kit/field";
+import {
+  uploadEventImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone, RemoveThumbButton } from "@/components/forms/kit/image-upload";
 import { PageVisibilityField } from "@/components/forms/kit/page-visibility";
 import { PageTargetingNotice } from "@/app/admin/(protected)/page-targeting-notice";
@@ -221,7 +221,7 @@ export function EventForm({
           initialPreview={coverPreview}
           previewAspect="aspect-[16/10]"
           onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
-          upload={uploadEventImageAction}
+          upload={uploadEventImage}
         />
       </FormSection>
 
@@ -281,7 +281,7 @@ export function EventForm({
           multiple
           compact
           previewAspect="aspect-square"
-          upload={uploadEventImageAction}
+          upload={uploadEventImage}
           onUploaded={(urls) => setPendingGalleryUrls((prev) => [...prev, ...urls])}
         />
         <input type="hidden" name="remove_image_ids" value={removeImageIds.join(",")} />

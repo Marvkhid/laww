@@ -3,10 +3,7 @@
 import { useActionState, useRef, useState, useCallback } from "react";
 import type { ContributorRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/contributors/actions";
-import {
-  autosaveContributorAction,
-  uploadContributorPhotoAction,
-} from "@/app/admin/(protected)/contributors/actions";
+import { autosaveContributorAction } from "@/app/admin/(protected)/contributors/actions";
 import { slugify } from "@/lib/slugify";
 import {
   TextField,
@@ -15,6 +12,9 @@ import {
   FormSection,
 } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import {
+  uploadContributorPhoto,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
 import {
@@ -166,7 +166,7 @@ export function ContributorForm({
           previewAspect="aspect-square"
           compact
           onFilesSelected={(files) => setPhotoPreview(URL.createObjectURL(files[0]))}
-          upload={uploadContributorPhotoAction}
+          upload={uploadContributorPhoto}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep the current photo.

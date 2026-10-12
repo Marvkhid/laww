@@ -10,7 +10,6 @@ import {
   getSponsorByIdForAdmin,
   type SponsorInput,
 } from "@/lib/supabase/admin/sponsors";
-import { uploadSponsorImage } from "@/lib/supabase/admin/storage";
 import {
   ADVERT_PAGE_OPTIONS,
   pagesFromFormData,
@@ -57,23 +56,12 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
     return { input: null, error: "Page number must be a whole number." };
   }
 
-  // Logo image upload
-  let logo_url: string | null = optional("existing_logo_url");
-  const logoFile = formData.get("logo_file");
-  if (logoFile instanceof File && logoFile.size > 0) {
-    const { url, error: logoError } = await uploadSponsorImage(logoFile);
-    if (logoError) return { input: null, error: logoError };
-    logo_url = url;
-  }
-
-  // Banner image upload
-  let image_url: string | null = optional("existing_image_url");
-  const imageFile = formData.get("image_file");
-  if (imageFile instanceof File && imageFile.size > 0) {
-    const { url, error: imageError } = await uploadSponsorImage(imageFile);
-    if (imageError) return { input: null, error: imageError };
-    image_url = url;
-  }
+  // Logo and banner URLs come from the hidden existing_* fields, which the
+  // upload zones fill on selection. No server action reads file bytes: a File
+  // in an action body is the request the host rejects with 413
+  // (see src/lib/request-limits.ts).
+  const logo_url: string | null = optional("existing_logo_url");
+  const image_url: string | null = optional("existing_image_url");
 
   // "Display On" — null when the group was not rendered (migration 0025
   // pending), so the column keeps its current value.
@@ -98,12 +86,7 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
   };
 }
 
-/** Upload-on-select for advert artwork and logos. */
-export async function uploadSponsorImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadSponsorImage(file);
-}
+
 
 /**
  * Autosave — adverts have no draft/publish duality beyond `active`, and a

@@ -14,7 +14,6 @@ import {
 } from "@/lib/supabase/admin/articles";
 import type { ArticleRow } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
-import { uploadArticleCoverImage } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
 import {
   ARTICLE_PAGE_OPTIONS,
@@ -71,22 +70,17 @@ function readBody(
   );
 }
 
-// A new file upload always takes priority. If none was selected, the
-// hidden existing_cover_image_url field (set from the article's current
-// value in article-form.tsx) is preserved as-is — so leaving the file
-// input empty on edit never clears an existing image.
+// The URL comes from the hidden existing_cover_image_url field, which the
+// upload zone writes the moment a file is selected (upload-on-select).
+//
+// No server action reads file bytes on purpose: a File inside a Server Action
+// body is the request that the production host rejects with 413
+// (FUNCTION_PAYLOAD_TOO_LARGE — see src/lib/request-limits.ts), and
+// e2e/body-limits.spec.ts fails the suite if one ever appears again.
 async function readCoverImageUrl(
   formData: FormData
 ): Promise<{ url: string | null; error: string | null }> {
-  const file = formData.get("cover_image_file");
   const existing = String(formData.get("existing_cover_image_url") ?? "").trim();
-
-  if (file instanceof File && file.size > 0) {
-    const { url, error } = await uploadArticleCoverImage(file);
-    if (error) return { url: null, error };
-    return { url, error: null };
-  }
-
   return { url: existing.length > 0 ? existing : null, error: null };
 }
 
@@ -167,16 +161,10 @@ async function readArticleInput(
     const urlKey = `existing_image_${i}_url`;
     // Present-and-empty means the Delete button cleared this slot.
     // Absent means this slot was never part of the payload — keep it.
-    let imgUrl: string | null = preserveable(
+    const imgUrl: string | null = preserveable(
       urlKey,
       storedText(`image_${i}_url` as keyof ArticleRow)
     );
-    const imgFile = formData.get(`image_${i}_file`);
-    if (imgFile instanceof File && imgFile.size > 0) {
-      const { url, error: imgError } = await uploadArticleCoverImage(imgFile);
-      if (imgError) return { input: null, error: imgError };
-      imgUrl = url;
-    }
     inlineImages.push({
       url_key: `image_${i}_url`,
       alt_key: `image_${i}_alt`,
@@ -295,12 +283,7 @@ function revalidateArticlePaths(...slugs: Array<string | null | undefined>) {
   for (const slug of slugs) if (slug) revalidatePath(`/articles/${slug}`);
 }
 
-/** Upload-on-select: images persist the moment they are chosen. */
-export async function uploadArticleImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadArticleCoverImage(file);
-}
+
 
 /**
  * Autosave — never publishes, never redirects, never revalidates.

@@ -16,6 +16,13 @@ import { defineConfig, devices } from "@playwright/test";
 const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
 const isProd = baseURL.startsWith("https://");
 
+/**
+ * Specs that run in Node once, not once per browser engine: engine-independent
+ * work (direct-to-Storage upload logic) and static guard rails that read the
+ * source tree (request-body limits).
+ */
+const NODE_ONLY_SPECS = /admin-upload\.spec\.ts|body-limits\.spec\.ts/;
+
 export default defineConfig({
   testDir: "./e2e",
   testMatch: /.*\.spec\.ts/,
@@ -41,9 +48,25 @@ export default defineConfig({
     video: "off",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: NODE_ONLY_SPECS,
+    },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      testIgnore: NODE_ONLY_SPECS,
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+      testIgnore: NODE_ONLY_SPECS,
+    },
+    // Engine-independent specs: they exercise admin modules directly in Node
+    // against a local fake storage endpoint, so running them once per browser
+    // would only repeat identical work.
+    { name: "node", testMatch: NODE_ONLY_SPECS },
   ],
   // Only spin up a server when nobody is already serving the app.
   ...(process.env.E2E_BASE_URL

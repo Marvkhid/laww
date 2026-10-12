@@ -21,10 +21,22 @@
  *    fields (rich-text body, resolved upload URLs) are never silently
  *    wiped after a failed Save — the root cause of "content disappeared
  *    after clicking Save".
+ *  - EVERY request is now bounded (SAVE_TIMEOUT_MS). The hook is strictly
+ *    single-flight: snapshot N+1 is only sent after snapshot N settles, so a
+ *    request that never returned used to wedge the chain permanently — the
+ *    editor said "Saving…" forever, Save/Publish queued behind the same chain
+ *    and never submitted, and the redirect never happened. A browser `fetch`
+ *    has no default timeout, so nothing bounded it. A timeout is treated as a
+ *    retryable failure: the work stays dirty, the recovery snapshot is kept,
+ *    the backoff retry runs, and an explicit Save always gets through.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import {
+  installAdminDiagnostics,
+  logAdminEvent,
+} from "@/lib/admin-diagnostics";
 import {
   clearAllSnapshots,
   clearSnapshot,
@@ -35,6 +47,11 @@ import {
   type AutosaveResult,
   type AutosaveSnapshot,
 } from "@/lib/autosave";
+import {
+  CLIENT_PAYLOAD_LIMIT_BYTES,
+  jsonByteLength,
+  payloadTooLargeMessage,
+} from "@/lib/request-limits";
 
 export type AutosaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -62,6 +79,45 @@ export interface UseAutosaveOptions {
 }
 
 const MAX_AUTO_RETRIES = 3;
+
+/**
+ * Bound on ONE snapshot request.
+ *
+ * Generous (a snapshot is a few KB of JSON) but finite, because an unbounded
+ * request is exactly how the editor got stuck: the single-flight chain waits
+ * for the previous snapshot, so one request that never settles stops every
+ * later save and the Save/Publish redirect with it.
+ */
+const SAVE_TIMEOUT_MS = 20_000;
+
+/** Resolve/reject with `promise`, but never wait longer than `ms`. */
+function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        new Error(
+          "Saving is taking longer than expected — the connection may have stalled. Your changes are still here; retrying…"
+        )
+      );
+    }, ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+/** "/admin/lawyer-news/new" → "lawyer-news". Used only for diagnostics. */
+function sectionFromPath(pathname: string): string {
+  const segments = pathname.split("/").filter(Boolean);
+  return segments[1] ?? "admin";
+}
 
 function applyDataToForm(form: HTMLFormElement, data: AutosaveData): void {
   const escape = (value: string) =>
@@ -194,6 +250,30 @@ export function useAutosave({
         // Required fields not filled in yet — wait for more input; not an error.
         return;
       }
+
+      // Refuse to build a request the host will reject. The production host
+      // caps a Function request body at 4 500 000 bytes (measured: 4 400 000 B
+      // → 405, 4 500 000 B → 413 FUNCTION_PAYLOAD_TOO_LARGE) and Next.js caps a
+      // Server Action below that — an autosave heavy enough to reach either
+      // limit must fail HERE, with a message that says what to do, instead of
+      // as an opaque rejected fetch.
+      const payloadBytes = jsonByteLength(payload);
+      if (payloadBytes > CLIENT_PAYLOAD_LIMIT_BYTES) {
+        pausedRef.current = true; // no retry storm: a person must shorten it
+        dirtyRef.current = true; // the work is still unsaved
+        writeSnapshotNow(payload); // and never lost — recovery copy first
+        setStatus("error");
+        setErrorMessage(payloadTooLargeMessage(payloadBytes));
+        logAdminEvent({
+          op: "autosave",
+          section: sectionFromPath(scopeRef.current),
+          stage: "validate", // rejected before any request was built
+          outcome: "failed",
+          category: "too_large",
+          detail: `${payloadBytes} bytes (client limit ${CLIENT_PAYLOAD_LIMIT_BYTES})`,
+        });
+        return;
+      }
       // This payload now represents the newest known state; clear the dirty
       // flag so a completion can tell whether newer edits arrived mid-flight.
       dirtyRef.current = false;
@@ -206,11 +286,23 @@ export function useAutosave({
       activeRef.current += 1;
       const task = chainRef.current.then(async () => {
         const hadId = idRef.current !== null;
+        const startedAt = Date.now();
         try {
-          const result = await saveRef.current(idRef.current, payload);
+          const result = await withDeadline(
+            saveRef.current(idRef.current, payload),
+            SAVE_TIMEOUT_MS
+          );
           if (result && result.error) {
             throw new Error(result.error);
           }
+          logAdminEvent({
+            op: "autosave",
+            section: sectionFromPath(scopeRef.current),
+            stage: "persist",
+            outcome: "ok",
+            ms: Date.now() - startedAt,
+            category: hadId ? "update" : "create",
+          });
           // Adopt any id the server hands back that differs from the one we
           // hold. Previously this only ran when we held NO id, which meant a
           // stale id (a draft deleted in another tab, or one named by a local
@@ -238,6 +330,15 @@ export function useAutosave({
             error instanceof Error && error.message
               ? error.message
               : "Could not save your changes.";
+          logAdminEvent({
+            op: "autosave",
+            section: sectionFromPath(scopeRef.current),
+            stage: "persist",
+            outcome: "failed",
+            ms: Date.now() - startedAt,
+            category: "save_failed",
+            detail: message,
+          });
           setStatus("error");
           setErrorMessage(message);
           writeSnapshotNow(payload); // keep local recovery copy
@@ -333,6 +434,19 @@ export function useAutosave({
     setRecovery(null);
   }, []);
 
+  /**
+   * Broadcast the save status so other admin components can tell the truth.
+   *
+   * The upload zones use it to replace a permanently optimistic "Uploaded —
+   * saving…" with the real outcome (see image-upload.tsx).
+   */
+  useEffect(() => {
+    installAdminDiagnostics();
+    window.dispatchEvent(
+      new CustomEvent("autosave:status", { detail: { status, errorMessage } })
+    );
+  }, [status, errorMessage]);
+
   // ── Bind to the form once ────────────────────────────────────────────────
   useEffect(() => {
     mountedRef.current = true;
@@ -375,6 +489,22 @@ export function useAutosave({
       // even when autosave is failing.
       if (submittingRef.current) {
         submittingRef.current = false;
+        return;
+      }
+
+      // Same cap for an explicit Save/Publish: refuse to build an oversized
+      // request and say why, instead of letting the framework answer with an
+      // error the editor cannot explain. The payload is preserved in the
+      // localStorage snapshot first, so nothing typed is lost.
+      const submitPayload = collect();
+      const submitBytes = submitPayload ? jsonByteLength(submitPayload) : 0;
+      if (submitPayload && submitBytes > CLIENT_PAYLOAD_LIMIT_BYTES) {
+        event.preventDefault();
+        pausedRef.current = true;
+        dirtyRef.current = true;
+        writeSnapshotNow(submitPayload);
+        setStatus("error");
+        setErrorMessage(payloadTooLargeMessage(submitBytes));
         return;
       }
 
@@ -481,7 +611,12 @@ export function useAutosave({
             data: payload,
             savedAt: Date.now(),
           });
-          void saveRef.current(idRef.current, payload).catch(() => undefined);
+          // Never fire a request the host would reject with 413. On the way out
+          // the recovery snapshot written above is the protection that matters;
+          // an oversized request would only add a guaranteed failure.
+          if (jsonByteLength(payload) <= CLIENT_PAYLOAD_LIMIT_BYTES) {
+            void saveRef.current(idRef.current, payload).catch(() => undefined);
+          }
         }
       }
     };

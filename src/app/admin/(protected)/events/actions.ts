@@ -6,14 +6,12 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
-  addEventImage,
   deleteEventImage,
   attachEventImages,
   deleteEventImageByUrl,
   getEventByIdForAdmin,
   type EventInput,
 } from "@/lib/supabase/admin/events";
-import { uploadEventImage } from "@/lib/supabase/admin/storage";
 import { slugify } from "@/lib/slugify";
 import {
   EVENT_PAGE_OPTIONS,
@@ -58,14 +56,10 @@ async function readEventInput(formData: FormData): Promise<{ input: EventInput |
   }
   const slug = slugRaw.length > 0 ? slugRaw : slugify(title);
 
-  // Cover image upload
-  let cover_image_url: string | null = optional("existing_cover_image_url");
-  const coverFile = formData.get("cover_image_file");
-  if (coverFile instanceof File && coverFile.size > 0) {
-    const { url, error } = await uploadEventImage(coverFile);
-    if (error) return { input: null, error };
-    cover_image_url = url;
-  }
+  // Cover image URL — resolved in the browser on selection, never uploaded
+  // through this action (no server action may carry file bytes: that request
+  // is what the host rejects with 413 — see src/lib/request-limits.ts).
+  const cover_image_url: string | null = optional("existing_cover_image_url");
 
   const pageNumberRaw = String(formData.get("page_number") ?? "").trim();
   if (pageNumberRaw && !Number.isInteger(Number(pageNumberRaw))) {
@@ -108,18 +102,8 @@ async function applyGalleryChanges(eventId: string, formData: FormData): Promise
     await deleteEventImage(imgId);
   }
 
-  const files = formData.getAll("gallery_files");
-  let order = 0;
-  for (const file of files) {
-    if (file instanceof File && file.size > 0) {
-      const { url, error: uploadError } = await uploadEventImage(file);
-      if (!uploadError && url) {
-        await addEventImage(eventId, url, null, order);
-        order++;
-      }
-    }
-  }
-
+  // New gallery images arrive already resolved to Storage URLs
+  // (pending_gallery_urls) — the file input is never posted, by design.
   const pending = readPendingGallery(formData);
   if (pending.length > 0) {
     await attachEventImages(eventId, pending);
@@ -140,12 +124,7 @@ function revalidateEventPaths(...slugs: Array<string | null | undefined>) {
   for (const slug of slugs) if (slug) revalidatePath(`/events/${slug}`);
 }
 
-/** Upload-on-select for event covers and gallery images. */
-export async function uploadEventImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadEventImage(file);
-}
+
 
 /** Cancel a pending gallery upload (detaches it if autosave already attached it). */
 export async function removePendingGalleryImageAction(

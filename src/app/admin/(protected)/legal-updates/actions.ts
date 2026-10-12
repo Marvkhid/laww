@@ -10,7 +10,6 @@ import {
   getLegalUpdateByIdForAdmin,
   type LegalUpdateInput,
 } from "@/lib/supabase/admin/legal-updates";
-import { uploadLegalUpdateImage } from "@/lib/supabase/admin/storage";
 import type { LegalUpdateRow, LegalUpdateStatus } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
 import { slugify } from "@/lib/slugify";
@@ -30,12 +29,7 @@ function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
   return mode === "publish" || mode === "unpublish" ? mode : "save";
 }
 
-/** Upload-on-select for update covers and inline images. */
-export async function uploadLegalUpdateImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadLegalUpdateImage(file);
-}
+
 
 // Legal updates surface on the homepage ("This Week in Law") and in the
 // breaking-news bar, so every mutation must invalidate those routes too —
@@ -92,21 +86,17 @@ function parseBodyString(raw: string): JSONContent | null {
   }
 }
 
-/** Read a file upload or fall back to the existing URL. */
+/**
+ * Read an image URL from the hidden existing_* field, which the upload zone
+ * fills the moment a file is selected. No file branch on purpose: a File in a
+ * Server Action body is the request the host rejects with 413
+ * (see src/lib/request-limits.ts; e2e/body-limits.spec.ts guards this).
+ */
 async function readImageUpload(
   formData: FormData,
-  fileKey: string,
   existingKey: string,
 ): Promise<{ url: string | null; error: string | null }> {
-  const file = formData.get(fileKey);
   const existing = String(formData.get(existingKey) ?? "").trim();
-
-  if (file instanceof File && file.size > 0) {
-    const { url, error } = await uploadLegalUpdateImage(file);
-    if (error) return { url: null, error };
-    return { url, error: null };
-  }
-
   return { url: existing.length > 0 ? existing : null, error: null };
 }
 
@@ -135,7 +125,7 @@ async function readInput(
 
   // Cover image
   const { url: resolvedCover, error: coverErr } = await readImageUpload(
-    formData, "cover_image_file", "existing_cover_image_url"
+    formData, "existing_cover_image_url"
   );
   if (coverErr) return { input: null, error: coverErr };
   const cover_image_url = formData.has("existing_cover_image_url")
@@ -146,7 +136,7 @@ async function readInput(
   const imgs: { url: string | null; alt: string | null; position: string | null }[] = [];
   for (let i = 1; i <= 4; i++) {
     const { url: resolvedUrl, error: imgErr } = await readImageUpload(
-      formData, `image_${i}_file`, `existing_image_${i}_url`
+      formData, `existing_image_${i}_url`
     );
     if (imgErr) return { input: null, error: imgErr };
     imgs.push({

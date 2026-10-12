@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import type { LawyerQAPair } from "@/lib/supabase/types";
 import type { FormState } from "./actions";
-import {
-  autosaveLawyerNewsAction,
-  setLawyerNewsStatusAction,
-  uploadLawyerNewsImageAction,
-} from "./actions";
+import { autosaveLawyerNewsAction,
+  setLawyerNewsStatusAction } from "./actions";
 import {
   TextField,
   TextAreaField,
@@ -17,6 +14,9 @@ import {
   FormSection,
   fieldEntrance,
 } from "@/components/forms/kit/field";
+import {
+  uploadLawyerNewsImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
 import {
@@ -82,7 +82,7 @@ function InlineImageField({
             label={`Image ${num}`}
             compact
             previewAspect="aspect-[16/9]"
-            upload={uploadLawyerNewsImageAction}
+            upload={uploadLawyerNewsImage}
             onFilesSelected={(files) => {
               setPreview(URL.createObjectURL(files[0]));
               setRemoved(false);
@@ -303,7 +303,7 @@ export function LawyerNewsForm({
           existingHiddenName="existing_cover_image_url"
           existingValue={initial?.cover_image_url ?? ""}
           previewAspect="aspect-[16/9]"
-          upload={uploadLawyerNewsImageAction}
+          upload={uploadLawyerNewsImage}
         />
         <TextField
           label="Cover alt text"

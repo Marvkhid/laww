@@ -4,10 +4,7 @@ import { useActionState, useRef } from "react";
 import { motion } from "motion/react";
 import type { LegalUpdateRow, PracticeAreaRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/legal-updates/actions";
-import {
-  autosaveLegalUpdateAction,
-  uploadLegalUpdateImageAction,
-} from "@/app/admin/(protected)/legal-updates/actions";
+import { autosaveLegalUpdateAction } from "@/app/admin/(protected)/legal-updates/actions";
 import { TiptapEditor } from "@/app/admin/(protected)/articles/tiptap-editor";
 import type { JSONContent } from "@tiptap/core";
 import {
@@ -17,6 +14,9 @@ import {
   FormSection,
   fieldEntrance,
 } from "@/components/forms/kit/field";
+import {
+  uploadLegalUpdateImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import {
   IMAGE_POSITIONS,
@@ -68,7 +68,7 @@ function InlineImageField({
             existingValue={initial?.[urlKey] ?? ""}
             compact
             previewAspect="aspect-[16/9]"
-            upload={uploadLegalUpdateImageAction}
+            upload={uploadLegalUpdateImage}
           />
         </div>
       </div>
@@ -219,7 +219,7 @@ export function LegalUpdateForm({
           existingHiddenName="existing_cover_image_url"
           existingValue={initial?.cover_image_url ?? ""}
           previewAspect="aspect-[16/9]"
-          upload={uploadLegalUpdateImageAction}
+          upload={uploadLegalUpdateImage}
         />
         <p className="font-admin text-xs text-stone">
           {initial?.cover_image_url ? "Leave empty to keep the current image." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}

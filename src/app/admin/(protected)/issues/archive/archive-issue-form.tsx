@@ -12,6 +12,10 @@ import {
 import { SubmitButton } from "@/components/forms/kit/submit-button";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { PdfFileField } from "@/components/forms/kit/pdf-upload";
+import {
+  uploadArchiveCoverImage,
+  uploadArchivePdf,
+} from "@/app/admin/(protected)/admin-uploaders";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -133,6 +137,10 @@ export function ArchiveIssueForm({
       </FormSection>
 
       <FormSection title="Cover Image" subtitle="The public cover for this archive issue." accent="left">
+        {/* Upload-on-select, like every other section. Submitting a file inside
+            the form action is the path that cannot work in production: this
+            form also carries a PDF of up to 30 MB, and a deployed function
+            rejects any request body above 4.5 MB. */}
         <ImageUploadZone
           name="cover_image_file"
           label={coverPreview ? "Replace cover image" : "Upload cover image"}
@@ -141,7 +149,9 @@ export function ArchiveIssueForm({
           initialPreview={coverPreview}
           previewAspect="aspect-[3/4]"
           compact
+          persistHint="manual"
           onFilesSelected={(files) => setCoverPreview(URL.createObjectURL(files[0]))}
+          upload={uploadArchiveCoverImage}
         />
       </FormSection>
 
@@ -154,8 +164,11 @@ export function ArchiveIssueForm({
             </a>
           </p>
         ) : null}
-        <PdfFileField />
-        <input type="hidden" name="existing_pdf_url" value={initial?.pdf_url ?? ""} />
+        <PdfFileField
+          existingHiddenName="existing_pdf_url"
+          existingValue={initial?.pdf_url ?? ""}
+          upload={uploadArchivePdf}
+        />
       </FormSection>
 
       {entityId ? <input type="hidden" name="entity_id" value={entityId} /> : null}

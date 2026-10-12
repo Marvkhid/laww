@@ -9,19 +9,13 @@ import {
   getLegalInsightByIdForAdmin,
   type LegalInsightInput,
 } from "@/lib/supabase/admin/legal-insights";
-import { uploadLegalInsightImage } from "@/lib/supabase/admin/storage";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 import { readTextPreserving } from "@/lib/form-presence";
 import type { LegalInsightRow } from "@/lib/supabase/types";
 
 export type FormState = { error: string | null };
 
-/** Upload-on-select for quiz images. */
-export async function uploadLegalInsightImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadLegalInsightImage(file);
-}
+
 
 async function readInput(
   formData: FormData,
@@ -68,14 +62,9 @@ async function readInput(
       ? correctIndex
       : null;
 
-  // Image upload
-  let image_url: string | null = optional("existing_image_url");
-  const imageFile = formData.get("image_file");
-  if (imageFile instanceof File && imageFile.size > 0) {
-    const { url, error } = await uploadLegalInsightImage(imageFile);
-    if (error) return { input: null, error };
-    image_url = url;
-  }
+  // Image URL — resolved in the browser on selection, never uploaded here
+  // (no server action reads file bytes: see src/lib/request-limits.ts).
+  const image_url: string | null = optional("existing_image_url");
 
   const displayOrderRaw = String(formData.get("display_order") ?? "0").trim();
   const display_order = Number(displayOrderRaw) || 0;

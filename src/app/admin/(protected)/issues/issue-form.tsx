@@ -4,13 +4,12 @@ import { useActionState, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { IssueRow } from "@/lib/supabase/types";
 import type { FormState } from "@/app/admin/(protected)/issues/actions";
-import {
-  autosaveIssueAction,
-  uploadIssueCoverImageAction,
-  uploadIssuePdfAction,
-} from "@/app/admin/(protected)/issues/actions";
+import { autosaveIssueAction } from "@/app/admin/(protected)/issues/actions";
 import { TextField, FormSection } from "@/components/forms/kit/field";
 import { SubmitButton } from "@/components/forms/kit/submit-button";
+import {
+  uploadIssueCoverImage, uploadIssuePdf,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { PdfFileField } from "@/components/forms/kit/pdf-upload";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
@@ -132,7 +131,7 @@ export function IssueForm({
           previewAspect="aspect-[3/4]"
           compact
           onFilesSelected={(files) => setImagePreview(URL.createObjectURL(files[0]))}
-          upload={uploadIssueCoverImageAction}
+          upload={uploadIssueCoverImage}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep the current image.
@@ -174,7 +173,7 @@ export function IssueForm({
         <PdfFileField
           existingHiddenName="existing_pdf_url"
           existingValue={initial?.pdf_url ?? ""}
-          upload={uploadIssuePdfAction}
+          upload={uploadIssuePdf}
         />
       </FormSection>
 

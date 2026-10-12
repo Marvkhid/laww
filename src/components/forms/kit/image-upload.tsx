@@ -1,8 +1,14 @@
 "use client";
 
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
-import { ImagePlus, Loader2, Trash2, X } from "lucide-react";
+import { ImagePlus, Loader2, RotateCcw, Trash2, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import type { UploadResult } from "@/lib/upload-client";
+import { IMAGE_MAX_LABEL } from "@/lib/upload-limits";
+import {
+  beginUploadActivity,
+  endUploadActivity,
+} from "@/lib/upload-activity";
 
 /**
  * Premium image upload zone.
@@ -39,9 +45,22 @@ import { useEffect, useId, useRef, useState } from "react";
  *     hard-coded defaultValue silently blanked the resolved URL and the next
  *     autosave wiped the image. It also doubles as the initial preview source,
  *     so a saved image is visible on open.
+ *
+ *  5. An upload can no longer leave the zone stuck on "Uploading…". Three
+ *     separate defects made that state permanent, all reproduced:
+ *       · a delete/replace during an upload bumped the race token and the
+ *         completion path returned early WITHOUT clearing `uploading`, so the
+ *         spinner, the disabled file input and the dead click target stayed
+ *         forever;
+ *       · a request that never returned (browser `fetch` has no timeout) was
+ *         indistinguishable from one still in progress;
+ *       · the success label "Uploaded — saving…" was never cleared, so a
+ *         finished upload looked permanently unfinished.
+ *     Uploads are now bounded and cancellable (see lib/upload-client.ts), the
+ *     completion path always clears its own loading state, a failure reverts
+ *     the preview and offers Retry, and the "saving…" label is resolved by the
+ *     real autosave status event.
  */
-
-type UploadResult = { url: string | null; error: string | null };
 
 export function ImageUploadZone({
   name,
@@ -55,10 +74,12 @@ export function ImageUploadZone({
   previewAspect = "aspect-[16/10]",
   removable = true,
   removeConfirm = true,
+  persistHint = "autosave",
   onFilesSelected,
   upload,
   onUploaded,
 }: {
+  /** Accepted file types shown as-is to the browser picker. */
   name: string;
   label: string;
   existingHiddenName?: string;
@@ -72,9 +93,19 @@ export function ImageUploadZone({
   removable?: boolean;
   /** Ask before deleting. Default true. */
   removeConfirm?: boolean;
+  /**
+   * How the resolved URL reaches the database: "autosave" (the editor saves by
+   * itself) or "manual" (the form only saves on submit, e.g. archive issues).
+   * Only changes the wording — the zone must never imply work is already
+   * persisted when the operator still has to press Save.
+   */
+  persistHint?: "autosave" | "manual";
   onFilesSelected?: (files: File[]) => void;
-  /** Upload immediately on selection instead of at submit time. */
-  upload?: (file: File) => Promise<UploadResult>;
+  /**
+   * Upload immediately on selection instead of at submit time. Receives an
+   * AbortSignal so a running upload can be cancelled from the UI.
+   */
+  upload?: (file: File, signal?: AbortSignal) => Promise<UploadResult>;
   /** Called with the resolved public URLs once uploads succeed. */
   onUploaded?: (urls: string[]) => void;
 }) {
@@ -94,11 +125,29 @@ export function ImageUploadZone({
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadRetryable, setUploadRetryable] = useState(false);
+  /** Mirrors "lastFilesRef holds something retryable" for render. */
+  const [canRetry, setCanRetry] = useState(false);
   const [justUploaded, setJustUploaded] = useState(false);
+  // The upload itself succeeded but the autosave that persists the URL did
+  // not. Never reported as a silent success.
+  const [persistFailed, setPersistFailed] = useState(false);
 
   // Bumped on every reset/removal. A resolved upload whose token is stale is
   // discarded, so a late response cannot restore a deleted image.
   const tokenRef = useRef(0);
+  /** Cancels the running transfer; also used by the Cancel button. */
+  const abortRef = useRef<AbortController | null>(null);
+  /**
+   * The files of the last attempt, kept in memory so Retry can re-send them
+   * without asking the operator to find the file again. The native input's own
+   * value is cleared on failure so an un-uploaded file can never ride along in
+   * the form submit (that POST was itself an oversized body — the failure this
+   * fix removes).
+   */
+  const lastFilesRef = useRef<File[]>([]);
+  /** Object URLs handed to <img src>, revoked when replaced or unmounted. */
+  const blobUrlsRef = useRef<string[]>([]);
 
   // Mirror of the hidden field's committed value.
   //
@@ -137,68 +186,149 @@ export function ImageUploadZone({
   // result arrives afterwards — the token guard above covers that.
   const removeImage = () => {
     if (removeConfirm && !window.confirm("Remove this image?")) return;
+    // Cancel first, and clear the loading state here as well as in the
+    // completion path: deleting during an upload used to leave `uploading`
+    // true forever (the completion path returned early on a stale token), so
+    // the zone kept saying "Uploading…", the file input stayed disabled and
+    // the zone stopped opening the picker.
+    abortRef.current?.abort();
+    abortRef.current = null;
     tokenRef.current += 1; // invalidate any in-flight upload
+    setUploading(false);
     setPreviews([]);
     setUploadError(null);
+    setUploadRetryable(false);
+    setCanRetry(false);
     setJustUploaded(false);
+    setPersistFailed(false);
+    lastFilesRef.current = [];
     if (inputRef.current) inputRef.current.value = "";
     // "" is a *present-but-empty* value: the server reads that as a
     // deliberate clear and persists the removal.
     commitValue("");
   };
 
-  const runUpload = (list: File[]) => {
-    if (!upload) return;
-    const token = tokenRef.current;
-    setUploading(true);
-    setUploadError(null);
-    const results = Promise.all(
-      list.map((file) =>
-        upload(file).catch(() => ({
-          url: null,
-          error: "Upload failed. Check your connection and try again.",
-        }))
-      )
-    );
-    void results
-      .then((resolved) => {
-        // The user deleted (or replaced) while this was in flight — drop it.
-        if (token !== tokenRef.current) return;
-        setUploading(false);
-        const urls = resolved
-          .map((result) => result.url)
-          .filter((url): url is string => Boolean(url));
-        const firstError = resolved.find((result) => result.error);
-        if (urls.length > 0) {
-          commitValue(urls[0]);
-          setJustUploaded(true);
-          onUploaded?.(urls);
-        }
-        if (firstError?.error) {
-          setUploadError(
-            urls.length > 0
-              ? `${firstError.error} (${urls.length} of ${list.length} uploaded)`
-              : firstError.error
-          );
-        } else if (inputRef.current) {
-          // The URL is stored, so a later Save must not re-upload the bytes.
-          inputRef.current.value = "";
-        }
-      })
-      .catch(() => {
-        if (token !== tokenRef.current) return;
-        setUploading(false);
-        setUploadError("Upload failed. Check your connection and try again.");
-      });
+  /** Show a local file and remember its blob URL so it can be revoked. */
+  const showLocalPreviews = (files: File[]) => {
+    blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    const urls = files.map((file) => URL.createObjectURL(file));
+    blobUrlsRef.current = urls;
+    setPreviews(urls);
   };
 
+  /** Fall back to whatever the form actually holds (the committed URL). */
+  const revertPreview = () => {
+    blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    blobUrlsRef.current = [];
+    setPreviews(committed ? [committed] : []);
+  };
+
+  /**
+   * Send `list` to storage. Bounded, cancellable, and every exit path clears
+   * the loading state — the zone can never be left saying "Uploading…".
+   */
+  const runUpload = async (list: File[]) => {
+    if (!upload) return;
+    lastFilesRef.current = list;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const token = ++tokenRef.current;
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadRetryable(false);
+    setCanRetry(false);
+    setPersistFailed(false);
+    beginUploadActivity();
+
+    try {
+      const resolved: UploadResult[] = await Promise.all(
+        list.map((file) =>
+          upload(file, controller.signal).catch(() => ({
+            url: null,
+            error: "Upload failed. Check your connection and try again.",
+            retryable: true,
+          }))
+        )
+      );
+
+      // The user deleted (or replaced) while this was in flight — drop it.
+      // The loading flag was already cleared by whoever superseded us.
+      if (token !== tokenRef.current) return;
+
+      const urls = resolved
+        .map((result) => result.url)
+        .filter((url): url is string => Boolean(url));
+      const failed = resolved.find((result) => result.error);
+      const cancelled = resolved.length > 0 && resolved.every((r) => r.cancelled);
+
+      if (urls.length > 0) {
+        commitValue(urls[0]);
+        setJustUploaded(true);
+        onUploaded?.(urls);
+      }
+
+      if (failed?.error) {
+        // Never leave a failed file inside the form: a later Save would post
+        // the bytes inside the action body, which is the path that cannot
+        // work in production. The File objects stay in memory for Retry.
+        setUploadError(
+          urls.length > 0
+            ? `${failed.error} (${urls.length} of ${list.length} uploaded)`
+            : failed.error
+        );
+        const retryable = failed.retryable !== false;
+        setUploadRetryable(retryable);
+        setCanRetry(retryable && list.length > 0);
+        revertPreview();
+      } else if (cancelled) {
+        revertPreview();
+        lastFilesRef.current = [];
+        setCanRetry(false);
+      }
+      if (inputRef.current) inputRef.current.value = "";
+    } finally {
+      endUploadActivity();
+      // Only the current attempt owns the flag; a newer attempt (or a delete)
+      // has already set its own value.
+      if (token === tokenRef.current) {
+        setUploading(false);
+        abortRef.current = null;
+      }
+    }
+  };
+
+  /**
+   * The File objects are captured here and the native input is emptied on the
+   * spot, so the form body can NEVER contain a file.
+   *
+   * Leaving the selection attached was its own production failure: a Save
+   * clicked while the upload was still running posted the bytes with the form,
+   * and the host rejects any request body over 4 500 000 bytes with HTTP 413
+   * (`FUNCTION_PAYLOAD_TOO_LARGE`) before the app can even see the request.
+   */
   const handleFiles = (files: FileList | null) => {
     const list = Array.from(files ?? []);
     if (!list.length) return;
-    setPreviews(list.map((f) => URL.createObjectURL(f)));
-    setJustUploaded(true);
+    if (inputRef.current) inputRef.current.value = "";
+    showLocalPreviews(list);
     onFilesSelected?.(list);
-    runUpload(list);
+    void runUpload(list);
+  };
+
+  const retryUpload = () => {
+    const list = lastFilesRef.current;
+    if (!list.length) return;
+    showLocalPreviews(list);
+    onFilesSelected?.(list);
+    void runUpload(list);
+  };
+
+  const cancelUpload = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setUploading(false);
   };
 
   // Autosave recovery: the hook re-dispatches the snapshot onto the form.
@@ -220,6 +350,46 @@ export function ImageUploadZone({
     window.addEventListener("autosave:restore", onRestore);
     return () => window.removeEventListener("autosave:restore", onRestore);
   }, [existingHiddenName]);
+
+  /**
+   * Resolve the "Uploaded — saving…" label against the real autosave result.
+   *
+   * The label was previously never cleared, so a finished upload looked like an
+   * operation that had hung, and a FAILED autosave still displayed the calm
+   * "saving…" wording. useAutosave broadcasts its status; the zone reacts:
+   * saved ⇒ stop claiming work is pending, error ⇒ say plainly that the
+   * upload is not persisted yet.
+   */
+  useEffect(() => {
+    const onStatus = (event: Event) => {
+      const detail = (event as CustomEvent<{ status?: string }>).detail;
+      if (detail?.status === "saved") {
+        setJustUploaded(false);
+        setPersistFailed(false);
+      } else if (detail?.status === "error") {
+        setPersistFailed(true);
+      }
+    };
+    window.addEventListener("autosave:status", onStatus);
+    // A manual Save persists the URL too — stop claiming it is pending.
+    const form = hiddenRef.current?.form ?? null;
+    const onSubmit = () => setJustUploaded(false);
+    form?.addEventListener("submit", onSubmit);
+    return () => {
+      window.removeEventListener("autosave:status", onStatus);
+      form?.removeEventListener("submit", onSubmit);
+    };
+  }, []);
+
+  // Leaving the page must not leave a transfer running or a blob URL alive.
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
+    },
+    []
+  );
 
   const showDelete = removable && previews.length > 0;
 
@@ -267,8 +437,16 @@ export function ImageUploadZone({
                 className="h-full w-full object-contain"
               />
               {uploading ? (
-                <span className="absolute inset-0 flex items-center justify-center bg-white/60">
+                <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/70">
                   <Loader2 size={18} strokeWidth={2} className="animate-spin text-digest-red" />
+                  <button
+                    type="button"
+                    onClick={cancelUpload}
+                    className="border border-hairline bg-white px-2 py-1 font-admin text-[10px] font-semibold uppercase tracking-[0.08em] text-ink hover:border-digest-red hover:text-digest-red"
+                    style={{ borderRadius: 2 }}
+                  >
+                    Cancel
+                  </button>
                 </span>
               ) : null}
             </div>
@@ -304,9 +482,17 @@ export function ImageUploadZone({
                   Delete image
                 </button>
                 {justUploaded ? (
-                  <span className="font-admin text-[11px] text-stone">
-                    Uploaded — saving…
-                  </span>
+                  persistFailed ? (
+                    <span role="status" className="font-admin text-[11px] font-medium text-digest-red">
+                      Uploaded — not saved yet
+                    </span>
+                  ) : (
+                    <span role="status" className="font-admin text-[11px] text-stone">
+                      {persistHint === "manual"
+                        ? "Uploaded — remember to save"
+                        : "Uploaded — saving…"}
+                    </span>
+                  )
                 ) : null}
               </div>
             ) : null}
@@ -377,7 +563,8 @@ export function ImageUploadZone({
           {uploading ? "Uploading…" : label}
         </span>
         <span className="font-admin text-[11px] text-stone">
-          Drag &amp; drop or click · JPEG, PNG, WEBP, GIF up to 5MB
+          Drag &amp; drop or click · JPEG, PNG, WEBP, GIF up to {" "}
+          {IMAGE_MAX_LABEL}
         </span>
         <input
           ref={inputRef}
@@ -394,9 +581,21 @@ export function ImageUploadZone({
       {uploadError ? (
         <p
           role="alert"
-          className="mt-1.5 font-admin text-xs font-medium text-digest-red"
+          className="mt-1.5 flex flex-wrap items-center gap-2 font-admin text-xs font-medium text-digest-red"
         >
           {uploadError}
+          {uploadRetryable && canRetry ? (
+            <button
+              type="button"
+              data-testid="image-retry"
+              onClick={retryUpload}
+              className="inline-flex items-center gap-1 border border-digest-red/40 px-2 py-0.5 font-admin text-[10px] font-semibold uppercase tracking-[0.08em] text-digest-red hover:bg-digest-red hover:text-paper"
+              style={{ borderRadius: 2 }}
+            >
+              <RotateCcw size={11} strokeWidth={2.5} />
+              Retry upload
+            </button>
+          ) : null}
         </p>
       ) : null}
     </div>

@@ -4,12 +4,15 @@ import { useActionState, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { HomepageHighlightRow } from "@/lib/supabase/types";
 import type { FormState } from "./actions";
-import { autosaveHighlightAction, uploadHighlightImageAction } from "./actions";
+import { autosaveHighlightAction } from "./actions";
 import {
   TextField,
   TextAreaField,
   FormSection,
 } from "@/components/forms/kit/field";
+import {
+  uploadHighlightImage,
+} from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
 import {
@@ -94,7 +97,7 @@ export function HighlightForm({
           existingHiddenName="existing_image_url"
           existingValue={initial?.image_url ?? ""}
           previewAspect="aspect-[16/9]"
-          upload={uploadHighlightImageAction}
+          upload={uploadHighlightImage}
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB. Leave empty to keep current image.

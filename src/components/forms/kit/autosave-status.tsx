@@ -6,6 +6,17 @@ import { AlertCircle, Check, Loader2, RotateCcw } from "lucide-react";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import { clearAllSnapshots } from "@/lib/autosave";
 import type { AutosaveStatus } from "@/components/forms/kit/use-autosave";
+import { waitForUploadActivity } from "@/lib/upload-activity";
+import { logAdminEvent } from "@/lib/admin-diagnostics";
+
+/**
+ * How long Save/Publish waits for a running upload before submitting anyway.
+ *
+ * Bounded on purpose: an upload is already capped (120 s image / 300 s PDF)
+ * and no file can be in the form body, so waiting is a courtesy for the
+ * operator's just-picked image — never a way to keep Save from working.
+ */
+const SAVE_WAITS_FOR_UPLOAD_MS = 20_000;
 
 /**
  * AutosaveStatus — the small editor status line required by the CMS spec:
@@ -131,9 +142,23 @@ export function SaveButtons({
     if (busy) return;
     const form = formRef.current;
     if (!form) return;
+    const startedAt = Date.now();
     setMode(next);
     setFlushing(true);
     try {
+      // A file still uploading is not in the form body (the zone empties the
+      // input on selection), but its resolved URL is not in the hidden field
+      // yet either. Wait for it — bounded — so the save includes the image the
+      // operator just chose instead of navigating away from it.
+      const completed = await waitForUploadActivity(SAVE_WAITS_FOR_UPLOAD_MS);
+      logAdminEvent({
+        op: "save",
+        section: "admin",
+        stage: "persist",
+        outcome: "ok",
+        ms: Date.now() - startedAt,
+        category: completed ? "submitted" : "submitted_with_upload_pending",
+      });
       await flush({ pause: true });
       // Belt-and-braces: also write the DOM value immediately before submit,
       // in case React has not committed the state update yet. Both paths agree

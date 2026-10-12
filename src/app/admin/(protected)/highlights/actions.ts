@@ -10,7 +10,6 @@ import {
   type HomepageHighlightInput,
 } from "@/lib/supabase/admin/homepage-highlights";
 import type { HomepageHighlightRow } from "@/lib/supabase/types";
-import { uploadHighlightImage } from "@/lib/supabase/admin/storage";
 import { dataToFormData, type AutosaveResult } from "@/lib/autosave";
 import { readTextPreserving } from "@/lib/form-presence";
 
@@ -22,12 +21,7 @@ function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
   return mode === "publish" || mode === "unpublish" ? mode : "save";
 }
 
-/** Upload-on-select for highlight images. */
-export async function uploadHighlightImageAction(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  return uploadHighlightImage(file);
-}
+
 
 async function readInput(
   formData: FormData,
@@ -47,15 +41,10 @@ async function readInput(
   const title = preserveable("title", current?.title ?? null);
   const content = preserveable("content", current?.content ?? null);
 
-  // Image is the only required field
-  // Image upload
-  let image_url: string | null = optional("existing_image_url");
-  const imageFile = formData.get("image_file");
-  if (imageFile instanceof File && imageFile.size > 0) {
-    const { url, error } = await uploadHighlightImage(imageFile);
-    if (error) return { input: null, error };
-    image_url = url;
-  }
+  // Image is the only required field. The URL comes from the hidden
+  // existing_image_url field, filled by the upload zone on selection —
+  // no server action reads file bytes (see src/lib/request-limits.ts).
+  const image_url: string | null = optional("existing_image_url");
 
   if (!image_url) {
     return { input: null, error: "Image is required." };
