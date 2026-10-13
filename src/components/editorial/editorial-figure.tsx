@@ -66,9 +66,13 @@ export function EditorialFigure({
 }
 
 /**
- * Standalone full-width editorial figure — centered, max-width constrained.
+ * Standalone full-width editorial figure — centred and bounded.
+ *
  * Used for full-width/center positions, which by design break out of the text
- * flow rather than sitting beside it.
+ * flow rather than sitting beside it. The bound lives in CSS
+ * (`.editorial-figure--full`) next to the floated sizes, so desktop and mobile
+ * caps are defined in one place instead of being split between a Tailwind
+ * utility here and a media query there.
  */
 export function EditorialFullFigure({
   url,
@@ -82,7 +86,7 @@ export function EditorialFullFigure({
   className?: string;
 }) {
   return (
-    <div className={`mx-auto my-10 max-w-4xl ${className}`}>
+    <div className={`editorial-figure--full ${className}`}>
       <EditorialFigure url={url} alt={alt} caption={caption} />
     </div>
   );

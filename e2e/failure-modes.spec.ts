@@ -21,8 +21,11 @@ import {
  *     in, so the loading skeleton would pulse forever with no explanation.
  *
  * Both tests run in all three engines, which also proves the CSS features
- * they rely on (`@media (scripting: none)`, the `no-hydration` safety net)
+ * they rely on (`@media (scripting: none)`, the injected rescue stylesheet)
  * actually work in Gecko and WebKit, not just Chromium.
+ *
+ * A third case covers the opposite mistake — a rescue that *edits* the
+ * document it finds. See the slow-boot block at the end.
  */
 
 const FAULTY_ROUTES = ["/", "/articles/the-headline"];
@@ -30,11 +33,12 @@ const FAULTY_ROUTES = ["/", "/articles/the-headline"];
 /**
  * Two severities of the same failure:
  *   - `js only` is the realistic one: a stale hashed chunk after a deploy, or
- *     an extension blocking scripts, leaves the stylesheet intact so the
- *     `html.no-hydration` CSS rules can rescue the page.
+ *     an extension blocking scripts.
  *   - `JS and CSS` is the harsher one: nothing under /_next/static loads, so
- *     the CSS safety net does not exist and only the inline watchdog's direct
- *     style normalisation can prevent a blank page.
+ *     the page stylesheet does not exist either.
+ *
+ * Both are survived by the same mechanism — the stylesheet the inline
+ * watchdog installs — which is why the rescue cannot live in globals.css.
  */
 const BLOCK_MODES: { name: string; pattern: string }[] = [
   { name: "JS only", pattern: "**/_next/static/**/*.js" },
@@ -62,15 +66,11 @@ test.describe("app bundle never boots", () => {
           "no chunk request was intercepted — the probe would pass vacuously"
         ).toBeGreaterThan(0);
 
-      // The inline watchdog must fire (2.5s) and mark the document.
+      // The inline watchdog must fire (2.5s) and install its rescue sheet.
       await expect
-        .poll(
-          () =>
-            page.evaluate(() =>
-              document.documentElement.classList.contains("no-hydration")
-            ),
-          { timeout: 15_000 }
-        )
+        .poll(() => page.evaluate(() => window.__ngRevealRescued === 1), {
+          timeout: 15_000,
+        })
         .toBe(true);
 
       // Streamed Suspense content still swaps in — React's swap scripts are
@@ -165,14 +165,129 @@ test.describe("JavaScript enabled", () => {
   test("the no-JS notice stays out of the way", async ({ page }) => {
     await gotoClean(page, "/");
     await expect(page.locator(".nojs-notice")).toBeHidden();
-    // Healthy boot ⇒ content becomes visible once the reveals have run.
-    // (The watchdog class itself may be present if hydration legitimately
-    // took longer than 2.5s on a cold server — by design it never re-hides
-    // content it already showed.)
+    // Healthy boot ⇒ content becomes visible once the reveals have run. A
+    // rescue installed because hydration legitimately took longer than 2.5s on
+    // a cold server stays installed by design — it never re-hides content it
+    // already showed — so this asserts the end state, not the mechanism.
     const leftovers = await waitForNoHiddenContent(page);
     expect(
       leftovers,
       `invisible content on a healthy boot:\n  ${leftovers.join("\n  ")}`
+    ).toEqual([]);
+  });
+});
+
+/**
+ * Slow boot — the failure mode that used to break hydration.
+ *
+ * The watchdog cannot tell "the bundle will never boot" from "the bundle is
+ * slow", and 2.5s is well inside the range where a cold compile, a slow device
+ * or a slow network is still booting. So the rescue has to fire *and* leave the
+ * document exactly as the server rendered it: anything it rewrites on an
+ * element React rendered — `class` on `<html>`, the inline `style` motion
+ * starts from — is compared during hydration and reported as "A tree hydrated
+ * but some attributes of the server rendered HTML didn't match. This won't be
+ * patched up."
+ *
+ * The bundle is delayed past the timer, so the window is deterministic: when
+ * the rescue has fired, the chunk that hydrates the page is still in flight.
+ */
+test.describe("slow boot: the bundle lands after the watchdog", () => {
+  const BUNDLE_DELAY_MS = 6_000;
+
+  test("the rescue fires without rewriting what React rendered", async ({
+    page,
+  }) => {
+    const hydrationErrors: string[] = [];
+    page.on("console", (msg) => {
+      if (msg.type() !== "error") return;
+      const text = msg.text();
+      // A development build names the mismatch in words; a production build
+      // logs the minified code for the same recovery.
+      if (/hydrat/i.test(text) || /React error #(418|422|423|425)/.test(text)) {
+        hydrationErrors.push(text.replace(/\s+/g, " ").slice(0, 200));
+      }
+    });
+
+    let delayed = 0;
+    await page.route(
+      (url) => /\/_next\/static\/.*\.js(\?|$)/.test(url.href),
+      async (route) => {
+        delayed += 1;
+        await new Promise((resolve) => setTimeout(resolve, BUNDLE_DELAY_MS));
+        await route.continue();
+      }
+    );
+
+    // Deliberately not `gotoClean`: that waits for the `load` event, which
+    // waits for the very chunks this test delays, so the sample would land
+    // after hydration and measure nothing.
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(
+      delayed,
+      "no chunk was delayed — the probe would pass vacuously"
+    ).toBeGreaterThan(0);
+
+    // ~2.5s in, with the hydrating chunk still seconds away.
+    await expect
+      .poll(() => page.evaluate(() => window.__ngRevealRescued === 1), {
+        timeout: 15_000,
+      })
+      .toBe(true);
+
+    const during = await page.evaluate(() => {
+      const reveal = document.querySelector<HTMLElement>("[data-reveal]");
+      return {
+        htmlClass: document.documentElement.className,
+        inlineOpacity: reveal ? reveal.style.opacity : null,
+        inlineTransform: reveal ? reveal.style.transform : null,
+        computedOpacity: reveal ? getComputedStyle(reveal).opacity : null,
+      };
+    });
+
+    // The attributes React hydrates must be exactly as the server left them…
+    expect(
+      during.htmlClass,
+      "the watchdog wrote a class onto <html>, which React hydrates"
+    ).not.toContain("no-hydration");
+    // …including the block's own hidden start state.
+    expect(
+      during.inlineOpacity,
+      "the watchdog rewrote the reveal block's own style, which React hydrates"
+    ).toBe("0");
+    expect(
+      during.inlineTransform,
+      "the watchdog rewrote the reveal block's transform, which React hydrates"
+    ).not.toBe("none");
+
+    // …while the rescue still does its job, from a stylesheet.
+    expect(
+      Number(during.computedOpacity),
+      "the rescue did not render a reveal block the server left hidden"
+    ).toBeGreaterThan(0.9);
+
+    // Let the delayed bundle arrive, hydrate and animate.
+    await page
+      .waitForFunction(
+        () =>
+          [...document.querySelectorAll<HTMLElement>("[data-reveal]")].every(
+            (el) => parseFloat(getComputedStyle(el).opacity) > 0.9
+          ),
+        undefined,
+        { timeout: 30_000 }
+      )
+      .catch(() => {
+        /* asserted below, with a readable message */
+      });
+
+    const hidden = await findHiddenContent(page);
+    expect(
+      hidden,
+      `content never became visible after a slow boot:\n  ${hidden.join("\n  ")}`
+    ).toEqual([]);
+    expect(
+      hydrationErrors,
+      `hydration mismatch after a slow boot:\n  ${hydrationErrors.join("\n  ")}`
     ).toEqual([]);
   });
 });

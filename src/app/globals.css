@@ -90,20 +90,16 @@ html.no-intersection-observer [data-reveal],
    `BootFlag` + the inline script in the root layout cover the case where
    scripting is enabled but the app bundle never boots: a stale hashed chunk
    after a deploy, a blocked /_next/static request, a privacy extension, or a
-   hydration exception. The script marks <html> `no-hydration` after 2.5s and
-   also normalises the inline styles motion left behind, so the rescue works
-   even if the stylesheet itself failed to load. Direct children get their
-   opacity back too (`StaggerItem` renders `opacity: 0` inline without
-   carrying `data-reveal`), but their transform is left alone — it may be
-   class-driven layout (a Tailwind translate), not animation state. */
-html.no-hydration [data-reveal] {
-  opacity: 1 !important;
-  transform: none !important;
-}
+   hydration exception.
 
-html.no-hydration [data-reveal] > * {
-  opacity: 1 !important;
-}
+   The rescue itself lives in that script, NOT here, for two reasons. It has to
+   work when this stylesheet is exactly what failed to load, and it must not
+   edit the document it finds: 2.5s cannot distinguish a dead bundle from a
+   slow one, and a boot that hydrates after the timer would then find `class`
+   and inline `style` rewritten — which React reports as a hydration mismatch.
+   The script therefore installs its own sheet (adopted, so no node and no
+   attribute is added) carrying the declarations that used to sit behind the
+   `html.no-hydration` class. See the comment in src/app/layout.tsx. */
 
 /* ─────────────────────────────────────────────────────────────────────────
    No-JavaScript state
@@ -321,6 +317,28 @@ html {
   }
 }
 
+/* ── Admin-authored text: breaking is the only safe answer ────────────────
+   Everything the dashboard saves is text somebody pasted: article bodies,
+   Q&A answers, lawyer names and titles, intros, captions, highlights, card
+   labels. The client's own test content contains runs of hundreds of
+   characters with no whitespace in them, and with the default
+   `overflow-wrap: normal` such a run is unbreakable — the line extends past
+   its column and the whole document scrolls sideways. Measured before this
+   rule existed: a 468-character run took the document to 3653px wide at a
+   375px viewport, on every width from 320px to 1440px.
+
+   Declared once on `body` because it is inherited: every content field on
+   every page is covered without a per-section patch, and it is the only
+   remedy that neither truncates nor drops the admin's text. `anywhere`
+   rather than `break-word` so a flex/grid child also shrinks instead of
+   overflowing. It can only ever break *more* — never widen anything — and
+   elements that must not wrap (`truncate`, `white-space: nowrap`,
+   `line-clamp`) set their own white-space and are untouched.
+*/
+body {
+  overflow-wrap: anywhere;
+}
+
 /* Article prose — magazine-quality typography
    Display: Merriweather (authoritative serif for headings)
    Body: Source Serif 4 (highly readable serif for long-form reading)
@@ -475,18 +493,55 @@ html {
   display: flow-root;
 }
 
+/* The figure box itself contributes no spacing: every margin belongs to the
+   position modifiers below. This rule must therefore come FIRST.
+
+   Declared last (which is where it used to sit) `margin: 0` silently
+   overrode each modifier's margins — the desktop floats rendered with no
+   gutter against the text, and the mobile left/right alignment had no auto
+   margin left to work with. Order here is load-bearing, not cosmetic. */
+.editorial-figure {
+  margin: 0;
+}
+
 /* Floated editorial figures (desktop). Width is a share of the column so the
-   text keeps a comfortable measure alongside it. */
+   text keeps a comfortable measure alongside it: 34% of the column, never
+   wider than 19rem, so the figure reads as an inset illustration instead of
+   competing with the prose. `clamp` keeps it from collapsing to a sliver
+   when the column is narrow. Aspect ratio is preserved (img is `h-auto`). */
 .editorial-figure--float-left {
   float: left;
-  width: 46%;
-  margin: 0.4rem 2.25rem 1.25rem 0;
+  width: clamp(12rem, 34%, 19rem);
+  margin: 0.35rem clamp(1rem, 3.5vw, 2rem) 1.1rem 0;
 }
 
 .editorial-figure--float-right {
   float: right;
-  width: 46%;
-  margin: 0.4rem 0 1.25rem 2.25rem;
+  width: clamp(12rem, 34%, 19rem);
+  margin: 0.35rem 0 1.1rem clamp(1rem, 3.5vw, 2rem);
+}
+
+/* Full-width and centred positions break out of the text flow by design, but
+   are still bounded so one image cannot dominate the page. */
+.editorial-figure--full {
+  width: min(100%, 40rem);
+  margin: 1.75rem auto;
+}
+
+/* ── Image 1–4: one size vocabulary for both renderers ────────────────────
+   `EditorialBody` interleaves these images with the text, and
+   `PositionedImageGrid` renders them when there is no body text to
+   interleave (the admin may upload artwork before writing the copy). They
+   are the same images, so they must not disagree about size: the grid
+   rendered at 42% while the floated figures were 46%, and its mobile rule
+   filled the column. Both paths now share the numbers above. */
+.article-image--half {
+  width: clamp(12rem, 34%, 19rem);
+}
+
+.article-image--full {
+  width: min(100%, 40rem);
+  margin-inline: auto;
 }
 
 /* Headings must never be trapped in a sliver beside a float. */
@@ -500,28 +555,54 @@ html {
   clear: both;
 }
 
-/* Small screens: no floats. Every image becomes full width of its
-   container — still in document order per the admin's position choice,
-   never reordered, and never overflowing horizontally. */
+/* Small screens: no floats, and every image is inset to a share of the
+   column rather than filling it — noticeably smaller, still in document
+   order, never reordered, never overflowing. The side the admin chose is
+   kept: a left-positioned image stays left, a right-positioned one stays
+   right (via an auto margin), and a full/centre one stays centred. */
 @media (max-width: 767px) {
   .editorial-figure--float-left,
   .editorial-figure--float-right {
     float: none;
-    width: 100%;
-    margin: 1.5rem 0;
+    width: min(74%, 17rem);
+    margin: 1.35rem 0;
   }
-}
 
-.editorial-figure {
-  margin: 0;
+  .editorial-figure--float-left {
+    margin-right: auto;
+  }
+
+  .editorial-figure--float-right {
+    margin-left: auto;
+  }
+
+  .editorial-figure--full {
+    width: min(78%, 19rem);
+    margin: 1.35rem auto;
+  }
+
+  .article-image--half {
+    width: min(74%, 17rem);
+  }
+
+  .article-image--full {
+    width: min(78%, 19rem);
+  }
 }
 
 .editorial-figure img {
   width: 100%;
+  max-width: 100%;
   height: auto;
   object-fit: contain;
   background: var(--color-hairline);
   display: block;
+}
+
+/* Images placed inside a rich-text body by the editor. */
+.prose-article img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

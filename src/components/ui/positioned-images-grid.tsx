@@ -22,11 +22,13 @@ import {
  * The position vocabulary itself lives in `@/lib/image-position`, so this grid
  * and `EditorialBody` can never disagree about what a position means.
  *
- * SIZE. Images 1–4 are editorial artwork, not heroes: they render at ~42% of
- * the container from `md` up (the same order of magnitude as the 46% floated
- * figures in `EditorialBody`), and take the full column below `md` so a phone
- * never gets a postage-stamp image. `full-width` keeps its meaning and spans
- * the container at every breakpoint.
+ * SIZE. Images 1–4 are editorial artwork, not heroes. Their sizes come from
+ * the shared `.article-image--half` / `.article-image--full` rules in
+ * `globals.css` — the exact numbers `EditorialBody`'s floated and full figures
+ * use — so the two renderers of the same admin images cannot drift apart as
+ * they had (this grid rendered at 42% while the floated figures were 46%).
+ * On small screens the images are inset rather than filling the column;
+ * `full-width` keeps its meaning and stays bounded at every breakpoint.
  *
  * Aspect ratios are preserved (height auto, `object-contain`), so nothing is
  * distorted, cropped or overlapped, on any viewport.
@@ -60,7 +62,7 @@ export function PositionedImageGrid({
   return (
     <div
       data-testid="positioned-image-grid"
-      className="flex flex-wrap gap-6"
+      className="flex flex-wrap items-start justify-between gap-6"
     >
       {ordered.map((image, index) => (
         <figure
@@ -69,7 +71,9 @@ export function PositionedImageGrid({
           data-position={image.position ?? ""}
           data-full-width={isFullWidthPosition(image.position) ? "true" : "false"}
           className={
-            isFullWidthPosition(image.position) ? "w-full" : "w-full md:w-[42%]"
+            isFullWidthPosition(image.position)
+              ? "article-image--full"
+              : "article-image--half"
           }
         >
           <div className="overflow-hidden border border-hairline bg-hairline/10">

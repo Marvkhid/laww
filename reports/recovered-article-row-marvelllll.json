@@ -1,0 +1,272 @@
+[
+  {
+    "id": "8ce4eaab-5a20-4d41-ae8b-7fecee0afbae",
+    "issue_id": null,
+    "practice_area_id": null,
+    "slug": "marvelllll",
+    "title": "marvelllll",
+    "dek": null,
+    "page_number": null,
+    "body": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph"
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "Short answer: ",
+              "type": "text"
+            },
+            {
+              "text": "No, you don’t always need a non-conditional offer first.",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            },
+            {
+              "text": " It depends on the scholarship.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "How it usually works for separate-application scholarships like Chevening:",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "1. Chevening, Commonwealth, DAAD, etc.",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "- ",
+              "type": "text"
+            },
+            {
+              "text": "You apply to the scholarship AND to universities separately",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "- For Chevening specifically: You need 2 university offers by July, but they can be ",
+              "type": "text"
+            },
+            {
+              "text": "conditional",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            },
+            {
+              "text": " at the time you apply.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "- You don’t need to have an offer when you first submit the Chevening application in Nov.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "2. University-specific scholarships",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "- Some require you to already have an offer: \"Apply for admission first, then apply for scholarship\"",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "- Some let you apply at the same time: \"Tick the scholarship box on your admission form\"",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "- Some are automatic: \"No separate application, they consider everyone admitted\"",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "The pattern:",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "**Scholarship Type**\t",
+              "type": "text"
+            },
+            {
+              "text": "Offer Needed to Apply?",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "Chevening, Fulbright, AA\tNo. Apply in parallel",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "Gates Cambridge, Rhodes\tYes. Strongly preferred to have offer/interview",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "Most university merit scholarships\tVaries. Some yes, some no",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "Key tip:",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ]
+            },
+            {
+              "text": " \"Non-conditional\" usually isn't required at application stage. Conditional is fine. You just need to meet the conditions and have an unconditional offer before the scholarship starts.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "text": "Are you asking about Chevening specifically, or other ones too? I can check the exact 2026 deadlines and requirements for you if you tell me the country/course you’re targeting.",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "cover_image_url": "https://wsuvvbkxopbkvcmcvptf.supabase.co/storage/v1/object/public/article-images/cddaffa6-74fd-4665-aa17-fc8d83b6ce3e.png",
+    "status": "published",
+    "featured": true,
+    "is_editorial_insight": true,
+    "on_cover": true,
+    "published_at": "2026-10-11T21:43:18.609+00:00",
+    "created_at": "2026-10-11T21:37:54.827386+00:00",
+    "updated_at": "2026-10-11T21:47:40.56632+00:00",
+    "is_cover_story": false,
+    "image_1_url": "https://wsuvvbkxopbkvcmcvptf.supabase.co/storage/v1/object/public/article-images/8d093f44-0428-48b7-9555-865a8525dceb.png",
+    "image_1_alt": null,
+    "image_1_position": "top-right",
+    "image_2_url": "https://wsuvvbkxopbkvcmcvptf.supabase.co/storage/v1/object/public/article-images/b7d33e08-722d-445a-ba33-ac735211a79a.png",
+    "image_2_alt": null,
+    "image_2_position": "bottom-left",
+    "image_3_url": "https://wsuvvbkxopbkvcmcvptf.supabase.co/storage/v1/object/public/article-images/46c5078e-5a08-4a1d-9b21-bf872912c717.png",
+    "image_3_alt": null,
+    "image_3_position": "center-right",
+    "image_4_url": "https://wsuvvbkxopbkvcmcvptf.supabase.co/storage/v1/object/public/article-images/eb1fd8db-5cb2-4f76-b05b-8e02f54ee184.png",
+    "image_4_alt": null,
+    "image_4_position": "center-left",
+    "show_on_pages": [
+      "homepage",
+      "articles",
+      "issues"
+    ],
+    "last_autosaved_at": null
+  }
+]

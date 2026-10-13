@@ -95,24 +95,47 @@ export default function RootLayout({
           `opacity: 0` and only fades in once the client bundle boots. If the
           bundle never boots — stale cached chunk after a deploy, a blocked or
           failed script, a hydration exception — the page stays invisible.
-          This inline script arms a timer that marks the document
-          `no-hydration` after 2.5s and normalises the inline styles motion
-          left behind, so the rescue works even if the stylesheet failed too.
-          BootFlag clears the timer when React mounts; the `html.no-hydration`
-          rules in globals.css back the same state up in CSS. Inline so it
-          runs even when /_next/static is unreachable, and synchronous so it
-          is armed before <body> parses.
+
+          The rescue is a stylesheet this script installs, NOT a change to the
+          document it finds. It must not touch `class` or `style` on any
+          element React renders: 2.5s is not long enough to tell "the bundle
+          will never boot" from "the bundle is slow" (a cold dev compile, a
+          slow device, a slow network), and when hydration lands after this
+          timer the attributes rewritten here are exactly the ones React
+          compares — reported as "A tree hydrated but some attributes … didn't
+          match. This won't be patched up." A sheet created here adds no node
+          and no attribute, so the page can be rescued at 2.5s and still
+          hydrate cleanly a second later. Because it is its own sheet it also
+          works when the page stylesheet never loaded (which is why it cannot
+          live in globals.css — a blocked /_next/static removes that too).
+
+          The declarations are what the old `html.no-hydration` rules did:
+          reveal blocks and their direct children become visible
+          (`StaggerItem` renders `opacity: 0` inline without carrying
+          `data-reveal`), and a transform is cleared only on a child that
+          carries one inline — i.e. animation state, not class-driven layout.
+
+          BootFlag clears the timer when React mounts. Inline so it runs even
+          when /_next/static is unreachable, and synchronous so it is armed
+          before <body> parses.
         */}
         <script
           dangerouslySetInnerHTML={{
             __html:
               'window.__ngRevealWatchdog=setTimeout(function(){' +
-              'document.documentElement.classList.add("no-hydration");' +
-              'var n=document.querySelectorAll("[data-reveal],[data-reveal] > *"),i,e,s;' +
-              'for(i=0;i<n.length;i++){s=n[i].style;' +
-              'if(!s.opacity||parseFloat(s.opacity)<0.15)s.opacity="1";' +
-              'if(s.transform&&s.transform.indexOf("translate")>-1)s.transform="none";' +
+              'var css="[data-reveal]{opacity:1!important;transform:none!important}"+' +
+              '"[data-reveal]>*{opacity:1!important}"+' +
+              '"[data-reveal]>*[style*=translate]{transform:none!important}";' +
+              'try{' +
+              'if(document.adoptedStyleSheets&&typeof CSSStyleSheet==="function"){' +
+              'var sh=new CSSStyleSheet();sh.replaceSync(css);' +
+              'document.adoptedStyleSheets=document.adoptedStyleSheets.concat(sh);' +
+              '}else{' +
+              'var st=document.createElement("style");st.textContent=css;' +
+              '(document.head||document.documentElement).appendChild(st);' +
               '}' +
+              'window.__ngRevealRescued=1;' +
+              '}catch(e){}' +
               '},2500)',
           }}
         />
