@@ -29,12 +29,29 @@ function visiblePages(article: ArticleRow): string[] {
   return onHomepage ? ["homepage", "articles", "issues"] : ["articles", "issues"];
 }
 
-export default async function AdminArticlesPage() {
+export default async function AdminArticlesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; wanted?: string }>;
+}) {
   const articles = await listArticlesForAdmin();
+  // Set by savedToListing() in articles/actions.ts when a save had to store
+  // the article under a different URL than the editor showed.
+  const { saved, wanted } = await searchParams;
 
   return (
     <div>
       <AdminBackButton />
+      {saved && wanted ? (
+        <p
+          role="status"
+          className="mt-4 border-l-2 border-digest-red bg-paper px-4 py-3 font-admin text-sm text-ink"
+        >
+          Saved. The slug <span className="font-semibold">/{wanted}</span> was
+          already taken, so this article lives at{" "}
+          <span className="font-semibold">/{saved}</span>.
+        </p>
+      ) : null}
       <div className="mt-4 flex items-center justify-between">
         <h1 className="font-admin text-2xl font-semibold text-ink">Articles</h1>
         <Link

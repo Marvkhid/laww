@@ -1,6 +1,14 @@
 import { requireAdmin } from "@/lib/supabase/admin/require-admin";
 import type { ArticleRow, ArticleContributorRow } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
+import {
+  allocateSlugAndSave,
+  classifyUniqueViolation,
+  describeDbError,
+  type AttemptOutcome,
+  type ConflictKind,
+  type DbError,
+} from "@/lib/slug-allocation";
 
 export async function listArticlesForAdmin(): Promise<ArticleRow[]> {
   const supabase = await requireAdmin();
@@ -102,8 +110,53 @@ function isMissingFunction(error: { code?: string; message?: string }): boolean 
   );
 }
 
-function isDuplicateSlug(error: { code?: string }): boolean {
-  return error.code === "23505";
+/**
+ * Turn a refused write into something the admin can act on.
+ *
+ * The classification here is the fix for a mis-reported failure. This module
+ * used to treat ANY unique violation as "that slug is already in use by
+ * another article", so a *cover-story* clash — the 0009 partial unique index
+ * `one_cover_story_at_a_time`, raised by migration 0026's write order — was
+ * reported to the admin as a slug problem, and was investigated as one for as
+ * long as that message existed.
+ *
+ * The kind is also what drives the retry policy in `allocateSlugAndSave`: only
+ * a genuine slug clash is retryable.
+ */
+function refusal(
+  error: DbError | null | undefined,
+  fallback: string
+): Extract<AttemptOutcome<never>, { ok: false }> {
+  const kind: ConflictKind = classifyUniqueViolation(error);
+  const detail = describeDbError(error);
+
+  if (kind === "cover_story") {
+    return {
+      ok: false,
+      kind,
+      detail,
+      message:
+        "Another article is already the Cover Story, and this save could not move it. Apply migration 0027, or untick Cover Story here, then save again.",
+    };
+  }
+  if (kind === "contributors") {
+    return {
+      ok: false,
+      kind,
+      detail,
+      message:
+        "This article could not be saved because the same author is credited twice.",
+    };
+  }
+  if (kind === "slug") {
+    return {
+      ok: false,
+      kind,
+      detail,
+      message: "That slug is already in use by another article.",
+    };
+  }
+  return { ok: false, kind: "other", message: fallback, detail };
 }
 
 function baseRpcParams(input: ArticleInput, contributors: ContributorSelection[]) {
@@ -216,12 +269,25 @@ async function applyInlineImages(
 
 // ── Public write API ───────────────────────────────────────────────────────
 
-export async function createArticle(
+export type ArticleWriteResult = {
+  id: string | null;
+  error: string | null;
+  /**
+   * The slug actually stored. It differs from the requested one only when that
+   * URL was already taken and a readable suffix was allocated instead, so the
+   * editor can show the admin the URL the article really has.
+   */
+  slug: string | null;
+  /** Machine-readable cause of a failure. Goes to the diagnostics log only. */
+  errorDetail: string | null;
+};
+
+/** One attempt at the 0026 create RPC, with the pre-0026 fallback behind it. */
+async function insertArticleOnce(
+  supabase: RpcClient,
   input: ArticleInput,
   contributors: ContributorSelection[]
-): Promise<{ id: string | null; error: string | null }> {
-  const supabase = await requireAdmin();
-
+): Promise<AttemptOutcome<string>> {
   // Migration 0026 overload: one transaction carries the article, its body,
   // inline images, page visibility and the cover-story flag.
   const { data: articleId, error } = await supabase.rpc(
@@ -230,16 +296,12 @@ export async function createArticle(
   );
 
   if (!error && articleId) {
-    return { id: articleId as string, error: null };
-  }
-
-  if (error && isDuplicateSlug(error)) {
-    return { id: null, error: "That slug is already in use by another article." };
+    return { ok: true, value: articleId as string };
   }
 
   if (error && !isMissingFunction(error)) {
     console.error("createArticle RPC error:", error);
-    return { id: null, error: "Could not create the article. Please try again." };
+    return refusal(error, "Could not create the article. Please try again.");
   }
 
   // ── Legacy path (migration 0026 not applied yet) ────────────────────────
@@ -248,43 +310,92 @@ export async function createArticle(
     baseRpcParams(input, contributors)
   );
 
-  if (legacyError || !legacyId) {
+  if (legacyError) {
     console.error("createArticle legacy RPC error:", legacyError);
-    if (legacyError && isDuplicateSlug(legacyError)) {
-      return { id: null, error: "That slug is already in use by another article." };
-    }
-    return { id: null, error: "Could not create the article. Please try again." };
+    return refusal(legacyError, "Could not create the article. Please try again.");
+  }
+  if (!legacyId) {
+    return {
+      ok: false,
+      kind: "other",
+      message: "Could not create the article. Please try again.",
+      detail: null,
+    };
   }
 
   const id = legacyId as string;
   if (input.is_cover_story) await applyCoverStoryFlag(supabase, id, true);
   await applyPageVisibility(supabase, id, input.show_on_pages);
   await applyInlineImages(supabase, id, input);
-  return { id, error: null };
+  return { ok: true, value: id };
 }
 
-export async function updateArticle(
+/**
+ * Create an article, allocating a free URL when the requested one is taken.
+ *
+ * The unique constraint — not a pre-flight SELECT — is the arbiter, because
+ * two requests can both find a slug free and both then try to claim it. The
+ * loser of that race retries with `-2`, `-3`, … (see lib/slug-allocation).
+ * Autosave and the explicit Save/Publish both come through here, so they can
+ * never disagree about which URL an article gets.
+ *
+ * A refusal that is not a slug clash returns immediately: retrying a
+ * cover-story or validation failure six times would only take six times as
+ * long to say the same thing.
+ */
+export async function createArticle(
+  input: ArticleInput,
+  contributors: ContributorSelection[]
+): Promise<ArticleWriteResult> {
+  const supabase = await requireAdmin();
+
+  const allocation = await allocateSlugAndSave<string>({
+    requested: input.slug || input.title,
+    attempt: (slug) =>
+      insertArticleOnce(supabase, { ...input, slug }, contributors),
+  });
+
+  if (!allocation.ok) {
+    return {
+      id: null,
+      error: allocation.message,
+      slug: null,
+      errorDetail: allocation.detail,
+    };
+  }
+
+  return {
+    id: allocation.value,
+    error: null,
+    slug: allocation.slug,
+    errorDetail: null,
+  };
+}
+
+export type ArticleUpdateResult = {
+  error: string | null;
+  slug: string | null;
+  errorDetail: string | null;
+};
+
+/** One attempt at the 0026 update RPC, with the pre-0026 fallback behind it. */
+async function updateArticleOnce(
+  supabase: RpcClient,
   id: string,
   input: ArticleInput,
   contributors: ContributorSelection[]
-): Promise<{ error: string | null }> {
-  const supabase = await requireAdmin();
-
+): Promise<AttemptOutcome<void>> {
   const { error } = await supabase.rpc("admin_update_article_with_contributors", {
     p_id: id,
     ...baseRpcParams(input, contributors),
     ...extendedRpcParams(input),
   });
 
-  if (!error) return { error: null };
-
-  if (isDuplicateSlug(error)) {
-    return { error: "That slug is already in use by another article." };
-  }
+  if (!error) return { ok: true, value: undefined };
 
   if (!isMissingFunction(error)) {
     console.error("updateArticle RPC error:", error);
-    return { error: "Could not update the article. Please try again." };
+    return refusal(error, "Could not update the article. Please try again.");
   }
 
   // ── Legacy path (migration 0026 not applied yet) ────────────────────────
@@ -295,16 +406,48 @@ export async function updateArticle(
 
   if (legacyError) {
     console.error("updateArticle legacy RPC error:", legacyError);
-    if (isDuplicateSlug(legacyError)) {
-      return { error: "That slug is already in use by another article." };
-    }
-    return { error: "Could not update the article. Please try again." };
+    return refusal(legacyError, "Could not update the article. Please try again.");
   }
 
   await applyCoverStoryFlag(supabase, id, input.is_cover_story);
   await applyPageVisibility(supabase, id, input.show_on_pages);
   await applyInlineImages(supabase, id, input);
-  return { error: null };
+  return { ok: true, value: undefined };
+}
+
+/**
+ * Update an article, resolving a slug clash exactly the way creation does.
+ *
+ * `currentSlug` is the slug the row holds right now. When the submitted slug
+ * is unchanged — the normal edit, since the editor renders existing slugs
+ * read-only — allocation gets exactly ONE candidate: editing an article can
+ * never silently rename a published page. A *changed* slug that is taken gets
+ * the next readable suffix instead of an error the admin cannot fix.
+ */
+export async function updateArticle(
+  id: string,
+  input: ArticleInput,
+  contributors: ContributorSelection[],
+  currentSlug: string | null = null
+): Promise<ArticleUpdateResult> {
+  const supabase = await requireAdmin();
+
+  const allocation = await allocateSlugAndSave<void>({
+    requested: input.slug || input.title,
+    currentSlug,
+    attempt: (slug) =>
+      updateArticleOnce(supabase, id, { ...input, slug }, contributors),
+  });
+
+  if (!allocation.ok) {
+    return {
+      error: allocation.message,
+      slug: null,
+      errorDetail: allocation.detail,
+    };
+  }
+
+  return { error: null, slug: allocation.slug, errorDetail: null };
 }
 
 export async function setArticleStatus(

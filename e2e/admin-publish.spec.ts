@@ -78,6 +78,16 @@ async function waitForQuiet(page: Page, quietMs = 1_500, timeout = 40_000) {
 async function deleteByTitle(page: Page, title: string) {
   try {
     await gotoClean(page, "/admin/articles");
+    // The test reads the article's public page before it cleans up, and that
+    // navigation ends the admin session by design (see src/proxy.ts). Without
+    // signing back in, the list request lands on /admin/login, `row.count()`
+    // is 0, and the throwaway article is left published on the live site —
+    // the exact leak this helper exists to prevent (several `[E2E] publish
+    // workflow …` rows were found on the homepage this way).
+    if (/\/admin\/login/.test(page.url())) {
+      await login(page);
+      await gotoClean(page, "/admin/articles");
+    }
     const row = page.locator("li").filter({ hasText: title });
     if (!(await row.count())) return;
     page.once("dialog", (d) => d.accept());
@@ -275,6 +285,11 @@ test.describe("article publish workflow", () => {
 
       // ── The public page carries the complete content ──────────────────
       await gotoClean(page, `/articles/${slug}`);
+      // NB: reading the published article is *leaving the admin area*, so the
+      // session ends here (the requested behaviour — see src/proxy.ts and
+      // e2e/admin-security.spec.ts). The assertions below are about the public
+      // page, which needs no session; the sign-in that returning to the CMS
+      // requires is asserted and performed further down, before Unpublish.
       const bodyText = await page.locator("body").innerText();
       expect(bodyText, "the published page is missing the body content").toContain(
         marker
@@ -315,6 +330,17 @@ test.describe("article publish workflow", () => {
       // regression this guards: toggleArticleStatusAction used to revalidate
       // the listing paths but not the article's own slug, so an unpublished
       // article kept serving its public URL for up to a year.
+      // Back to the CMS — and back through the password, because opening the
+      // public article above ended the admin session. This is the requested
+      // behaviour, so the spec asserts it instead of working around it: the
+      // dashboard must not come back without signing in again.
+      await gotoClean(page, "/admin/articles");
+      await expect(
+        page.locator('input[type="password"]'),
+        "the admin session survived a visit to the public site"
+      ).toBeVisible({ timeout: 20_000 });
+      await login(page);
+
       await gotoClean(page, "/admin/articles");
       const listRow = page.locator("li").filter({ hasText: title });
       await expect(listRow, "the article vanished from the admin list").toHaveCount(1, {

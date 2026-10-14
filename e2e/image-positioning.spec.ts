@@ -1,4 +1,5 @@
 import { test, expect, gotoClean, clickStable } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
@@ -205,6 +206,60 @@ async function seedArticle(
 }
 
 /**
+ * Bring a freshly seeded row back to life on the public site — and prove it.
+ *
+ * The row is inserted straight into the database, and a database write does
+ * not invalidate the ISR cache: an admin action does. So the tests toggle the
+ * row Unpublish → Publish through the admin list, which fires revalidatePath.
+ *
+ * That toggle used to be fire-and-forget with a fixed 2.5s pause. When the
+ * Publish click landed on a node React had already replaced, it reported
+ * success and changed nothing, the row stayed a draft, the public URL answered
+ * 404 — and the test blamed the renderer ("the article body did not render")
+ * for a click that never happened. The row's status is the end state that the
+ * public page depends on, so it is what this waits for, retrying if needed.
+ */
+async function publishAndRevalidate(
+  page: Page,
+  sb: Awaited<ReturnType<typeof adminClient>>,
+  id: string,
+  title: string
+) {
+  const row = page.locator("li").filter({ hasText: title });
+  await row.first().waitFor({ state: "visible", timeout: 20_000 });
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const unpublish = row
+      .first()
+      .locator("button")
+      .filter({ hasText: /^Unpublish$/i });
+    if (await unpublish.count()) {
+      await clickStable(unpublish.first());
+      await page.waitForTimeout(1_500);
+    }
+    const publish = row
+      .first()
+      .locator("button")
+      .filter({ hasText: /^Publish$/i });
+    if (await publish.count()) await clickStable(publish.first());
+
+    for (let poll = 0; poll < 16; poll++) {
+      const { data } = await sb
+        .from("articles")
+        .select("status")
+        .eq("id", id)
+        .single();
+      if (data?.status === "published") return;
+      await page.waitForTimeout(500);
+    }
+  }
+
+  throw new Error(
+    `"${title}" could not be brought back to published through the admin list`
+  );
+}
+
+/**
  * Take a seeded row back out through the admin's Delete button.
  *
  * These rows are inserted straight into Postgres, so a cleanup that only
@@ -275,15 +330,8 @@ test.describe("image positioning (Images 1–4)", () => {
       // Publish the probe image files under the names the seeded rows point
       // at, so the browser actually loads them.
       await page.goto(`${process.env.E2E_BASE_URL ?? "http://localhost:3100"}/admin/articles`);
-      const row = page.locator("li").filter({ hasText: title });
-      await row.first().waitFor({ state: "visible", timeout: 20_000 });
       // A DB write does not invalidate the ISR cache; an admin action does.
-      for (const label of [/^Unpublish$/i, /^Publish$/i]) {
-        const btn = row.first().locator("button").filter({ hasText: label });
-        if ((await btn.count()) === 0) continue;
-        await clickStable(btn.first());
-        await page.waitForTimeout(2_500);
-      }
+      await publishAndRevalidate(page, sb, created.id, title);
 
       await gotoClean(page, `/articles/${created.slug}`);
       await page.waitForSelector(".editorial-body", { timeout: 20_000 });
@@ -361,14 +409,7 @@ test.describe("image positioning (Images 1–4)", () => {
 
     try {
       await page.goto(`${process.env.E2E_BASE_URL ?? "http://localhost:3100"}/admin/articles`);
-      const row = page.locator("li").filter({ hasText: title });
-      await row.first().waitFor({ state: "visible", timeout: 20_000 });
-      for (const label of [/^Unpublish$/i, /^Publish$/i]) {
-        const btn = row.first().locator("button").filter({ hasText: label });
-        if ((await btn.count()) === 0) continue;
-        await clickStable(btn.first());
-        await page.waitForTimeout(2_500);
-      }
+      await publishAndRevalidate(page, sb, created.id, title);
 
       await gotoClean(page, `/articles/${created.slug}`);
       await page.waitForSelector(".editorial-body", { timeout: 20_000 });

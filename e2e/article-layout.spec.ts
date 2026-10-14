@@ -259,7 +259,10 @@ test.describe("article layout on mobile", () => {
   test.use({ viewport: { width: 390, height: 844 } });
   test.setTimeout(120_000);
 
-  test("figures drop the float and take the full column", async ({ page, publicArticle }) => {
+  test("figures drop the float and stay inset within the column", async ({
+    page,
+    publicArticle,
+  }) => {
     await gotoClean(page, articleUrl(publicArticle));
     await revealAll(page);
 
@@ -274,11 +277,12 @@ test.describe("article layout on mobile", () => {
       return els.map((f) => {
         const r = f.getBoundingClientRect();
         return {
+          cls: String(f.className),
           float: getComputedStyle(f).float,
-          width: Math.round(r.width),
+          width: Math.round(r.width * 10) / 10,
           parentWidth: Math.round(
-            (f.parentElement as HTMLElement).getBoundingClientRect().width
-          ),
+            (f.parentElement as HTMLElement).getBoundingClientRect().width * 10
+          ) / 10,
         };
       });
     });
@@ -289,10 +293,26 @@ test.describe("article layout on mobile", () => {
     ).toBeGreaterThan(0);
     for (const f of figures) {
       expect(f.float, "a figure still floats on a 390px viewport").toBe("none");
+      // Dropping the float is the contract; the width is a deliberate share
+      // of the column. The 13 Oct "fix responsiveness" pass made handheld
+      // artwork inset rather than edge-to-edge — globals.css gives the floated
+      // positions min(74%, 17rem), the full-width one min(78%, 19rem) and the
+      // grid fallback the same numbers — while a figure carrying no position
+      // class still fills its column. So the assertion checks what the design
+      // guarantees for every one of those cases: it stays inside the column,
+      // and it never collapses to a sliver of it. The previous "> 90% of the
+      // column" figure was only ever true for the unpositioned case, which is
+      // why it failed the moment this ran with credentials.
       expect(
         f.width,
-        "a figure is not full width on a 390px viewport"
-      ).toBeGreaterThan(f.parentWidth * 0.9);
+        `a figure overflows its ${f.parentWidth}px column on a 390px ` +
+          `viewport (class "${f.cls}")`
+      ).toBeLessThanOrEqual(f.parentWidth + 1);
+      expect(
+        f.width,
+        `a figure collapsed to ${f.width}px in a ${f.parentWidth}px column ` +
+          `on a 390px viewport (class "${f.cls}")`
+      ).toBeGreaterThan(f.parentWidth * 0.7);
     }
   });
 });

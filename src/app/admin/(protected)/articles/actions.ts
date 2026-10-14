@@ -14,7 +14,7 @@ import {
 } from "@/lib/supabase/admin/articles";
 import type { ArticleRow } from "@/lib/supabase/types";
 import type { JSONContent } from "@tiptap/core";
-import { slugify } from "@/lib/slugify";
+import { normalizeSlug } from "@/lib/slug-allocation";
 import {
   ARTICLE_PAGE_OPTIONS,
   pagesFromFormData,
@@ -134,7 +134,20 @@ async function readArticleInput(
   if (!title) {
     return { input: null, error: "Title is required." };
   }
-  const slug = slugRaw.length > 0 ? slugRaw : slugify(title);
+  // The slug is the article's public URL, so it is normalised here: a paste
+  // can never store something that is not a legal slug, and an empty slug
+  // field still falls back to the title. Input that yields nothing at all —
+  // a title of punctuation, an empty form — is refused rather than stored as
+  // "", because an empty slug is a URL nobody can open (and the one value two
+  // articles could both claim).
+  const slug = normalizeSlug(slugRaw.length > 0 ? slugRaw : title);
+  if (!slug) {
+    return {
+      input: null,
+      error:
+        "Add a title (or a slug) containing at least one letter or number — the article needs a URL.",
+    };
+  }
   if (status !== "draft" && status !== "published") {
     return { input: null, error: "Status must be draft or published." };
   }
@@ -273,6 +286,24 @@ function readSaveMode(formData: FormData): "save" | "publish" | "unpublish" {
  * slug — and why it takes a LIST: a rename leaves the previous URL cached
  * under the old slug, so both have to be invalidated.
  */
+/**
+ * Where a completed Save/Publish lands.
+ *
+ * Normally the listing. When slug allocation had to store the article under a
+ * different URL than the editor showed, the stored slug rides along in the
+ * query string so the listing can say so: saving an article at a URL the
+ * admin never saw, silently, is exactly the confusion this path removes.
+ */
+function savedToListing(
+  stored: string | null,
+  requested: string
+): string {
+  if (!stored || stored === requested) return "/admin/articles";
+  return `/admin/articles?saved=${encodeURIComponent(
+    stored
+  )}&wanted=${encodeURIComponent(requested)}`;
+}
+
 function revalidateArticlePaths(...slugs: Array<string | null | undefined>) {
   revalidatePath("/admin/articles");
   revalidatePath("/articles");
@@ -311,21 +342,21 @@ export async function autosaveArticleAction(
   const contributors = readContributorSelections(formData);
 
   if (!id) {
+    // Slug allocation happens inside createArticle, so autosave and an
+    // explicit Save/Publish resolve a clash by the same rule. This used to be
+    // a local retry with a `-<timestamp>` suffix: an unshareable URL, and one
+    // the editor was still holding the previous slug for.
     const created = await createArticle(
       { ...input, status: "draft" },
       contributors
     );
-    if (created.error && created.error.includes("slug")) {
-      // A taken slug must not wedge autosave into an endless retry: give
-      // the draft a unique slug and tell the client which one to use.
-      const fallbackSlug = `${input.slug}-${Date.now().toString(36)}`;
-      const retry = await createArticle(
-        { ...input, slug: fallbackSlug, status: "draft" },
-        contributors
-      );
-      if (retry.id) return { id: retry.id, error: null, slug: fallbackSlug };
-    }
-    return { id: created.id, error: created.error };
+    return {
+      id: created.id,
+      error: created.error,
+      // Reported only when the stored slug differs from the submitted one.
+      slug: created.slug && created.slug !== input.slug ? created.slug : null,
+      errorDetail: created.errorDetail,
+    };
   }
 
   if (!current) {
@@ -341,12 +372,13 @@ export async function autosaveArticleAction(
     // back. Either way the editor keeps the id it is holding from now on.
     const bySlug = await getArticleBySlugForAdmin(input.slug);
     if (bySlug) {
-      const { error } = await updateArticle(
+      const { error, errorDetail } = await updateArticle(
         bySlug.id,
         { ...input, status: bySlug.status },
-        contributors
+        contributors,
+        bySlug.slug
       );
-      if (error) return { id, error };
+      if (error) return { id, error, errorDetail };
       return { id: bySlug.id, error: null };
     }
 
@@ -354,16 +386,28 @@ export async function autosaveArticleAction(
       { ...input, status: "draft" },
       contributors
     );
-    if (recreated.error) return { id, error: recreated.error };
-    return { id: recreated.id, error: null, slug: input.slug };
+    if (recreated.error) {
+      return { id, error: recreated.error, errorDetail: recreated.errorDetail };
+    }
+    return {
+      id: recreated.id,
+      error: null,
+      slug:
+        recreated.slug && recreated.slug !== input.slug ? recreated.slug : null,
+    };
   }
-  const { error } = await updateArticle(
+  const { error, errorDetail, slug: storedSlug } = await updateArticle(
     id,
     { ...input, status: current.status },
-    contributors
+    contributors,
+    current.slug
   );
-  if (error) return { id, error };
-  return { id, error: null };
+  if (error) return { id, error, errorDetail };
+  return {
+    id,
+    error: null,
+    slug: storedSlug && storedSlug !== input.slug ? storedSlug : null,
+  };
 }
 
 export async function createArticleAction(
@@ -395,44 +439,45 @@ export async function createArticleAction(
           : mode === "unpublish"
             ? "draft"
             : current.status;
-      const { error } = await updateArticle(
+      const { error, slug: storedSlug } = await updateArticle(
         autosaveId,
         { ...input, status },
-        contributors
+        contributors,
+        current.slug
       );
       if (error) return { error };
-      revalidateArticlePaths(current.slug, input.slug);
-      redirect("/admin/articles");
+      revalidateArticlePaths(current.slug, input.slug, storedSlug);
+      redirect(savedToListing(storedSlug, input.slug));
     }
   }
 
   // No id reached us. That can happen when an in-flight autosave created the
   // draft microseconds before this submit, but React had not yet committed the
   // id into `autosave_id`. Blindly creating would then produce a DUPLICATE
-  // row — and, worse, the slug-conflict retry below would knowingly create a
-  // second one under a suffixed slug. A slug is unique by definition, so a row
-  // already holding this slug IS this article: adopt it instead of copying it.
+  // row. A slug is unique by definition, so a row already holding this slug IS
+  // this article: adopt it instead of copying it.
   const bySlug = await getArticleBySlugForAdmin(input.slug);
   if (bySlug) {
     const status = mode === "publish" ? "published" : bySlug.status;
-    const { error } = await updateArticle(
+    const { error, slug: storedSlug } = await updateArticle(
       bySlug.id,
       { ...input, status },
-      contributors
+      contributors,
+      bySlug.slug
     );
     if (error) return { error };
-    revalidateArticlePaths(bySlug.slug, input.slug);
-    redirect("/admin/articles");
+    revalidateArticlePaths(bySlug.slug, input.slug, storedSlug);
+    redirect(savedToListing(storedSlug, input.slug));
   }
 
   // Save never publishes a brand-new article; only Publish does.
   input.status = mode === "publish" ? "published" : "draft";
 
-  const { error } = await createArticle(input, contributors);
-  if (error) return { error };
+  const created = await createArticle(input, contributors);
+  if (created.error) return { error: created.error };
 
-  revalidateArticlePaths(input.slug);
-  redirect("/admin/articles");
+  revalidateArticlePaths(created.slug);
+  redirect(savedToListing(created.slug, input.slug));
 }
 
 export async function updateArticleAction(
@@ -459,11 +504,16 @@ export async function updateArticleAction(
         ? "draft"
         : current.status;
 
-  const { error } = await updateArticle(id, input, contributors);
+  const { error, slug: storedSlug } = await updateArticle(
+    id,
+    input,
+    contributors,
+    current.slug
+  );
   if (error) return { error };
 
-  revalidateArticlePaths(current.slug, input.slug);
-  redirect("/admin/articles");
+  revalidateArticlePaths(current.slug, input.slug, storedSlug);
+  redirect(savedToListing(storedSlug, input.slug));
 }
 
 export async function toggleArticleStatusAction(id: string, nextStatus: "draft" | "published") {

@@ -52,6 +52,7 @@ import {
   jsonByteLength,
   payloadTooLargeMessage,
 } from "@/lib/request-limits";
+import { conflictCategoryFromDetail } from "@/lib/slug-allocation";
 
 export type AutosaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -293,7 +294,16 @@ export function useAutosave({
             SAVE_TIMEOUT_MS
           );
           if (result && result.error) {
-            throw new Error(result.error);
+            // Carry the machine-readable cause alongside the admin-facing
+            // message. The message is deliberately plain English, so on its
+            // own it cannot say WHICH constraint refused the write — and that
+            // distinction is the whole difference between a taken URL and a
+            // taken Cover Story (see lib/slug-allocation).
+            const failure = new Error(result.error) as Error & {
+              adminDetail?: string | null;
+            };
+            failure.adminDetail = result.errorDetail ?? null;
+            throw failure;
           }
           logAdminEvent({
             op: "autosave",
@@ -330,14 +340,23 @@ export function useAutosave({
             error instanceof Error && error.message
               ? error.message
               : "Could not save your changes.";
+          const dbDetail =
+            error instanceof Error && "adminDetail" in error
+              ? ((error as Error & { adminDetail?: string | null }).adminDetail ??
+                null)
+              : null;
+          const conflict = conflictCategoryFromDetail(dbDetail);
           logAdminEvent({
             op: "autosave",
             section: sectionFromPath(scopeRef.current),
             stage: "persist",
             outcome: "failed",
             ms: Date.now() - startedAt,
-            category: "save_failed",
-            detail: message,
+            category: conflict ? `${conflict}_conflict` : "save_failed",
+            // The database code goes FIRST so the 160-character cap in
+            // logAdminEvent can never truncate away the one part that makes
+            // the failure diagnosable.
+            detail: dbDetail ? `${dbDetail} :: ${message}` : message,
           });
           setStatus("error");
           setErrorMessage(message);

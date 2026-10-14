@@ -30,6 +30,15 @@ export type AutosaveResult = {
   error: string | null;
   /** Server-resolved slug (e.g. de-duplicated on conflict); optional. */
   slug?: string | null;
+  /**
+   * Machine-readable cause behind `error` — `db=23505 constraint=...`.
+   *
+   * The message the admin sees is deliberately plain English, which means it
+   * cannot say *which* constraint refused the write. That distinction is the
+   * whole difference between a taken URL and a taken Cover Story, so it is
+   * carried separately and logged (never shown in the form).
+   */
+  errorDetail?: string | null;
 };
 
 /** FormData → JSON record. Files are excluded (uploads are pre-resolved). */

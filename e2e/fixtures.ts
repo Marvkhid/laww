@@ -275,6 +275,37 @@ export async function revealAll(page: Page, passes = 2) {
     // The first pass triggers every lazy image and reveals every section that
     // was in view, which can change the document height; the second catches
     // anything the first pass pushed out of range.
+    // Horizontal carousels — the homepage "Latest Stories" rail, the issue
+    // strips — keep the cards that do not fit on screen at opacity 0 until the
+    // rail itself is scrolled: the card is inside the viewport vertically but
+    // outside the scroller, so IntersectionObserver has never seen it. Those
+    // cards are only "invisible" in the sense that any off-screen carousel
+    // item is, so the walk has to include the rails or the assertion becomes a
+    // statement about which cards happened to fit on screen. (Measured on the
+    // live homepage: the card at scrollLeft 0 is opacity 1 and the rest are
+    // 0 until the rail is scrolled to them.)
+    const rails = [...document.querySelectorAll<HTMLElement>("*")].filter(
+      (el) =>
+        el.scrollWidth > el.clientWidth + 4 &&
+        /auto|scroll/.test(getComputedStyle(el).overflowX)
+    );
+    const sweepRails = async () => {
+      for (const rail of rails) {
+        rail.scrollIntoView({ block: "center" });
+        await settle(200);
+        const max = rail.scrollWidth - rail.clientWidth;
+        const stride = Math.max(80, Math.floor(rail.clientWidth * 0.5));
+        for (let x = stride; x < max; x += stride) {
+          rail.scrollLeft = x;
+          await settle(120);
+        }
+        rail.scrollLeft = max;
+        await settle(300);
+        rail.scrollLeft = 0;
+        await settle(200);
+      }
+    };
+
     for (let pass = 0; pass < passCount; pass++) {
       window.scrollTo(0, 0);
       await settle(150);
@@ -282,6 +313,7 @@ export async function revealAll(page: Page, passes = 2) {
         window.scrollTo(0, y);
         await settle(110);
       }
+      await sweepRails();
       window.scrollTo(0, document.body.scrollHeight);
       await settle(500);
     }

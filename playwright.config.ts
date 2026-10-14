@@ -18,10 +18,12 @@ const isProd = baseURL.startsWith("https://");
 
 /**
  * Specs that run in Node once, not once per browser engine: engine-independent
- * work (direct-to-Storage upload logic) and static guard rails that read the
- * source tree (request-body limits).
+ * work (direct-to-Storage upload logic), pure policy modules with no DOM
+ * (article slug allocation) and static guard rails that read the source tree
+ * (request-body limits).
  */
-const NODE_ONLY_SPECS = /admin-upload\.spec\.ts|body-limits\.spec\.ts/;
+const NODE_ONLY_SPECS =
+  /admin-upload\.spec\.ts|body-limits\.spec\.ts|slug-allocation\.spec\.ts|admin-boundary\.spec\.ts/;
 
 export default defineConfig({
   testDir: "./e2e",

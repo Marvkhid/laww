@@ -95,6 +95,8 @@ export function ArticleForm({
   const selections = initialContributorSelections ?? new Map<string, number>();
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.cover_image_url ?? null);
   const [slugManualOverride, setSlugManualOverride] = useState(false);
+  /** Set when the server stored a different slug than the form submitted. */
+  const [slugNotice, setSlugNotice] = useState<string | null>(null);
 
   // ── Autosave ───────────────────────────────────────────────────────────
   // Snapshots post to the server through the same reader as Save; status
@@ -107,9 +109,13 @@ export function ArticleForm({
     skip: (data) => !(data.title?.[0] ?? "").trim(),
     autoRecover: !initial,
     onSlugResolved: (slug) => {
-      if (initial?.slug || slugManualOverride) return;
+      // The server reports a slug only when it stored a DIFFERENT one, so this
+      // is always the URL the row actually has — adopt it even when the admin
+      // typed a slug by hand, and show it. Silently saving an article under a
+      // URL the admin never saw is how a story looks "missing" from the site.
       const slugInput = document.getElementById("slug") as HTMLInputElement | null;
       if (slugInput && !slugInput.readOnly) slugInput.value = slug;
+      setSlugNotice(slug);
     },
   });
 
@@ -171,6 +177,9 @@ export function ArticleForm({
         const slugInput = document.getElementById("slug") as HTMLInputElement | null;
         if (slugInput) slugInput.value = slugify(e.target.value);
       }
+      // A change to the title (or to the slug itself) makes any previous
+      // "saved as" notice stale.
+      setSlugNotice(null);
     },
     [slugManualOverride, initial?.slug],
   );
@@ -228,7 +237,10 @@ export function ArticleForm({
                 type="text"
                 required
                 placeholder="auto-generated-from-title"
-                onChange={() => setSlugManualOverride(true)}
+                onChange={() => {
+                  setSlugManualOverride(true);
+                  setSlugNotice(null);
+                }}
                 className="mt-1.5 w-full border border-hairline bg-white px-4 py-3 font-admin text-sm text-ink"
                 style={{ borderRadius: 2 }}
               />
@@ -237,6 +249,15 @@ export function ArticleForm({
               </p>
             </>
           )}
+          {slugNotice ? (
+            <p
+              role="status"
+              className="mt-1.5 font-admin text-xs font-medium text-digest-red"
+            >
+              That URL was already taken, so this article is saved as 
+              <strong className="font-semibold">/{slugNotice}</strong>.
+            </p>
+          ) : null}
         </div>
 
         <TextAreaField
