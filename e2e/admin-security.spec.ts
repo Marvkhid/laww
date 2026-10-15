@@ -33,7 +33,15 @@ const HAS_CREDS = Boolean(EMAIL && PASSWORD);
 
 /** The login screen is the only place a protected route may land. */
 async function expectLoginPage(page: Page) {
-  await page.waitForURL(/\/admin\/login/, { timeout: 20_000 });
+  // `domcontentloaded`, not the default `load`: what is being asserted is the
+  // document the server sent, and waiting for `load` also waits for every
+  // subresource on the page — including third-party artwork, whose latency
+  // says nothing about whether this route was refused. Test timeout, not
+  // product behaviour, was what the `load` wait ended up measuring.
+  await page.waitForURL(/\/admin\/login/, {
+    timeout: 20_000,
+    waitUntil: "domcontentloaded",
+  });
   await expect(page.locator('input[type="email"]')).toBeVisible();
 }
 
@@ -69,8 +77,11 @@ async function login(page: Page) {
   await page.locator('input[type="email"]').fill(EMAIL!);
   await page.locator('input[type="password"]').fill(PASSWORD!);
   await page.locator('button[type="submit"]').click();
+  // What proves the sign-in worked is that the dashboard's document arrived;
+  // `load` on top of that waits for every subresource too (see expectLoginPage).
   await page.waitForURL((url) => !url.pathname.endsWith("/admin/login"), {
     timeout: 30_000,
+    waitUntil: "domcontentloaded",
   });
 }
 
@@ -220,8 +231,45 @@ test.describe("leaving the admin area", () => {
       await expectLoginPage(page);
 
       const second = await context.newPage();
-      await gotoClean(second, "/admin/articles");
-      await expectLoginPage(second);
+
+      // The refusal, asked for directly with the new tab's own cookie jar and
+      // with redirects *not* followed, so what is asserted is the server's
+      // answer to the protected URL itself rather than the page a browser
+      // happened to assemble (Firefox may serve the redirect from cache, in
+      // which case the redirect chain is not visible to the test at all).
+      const refusal = await second.request.get("/admin/articles", {
+        maxRedirects: 0,
+      });
+      expect(
+        refusal.status(),
+        "the second tab's request for a protected URL was not refused"
+      ).toBe(307);
+      expect(
+        refusal.headers()["location"] ?? "",
+        "the refusal did not point at the sign-in page"
+      ).toContain("/admin/login");
+
+      // And the document the tab was then shown: the sign-in form, with no part
+      // of the CMS in it. Asserted on the served document rather than through a
+      // visibility check because after the redirect chain Firefox keeps the
+      // document flagged as still navigating, so Playwright's actionability
+      // wait can sit on "waiting for … navigation to finish" while the form is
+      // already painted — the assertion then measures timing, not authorisation.
+      await second.goto("/admin/articles", { waitUntil: "domcontentloaded" });
+      expect(second.url(), "the second tab was not sent to sign in").toContain(
+        "/admin/login"
+      );
+      const html = await second.content();
+      expect(html, "the second tab did not get the sign-in form").toMatch(
+        /Admin sign in/
+      );
+      expect(
+        html,
+        "the second tab was served the CMS shell"
+      ).not.toContain("Digest Admin");
+      expect(html, "the second tab was served the editor").not.toContain(
+        "autosave_id"
+      );
     } finally {
       await context.close();
     }

@@ -23,7 +23,7 @@ const isProd = baseURL.startsWith("https://");
  * (request-body limits).
  */
 const NODE_ONLY_SPECS =
-  /admin-upload\.spec\.ts|body-limits\.spec\.ts|slug-allocation\.spec\.ts|admin-boundary\.spec\.ts/;
+  /admin-upload\.spec\.ts|body-limits\.spec\.ts|slug-allocation\.spec\.ts|admin-boundary\.spec\.ts|platform-wall\.spec\.ts/;
 
 export default defineConfig({
   testDir: "./e2e",

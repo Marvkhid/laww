@@ -14,7 +14,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "smoke:wall": "playwright test platform-wall --project=node"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
