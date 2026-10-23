@@ -41,8 +41,8 @@ export default function Home() {
       {/* 2. Featured Stories */}
       <FeaturedStories />
 
-      {/* 2b. Ad slot — one advert, placed clear of every other slot */}
-      <AdPlacement page="homepage" slot={0} />
+      {/* 2b. Ad slot — every active homepage advert, one ad block per sponsor */}
+      <AdPlacement page="homepage" />
 
       {/* 3. Latest Legal Updates */}
       <ThisWeekInLaw />
@@ -88,9 +88,6 @@ export default function Home() {
 
       {/* 14. Newsletter */}
       <Newsletter />
-
-      {/* Bottom ad slot — second advert, far from the first slot */}
-      <AdPlacement page="homepage" slot={1} />
     </>
   );
 }

@@ -5,16 +5,9 @@ import { Reveal } from "@/components/motion/reveal";
 
 export async function Sponsors() {
   const supabase = createSupabaseServerClient();
-  // getActiveSponsors already applies the admin's "Display On" homepage
-  // gate; entries that carry a banner image are adverts and belong in the
-  // AdPlacement slots, so this wall shows logo-only sponsors only — the
-  // same sponsor never appears twice on one page.
   const allSponsors = await getActiveSponsors(supabase);
   const sponsors = allSponsors.filter((sponsor) => !sponsor.imageUrl);
 
-  // Nothing logo-only to credit on this page — the section (and its
-  // empty-state copy) stays out of the way rather than promising sponsors
-  // that are already rendered above as adverts.
   if (sponsors.length === 0) return null;
 
   return (
@@ -38,7 +31,7 @@ export async function Sponsors() {
                 );
 
                 return (
-                  <li key={sponsor.name}>
+                  <li key={sponsor.id}>
                     {sponsor.websiteUrl ? (
                       <a
                         href={sponsor.websiteUrl}

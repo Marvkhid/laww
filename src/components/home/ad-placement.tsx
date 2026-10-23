@@ -5,28 +5,27 @@ import { SafeImage } from "@/components/ui/safe-image";
 import type { PageKey } from "@/lib/page-visibility";
 
 /**
- * Advertisement slot.
+ * Active adverts allowed on the given public page, rendered one per spaced
+ * <section> block in display order.
+ *
+ * Layout discipline: adverts are spread across the page so several are never
+ * stacked beside each other. Because the block is keyed on the sponsor id, a
+ * new advert never page-slots an existing one — extra adverts just stack in
+ * order below the rest, and the same sponsor can never render twice on one
+ * page even if the underlying result set ever contained two runs.
  *
  * Reads the SAME "Display On" selection the admin saved (show_on_pages), so
  * an advert targeted at About renders on About and nowhere else.
- *
- * Layout discipline: a slot renders AT MOST ONE advert, and pages place
- * their slots far apart — several adverts are never stacked beside each
- * other, while multiple active adverts can still rotate through the slots
- * a page defines (slot 0, slot 1, …) in display order.
  *
  * Responsive: fluid width inside the reading container, natural aspect
  * ratio, no fixed pixel heights.
  */
 export async function AdPlacement({
   page,
-  slot = 0,
   inset = false,
   className = "",
 }: {
   page: PageKey;
-  /** 0 = first advert for this page, 1 = the next one, and so on. */
-  slot?: number;
   /** Render inside an already-padded page container (no second max-w wrapper). */
   inset?: boolean;
   className?: string;
@@ -39,10 +38,42 @@ export async function AdPlacement({
   const withArtwork = adverts.filter(
     (advert) => advert.imageUrl ?? advert.logoUrl
   );
-  const advert = withArtwork[slot];
 
-  if (!advert) return null;
+  // Dedup by id only: keep the first occurrence of each unique id in case a
+  // future column drift ever sneaks two identical rows into the result set.
+  const seen = new Set<string>();
+  const unique: SponsorPublic[] = [];
+  for (const advert of withArtwork) {
+    if (seen.has(advert.id)) continue;
+    seen.add(advert.id);
+    unique.push(advert as SponsorPublic);
+  }
 
+  return (
+    <>
+      {unique.map((advert) => (
+        <AdvertBlock key={advert.id} advert={advert} inset={inset} className={className} />
+      ))}
+    </>
+  );
+}
+
+interface SponsorPublic {
+  id: string;
+  name: string;
+  websiteUrl?: string;
+  tier?: string;
+  imageUrl?: string;
+  logoUrl?: string;
+}
+
+interface AdvertBlockProps {
+  advert: SponsorPublic;
+  inset: boolean;
+  className: string;
+}
+
+function AdvertBlock({ advert, inset, className }: AdvertBlockProps) {
   const artwork = advert.imageUrl ?? advert.logoUrl ?? "";
   const image = (
     <SafeImage

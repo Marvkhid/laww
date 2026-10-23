@@ -22,6 +22,24 @@ function mapSponsorRow(row: SponsorRow): Sponsor {
   };
 }
 
+/** Public shape with id for dedup/key usage. */
+export type SponsorWithId = Sponsor & Pick<SponsorRow, "id">;
+
+function mapSponsorWithId(row: SponsorRow): SponsorWithId {
+  const pages = pagesForRow(row.show_on_pages) ?? pagesFromLegacyPlacement(row.placement);
+  return {
+    id: row.id,
+    name: row.name,
+    logoUrl: row.logo_url ?? undefined,
+    websiteUrl: row.website_url ?? undefined,
+    tier: row.tier ?? undefined,
+    placement: row.placement ?? "all",
+    imageUrl: row.image_url ?? undefined,
+    pageNumber: row.page_number,
+    showOnPages: pages,
+  };
+}
+
 /**
  * Where is this advert allowed to show?
  *
@@ -40,7 +58,7 @@ function advertVisibleOn(row: SponsorRow, page: PageKey): boolean {
 export async function getSponsorsForPage(
   supabase: UntypedSupabaseClient,
   page: PageKey
-): Promise<Sponsor[]> {
+): Promise<SponsorWithId[]> {
   const { data, error } = await supabase
     .from("sponsors")
     .select("*")
@@ -50,7 +68,7 @@ export async function getSponsorsForPage(
   if (error || !data) return [];
   return (data as SponsorRow[])
     .filter((row) => advertVisibleOn(row, page))
-    .map(mapSponsorRow);
+    .map(mapSponsorWithId);
 }
 
 /**
@@ -60,6 +78,6 @@ export async function getSponsorsForPage(
  */
 export async function getActiveSponsors(
   supabase: UntypedSupabaseClient
-): Promise<Sponsor[]> {
+): Promise<SponsorWithId[]> {
   return getSponsorsForPage(supabase, "homepage");
 }

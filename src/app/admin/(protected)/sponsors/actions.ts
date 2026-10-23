@@ -1,5 +1,3 @@
-"use server";
-
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -9,6 +7,7 @@ import {
   setSponsorActive,
   getSponsorByIdForAdmin,
   type SponsorInput,
+  listSponsorsForAdmin,
 } from "@/lib/supabase/admin/sponsors";
 import {
   ADVERT_PAGE_OPTIONS,
@@ -39,6 +38,9 @@ function revalidateAdPaths() {
 
 async function readInput(formData: FormData): Promise<{ input: SponsorInput | null; error: string | null }> {
   const name = String(formData.get("name") ?? "").trim();
+  if (!name) {
+    return { input: null, error: "Name is required." };
+  }
   const optional = (key: string) => {
     const raw = String(formData.get(key) ?? "").trim();
     return raw.length > 0 ? raw : null;
@@ -87,7 +89,6 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
 }
 
 
-
 /**
  * Autosave — adverts have no draft/publish duality beyond `active`, and a
  * brand-new advert must never go live from autosave alone: creates force
@@ -123,6 +124,49 @@ export async function autosaveSponsorAction(
   return { id, error: null };
 }
 
+/**
+ * Match an existing sponsor for an identity-based create (same name + same
+ * artwork) so the explicit Save continues that row instead of inserting a
+ * duplicate when two tabs race on the same sponsor.
+ *
+ * Adoption is identity-based, never position-based: we never take over an
+ * existing sponsor because a new submission happens to match today's
+ * homepage restriction or ordering. That is what made a new post silently
+ * replace an existing one.
+ *
+ * Normal case: sponsor has artwork (image or logo), so the matching is
+ * unambiguous. When an admin drafts a sponsor without artwork (placeholder
+ * pending), we still allow a single adoption path keyed on name alone, but
+ * only for one inactive row — never a broadcast that would adopt every
+ * inactive "Diamond" row, which would resume the old duplication bug.
+ */
+async function findMatchingDraft(input: SponsorInput) {
+  // Artwork makes identity unambiguous.
+  if (input.image_url || input.logo_url) {
+    const all = await listSponsorsForAdmin();
+    const matching = all.find(
+      (s) => !s.active &&
+        s.name === input.name &&
+        s.image_url === input.image_url &&
+        s.logo_url === input.logo_url &&
+        s.website_url === input.website_url &&
+        s.tier === input.tier &&
+        s.display_order === input.display_order &&
+        s.page_number === input.page_number &&
+        (s.show_on_pages ?? null) === (input.show_on_pages ?? null)
+    );
+    return matching ?? null;
+  }
+
+  // No artwork yet — key adoption on name only, and cap it to a single
+  // inactive row so an unchecked form can never adopt multiple similar rows.
+  const nameOnly = await listSponsorsForAdmin();
+  const matching = nameOnly.find(
+    (s) => !s.active && s.name === input.name
+  );
+  return matching ?? null;
+}
+
 export async function createSponsorAction(
   _prevState: FormState,
   formData: FormData
@@ -145,6 +189,22 @@ export async function createSponsorAction(
       revalidateAdPaths();
       redirect("/admin/sponsors");
     }
+  }
+
+  // If the client submitted before its first autosave round-trip, the
+  // autosave_id is still empty. Guard against the race now: look for an
+  // inactive draft with the same identity (same name + same artwork, or —
+  // artwork-less drafts — the same name) and continue it. We never touch a
+  // live sponsor with the same identity, and we never adopt more than one
+  // row on this flow.
+  const draft = await findMatchingDraft(input);
+  if (draft) {
+    const { error } = await updateSponsor(draft.id, input);
+    if (!error) {
+      revalidateAdPaths();
+      redirect("/admin/sponsors");
+    }
+    return { error: error ?? "Could not complete the advert. Please try again." };
   }
 
   const { error } = await createSponsor(input);

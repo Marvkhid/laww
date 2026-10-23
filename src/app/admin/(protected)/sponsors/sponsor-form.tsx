@@ -9,23 +9,13 @@ import {
   CheckboxField,
   FormSection,
 } from "@/components/forms/kit/field";
-import { SubmitButton } from "@/components/forms/kit/submit-button";
-import {
-  uploadSponsorImage,
-} from "@/app/admin/(protected)/admin-uploaders";
+import { SaveButtons, AutosaveRecoveryBanner, AutosaveStatus } from "@/components/forms/kit/autosave-status";
+import { uploadSponsorImage } from "@/app/admin/(protected)/admin-uploaders";
 import { ImageUploadZone } from "@/components/forms/kit/image-upload";
 import { PageVisibilityField } from "@/components/forms/kit/page-visibility";
 import { PageTargetingNotice } from "@/app/admin/(protected)/page-targeting-notice";
-import {
-  ADVERT_PAGE_OPTIONS,
-  pagesFromLegacyPlacement,
-  pagesForRow,
-} from "@/lib/page-visibility";
+import { ADVERT_PAGE_OPTIONS, pagesFromLegacyPlacement, pagesForRow } from "@/lib/page-visibility";
 import { useAutosave } from "@/components/forms/kit/use-autosave";
-import {
-  AutosaveRecoveryBanner,
-  AutosaveStatus,
-} from "@/components/forms/kit/autosave-status";
 
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
@@ -66,17 +56,13 @@ export function SponsorForm({
     autoRecover: !initial,
   });
 
-  // Where this advert may appear. Falls back to the legacy `placement`
-  // column for rows saved before migration 0025; new adverts default to the
-  // homepage only — never every page at once.
   const selectedPages = initial
-    ? (pagesForRow(initial.show_on_pages) ??
-      pagesFromLegacyPlacement(initial.placement))
+    ? (pagesForRow(initial.show_on_pages) ?? pagesFromLegacyPlacement(initial.placement))
     : ["homepage"];
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-lg flex-col gap-5">
-      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} />
+      <input type="hidden" name="autosave_id" value={autosave.draftId ?? ""} readOnly />
       {autosave.recovery ? (
         <AutosaveRecoveryBanner
           recovery={autosave.recovery}
@@ -157,9 +143,7 @@ export function SponsorForm({
         />
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB.{" "}
-          {initial?.image_url
-            ? "Leave empty to keep the current image."
-            : "This is the artwork readers see in the ad slot."}
+          {initial?.image_url ? "Leave empty to keep the current image." : "This is the artwork readers see in the ad slot."}
         </p>
       </FormSection>
 
@@ -190,10 +174,7 @@ export function SponsorForm({
           subtitle="Tick every page this advert should appear on. One advert per slot — pages never stack adverts side by side."
           accent="left"
         >
-          <PageVisibilityField
-            options={ADVERT_PAGE_OPTIONS}
-            selected={selectedPages}
-          />
+          <PageVisibilityField options={ADVERT_PAGE_OPTIONS} selected={selectedPages} />
         </FormSection>
       ) : (
         <PageTargetingNotice />
@@ -207,7 +188,7 @@ export function SponsorForm({
           defaultChecked={initial?.active ?? true}
         />
         <p className="font-admin text-xs text-stone">
-          New adverts are saved inactive until you click Save with this ticked;
+          New adverts are saved inactive until you click Save with this ticked;{" "}
           for existing adverts, autosave applies this toggle immediately.
         </p>
       </FormSection>
@@ -219,7 +200,13 @@ export function SponsorForm({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-4">
-        <SubmitButton label={submitLabel} pendingLabel="Saving…" isPending={isPending} />
+        <SaveButtons
+          formRef={formRef}
+          flush={autosave.flush}
+          isPending={isPending}
+          saveLabel={submitLabel}
+          showPublish={false}
+        />
         <AutosaveStatus
           status={autosave.status}
           lastSavedAt={autosave.lastSavedAt}
