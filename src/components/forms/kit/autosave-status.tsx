@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { AlertCircle, Check, Loader2, RotateCcw } from "lucide-react";
 import type { AutosaveSnapshot } from "@/lib/autosave";
@@ -274,14 +275,29 @@ export function AutosaveRecoveryBanner({
   );
 }
 
+/** Is this route an editor, where a recovery snapshot must survive? */
+function isEditorRoute(pathname: string): boolean {
+  return /\/(new|edit)\/?$/.test(pathname);
+}
+
 /**
- * AutosaveSessionGC — mounted on admin list pages. Successful saves land
- * here, so clearing local recovery snapshots on arrival stops the next
- * "New" editor from resurrecting content that is already safely saved.
+ * AutosaveSessionGC — mounted once in the protected admin layout. Successful
+ * saves land on a list page, so clearing local recovery snapshots on arrival
+ * stops the next "New" editor from resurrecting content that is already
+ * safely saved.
+ *
+ * This used to exist but was never mounted anywhere, which is how the
+ * production defect happened: after publishing article A, its snapshot
+ * (content + row id) survived under the shared `/admin/articles/new` key, and
+ * the next new-article editor silently restored it — then PUBLISHED OVER
+ * article A with the new story. Editor routes (`/new`, `/<id>/edit`) are
+ * skipped so a genuine crash-recovery copy is never thrown away.
  */
 export function AutosaveSessionGC() {
+  const pathname = usePathname();
   useEffect(() => {
+    if (isEditorRoute(pathname)) return;
     clearAllSnapshots();
-  }, []);
+  }, [pathname]);
   return null;
 }

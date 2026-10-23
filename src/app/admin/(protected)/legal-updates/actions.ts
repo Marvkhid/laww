@@ -239,9 +239,14 @@ export async function createLegalUpdateAction(
   const mode = readSaveMode(formData);
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
-  const existing = autosaveId
+  const named = autosaveId
     ? await getLegalUpdateByIdForAdmin(autosaveId)
     : null;
+  // A create flow may only continue an UNPUBLISHED draft. The id can leak in
+  // from a stale local recovery snapshot or a second tab; adopting a
+  // published (or rejected) update would rewrite live content with this
+  // form's data — see articles/actions.ts.
+  const existing = named && named.status === "pending_review" ? named : null;
   const { input, error: validationError } = await readInput(formData, existing);
   if (!input) return { error: validationError ?? "Invalid input." };
 

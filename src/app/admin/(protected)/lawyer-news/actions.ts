@@ -204,7 +204,14 @@ export async function createLawyerNewsAction(
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
   if (autosaveId) {
-    const current = await getLawyerNewsByIdForAdmin(autosaveId);
+    const named = await getLawyerNewsByIdForAdmin(autosaveId);
+    // A create flow may only continue an UNPUBLISHED draft. The id can leak
+    // in from a stale local recovery snapshot or a second tab; adopting a
+    // published interview would rewrite live content with this form's data
+    // (the "publishing a new entry replaced an existing one" defect), so it
+    // is ignored and this submission becomes its own new record.
+    const current =
+      named && named.status === "pending_review" ? named : null;
     if (current) {
       const status: LawyerNewsStatus =
         mode === "publish"

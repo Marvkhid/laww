@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseAuthServerClient } from "@/lib/supabase/server-client";
 import { exitToSite, logout } from "@/app/admin/actions";
 import { AdminSessionGuard } from "@/app/admin/(protected)/session-guard";
+import { AutosaveSessionGC } from "@/components/forms/kit/autosave-status";
 
 // The secure check. proxy.ts already does a fast, optimistic redirect for
 // unauthenticated cookies, but per Next.js's own guidance that shouldn't be
@@ -52,6 +53,12 @@ export default async function ProtectedAdminLayout({
         </div>
       </header>
       <AdminSessionGuard />
+      {/*
+        Recovery snapshots are cleared everywhere except an editor route, so a
+        finished save can never leak its content — or its row id — into the
+        next "New …" form (see AutosaveSessionGC).
+      */}
+      <AutosaveSessionGC />
       <main className="mx-auto max-w-6xl px-6 py-10">{children}</main>
     </div>
   );

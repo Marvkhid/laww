@@ -131,8 +131,13 @@ export async function createIssueAction(
   if (!input) return { error: validationError };
 
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
+  // A create flow may only continue an UNPUBLISHED issue — one with no
+  // published_at. Adopting a live issue whose id leaked in from a stale
+  // recovery snapshot or a second tab would rewrite it with this form's
+  // content (see articles/actions.ts).
   if (autosaveId) {
-    const current = await getIssueByIdForAdmin(autosaveId);
+    const named = await getIssueByIdForAdmin(autosaveId);
+    const current = named && !named.published_at ? named : null;
     if (current) {
       const { error } = await updateIssue(autosaveId, input);
       if (error) return { error };

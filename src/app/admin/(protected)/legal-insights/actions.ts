@@ -123,9 +123,13 @@ export async function createLegalInsightAction(
 ): Promise<FormState> {
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
-  const existing = autosaveId
+  const named = autosaveId
     ? await getLegalInsightByIdForAdmin(autosaveId)
     : null;
+  // A create flow may only continue an UNPUBLISHED row. Adopting a published
+  // one would rewrite live content with this form's data — see
+  // articles/actions.ts.
+  const existing = named && !named.published ? named : null;
   const { input, error: validationError } = await readInput(formData, existing);
   if (!input) return { error: validationError };
 

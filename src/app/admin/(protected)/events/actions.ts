@@ -190,9 +190,13 @@ export async function createEventAction(
   const mode = readSaveMode(formData);
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
-  // Autosave already created the draft row — continue in it.
+  // Autosave already created the draft row — continue in it. Only an
+  // UNPUBLISHED draft may be continued: a create flow must never update a
+  // live event whose id leaked in from a stale recovery snapshot or a
+  // second tab (see articles/actions.ts).
   if (autosaveId) {
-    const current = await getEventByIdForAdmin(autosaveId);
+    const named = await getEventByIdForAdmin(autosaveId);
+    const current = named && !named.published ? named : null;
     if (current) {
       input.published =
         mode === "publish" ? true : mode === "unpublish" ? false : current.published;

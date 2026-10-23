@@ -370,8 +370,12 @@ export async function autosaveArticleAction(
     // row already holding this slug if there is one (a slug is unique, so it
     // is this article), otherwise start a fresh draft row and hand its id
     // back. Either way the editor keeps the id it is holding from now on.
+    // Only an UNPUBLISHED draft may be adopted. A published article that
+    // happens to hold this slug is somebody else's live content, so it is
+    // left strictly alone: a fresh draft is created instead (the allocator
+    // gives it a free URL).
     const bySlug = await getArticleBySlugForAdmin(input.slug);
-    if (bySlug) {
+    if (bySlug && bySlug.status === "draft") {
       const { error, errorDetail } = await updateArticle(
         bySlug.id,
         { ...input, status: bySlug.status },
@@ -421,9 +425,17 @@ export async function createArticleAction(
   // Autosave already created the draft row — continue in it, so the id the
   // client holds never goes stale and no second row is produced. Read the
   // input against that row so a field the form did not render is preserved.
-  const existing = autosaveId
-    ? await getArticleByIdForAdmin(autosaveId)
-    : null;
+  //
+  // ONLY an unpublished draft may be continued. A create flow must never
+  // update somebody else's article: the id can name a PUBLISHED row that
+  // leaked in from a stale local recovery snapshot or a second tab, and
+  // adopting it rewrote that live article with this form's content — the
+  // reported "publishing a new article replaced an existing one" defect. A
+  // published row is ignored here and this submission becomes its own new
+  // record (see the slug allocator below), so an existing article can only
+  // change through the explicit Edit → Save path.
+  const adopted = autosaveId ? await getArticleByIdForAdmin(autosaveId) : null;
+  const existing = adopted && adopted.status === "draft" ? adopted : null;
   const { input, error: validationError } = await readArticleInput(
     formData,
     existing
@@ -451,13 +463,15 @@ export async function createArticleAction(
     }
   }
 
-  // No id reached us. That can happen when an in-flight autosave created the
-  // draft microseconds before this submit, but React had not yet committed the
-  // id into `autosave_id`. Blindly creating would then produce a DUPLICATE
-  // row. A slug is unique by definition, so a row already holding this slug IS
-  // this article: adopt it instead of copying it.
+  // No usable id reached us — either the form carried none (an in-flight
+  // autosave created the draft microseconds before this submit, but React had
+  // not yet committed the id into `autosave_id`), or it carried a published
+  // row's id, which this flow refuses to touch. Blindly creating in the first
+  // case would produce a DUPLICATE row, so the row already holding this slug
+  // is adopted instead — but ONLY while it is still an unpublished draft.
+  // A published article is never overwritten by a create.
   const bySlug = await getArticleBySlugForAdmin(input.slug);
-  if (bySlug) {
+  if (bySlug && bySlug.status === "draft") {
     const status = mode === "publish" ? "published" : bySlug.status;
     const { error, slug: storedSlug } = await updateArticle(
       bySlug.id,

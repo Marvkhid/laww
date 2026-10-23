@@ -75,10 +75,33 @@ export function dataString(data: AutosaveData, key: string): string | null {
 
 export const SNAPSHOT_PREFIX = "autosave:snap:v1:";
 
+/**
+ * Per-tab editor-session tokens.
+ *
+ * The snapshot KEY is only the route (`/admin/articles/new`), so every
+ * "New …" editor in the browser shares one slot. Without an owner on the
+ * snapshot, the next new editor silently adopted the PREVIOUS article's
+ * content and — worse — its draft-row id, so publishing it updated (and
+ * visually replaced) that earlier, already-published article. This is the
+ * production incident this token exists to stop.
+ *
+ * sessionStorage is the right home for the token: it survives a reload of
+ * the same tab (so crash/refresh recovery still works) but is per-tab and
+ * dies with the tab, so a second tab can never inherit — or overwrite the
+ * meaning of — another editor's recovery copy.
+ */
+export const SESSION_PREFIX = "autosave:session:v1:";
+
 export type AutosaveSnapshot = {
   id: string | null;
   data: AutosaveData;
   savedAt: number;
+  /**
+   * The editor-session token that wrote this snapshot. Absent only on
+   * snapshots written before this existed, which are therefore never
+   * trusted to restore content or adopt a row id.
+   */
+  token?: string;
 };
 
 function storage(): Storage | null {
@@ -92,6 +115,80 @@ function storage(): Storage | null {
 
 export function snapshotKey(scope: string): string {
   return `${SNAPSHOT_PREFIX}${scope}`;
+}
+
+/** In-memory fallback when storage is unavailable (private mode, SSR). */
+const memorySessions = new Map<string, string>();
+
+function sessionStore(): Storage | null {
+  try {
+    if (typeof window === "undefined" || !window.sessionStorage) return null;
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function randomToken(): string {
+  try {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID();
+    }
+  } catch {
+    /* fall through */
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/**
+ * The identity of THIS tab's editor for `scope`, stable across reloads.
+ *
+ * Two tabs on the same route each get their own token, so neither can adopt
+ * the other's content or the row id its autosave created — which is exactly
+ * how one article ended up overwriting another.
+ */
+export function editorSessionToken(scope: string): string {
+  const key = `${SESSION_PREFIX}${scope}`;
+  const store = sessionStore();
+  if (!store) {
+    const existing = memorySessions.get(key);
+    if (existing) return existing;
+    const token = randomToken();
+    memorySessions.set(key, token);
+    return token;
+  }
+  try {
+    const existing = store.getItem(key);
+    if (existing) return existing;
+    const token = randomToken();
+    store.setItem(key, token);
+    return token;
+  } catch {
+    // Quota/disabled mid-flight: an unusable-but-stable token beats crashing.
+    const existing = memorySessions.get(key);
+    if (existing) return existing;
+    const token = randomToken();
+    memorySessions.set(key, token);
+    return token;
+  }
+}
+
+/**
+ * Was this snapshot written by this tab's editor?
+ *
+ * `false` for a snapshot from another tab and for snapshots written before
+ * tokens existed; both must be treated as somebody else's work, never
+ * restored and never used to adopt a row id.
+ */
+export function snapshotBelongsToEditor(
+  snapshot: AutosaveSnapshot,
+  scope: string
+): boolean {
+  return (
+    typeof snapshot.token === "string" &&
+    snapshot.token.length > 0 &&
+    snapshot.token === editorSessionToken(scope)
+  );
 }
 
 export function readSnapshot(scope: string): AutosaveSnapshot | null {

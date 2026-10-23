@@ -40,8 +40,10 @@ import {
 import {
   clearAllSnapshots,
   clearSnapshot,
+  editorSessionToken,
   formDataToData,
   readSnapshot,
+  snapshotBelongsToEditor,
   writeSnapshot,
   type AutosaveData,
   type AutosaveResult,
@@ -232,6 +234,7 @@ export function useAutosave({
       id: idRef.current,
       data: payload,
       savedAt: Date.now(),
+      token: editorSessionToken(scopeRef.current),
     });
   }, []);
 
@@ -435,6 +438,13 @@ export function useAutosave({
     const snapshot = readSnapshot(scopeRef.current);
     const form = formRef.current;
     if (!snapshot || !form) return;
+    // Belt and braces: the banner only appears after a token check, but a
+    // stale `recovery` must never be able to adopt a foreign row id.
+    if (!snapshotBelongsToEditor(snapshot, scopeRef.current)) {
+      clearSnapshot(scopeRef.current);
+      setRecovery(null);
+      return;
+    }
     if (snapshot.id) {
       idRef.current = snapshot.id;
       setDraftId(snapshot.id);
@@ -578,12 +588,22 @@ export function useAutosave({
     window.addEventListener("beforeunload", onBeforeUnload);
 
     // ── Recovery on mount ─────────────────────────────────────────────────
+    // A snapshot only belongs to THIS editor when it was written by this
+    // tab's editor session. The snapshot key is just the route, so before
+    // this check every "/new" editor shared one slot: the next new article
+    // silently adopted the previous article's content AND its draft-row id,
+    // and publishing it REPLACED that already-published article (the reported
+    // production defect). Another tab's snapshot — and any snapshot written
+    // before tokens existed — is left alone and never adopted.
     const snapshot = readSnapshot(scopeRef.current);
     if (snapshot && Object.keys(snapshot.data).length > 0) {
+      const ours = snapshotBelongsToEditor(snapshot, scopeRef.current);
+      // A legacy (un-tokened) snapshot is from an older deploy: drop it so
+      // it cannot keep resurrecting an old article into a fresh editor.
+      if (!ours && !snapshot.token) clearSnapshot(scopeRef.current);
       // A snapshot only belongs to this editor when it references the same
       // row — or any row, when this editor has not created one yet.
-      const sameRow =
-        idRef.current === null || snapshot.id === idRef.current;
+      const sameRow = ours && (idRef.current === null || snapshot.id === idRef.current);
       if (sameRow) {
         if (autoRecover) {
           if (snapshot.id) {
@@ -599,7 +619,7 @@ export function useAutosave({
         } else {
           setRecovery(snapshot);
         }
-      } else {
+      } else if (ours) {
         clearSnapshot(scopeRef.current);
       }
     }
@@ -629,6 +649,7 @@ export function useAutosave({
             id: idRef.current,
             data: payload,
             savedAt: Date.now(),
+            token: editorSessionToken(scopeRef.current),
           });
           // Never fire a request the host would reject with 413. On the way out
           // the recovery snapshot written above is the protection that matters;

@@ -109,7 +109,11 @@ export async function createHighlightAction(
   const mode = readSaveMode(formData);
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
 
-  const existing = autosaveId ? await getHighlightByIdForAdmin(autosaveId) : null;
+  const named = autosaveId ? await getHighlightByIdForAdmin(autosaveId) : null;
+  // A create flow may only continue an UNPUBLISHED draft; adopting a
+  // published highlight would rewrite live content with this form's data
+  // (see articles/actions.ts).
+  const existing = named && !named.published ? named : null;
   const { input, error: validationError } = await readInput(formData, existing);
   if (!input) return { error: validationError };
 

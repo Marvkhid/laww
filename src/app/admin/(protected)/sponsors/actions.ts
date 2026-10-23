@@ -132,9 +132,13 @@ export async function createSponsorAction(
 
   // Autosave already created the draft advert — continue in it so no
   // duplicate row is produced, and let this explicit Save apply `active`.
+  // Only an INACTIVE advert may be continued: a create flow must never
+  // rewrite a live sponsor whose id leaked in from a stale recovery snapshot
+  // or a second tab (see articles/actions.ts).
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
   if (autosaveId) {
-    const current = await getSponsorByIdForAdmin(autosaveId);
+    const named = await getSponsorByIdForAdmin(autosaveId);
+    const current = named && !named.active ? named : null;
     if (current) {
       const { error } = await updateSponsor(autosaveId, input);
       if (error) return { error };
