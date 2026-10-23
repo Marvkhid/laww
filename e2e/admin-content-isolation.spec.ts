@@ -330,4 +330,131 @@ test.describe("content isolation", () => {
       await deleteByTitle(page, "/admin/lawyer-news", nameB);
     }
   });
+
+  test("publishing a new event never removes an earlier one", async ({ page }) => {
+    await login(page);
+    const ts = Date.now();
+    const titleA = `[E2E] isolation event A ${ts}`;
+    const titleB = `[E2E] isolation event B ${ts}`;
+
+    // The events admin list renders rows as direct children of a
+    // `div.space-y-4` container; scoping to `> div` keeps a row assertion
+    // from matching the container (which holds every row, drafts included).
+    const rows = (p: Page, title: string) =>
+      p.locator("div.space-y-4 > div").filter({ hasText: title });
+
+    try {
+      // ── Event A: created and published ────────────────────────────────
+      await gotoClean(page, "/admin/events/new");
+      await page.locator('input[name="title"]').fill(titleA);
+      await expect(page.getByText(SAVED).first()).toBeVisible({ timeout: 30_000 });
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /^Publish$/ }),
+        /\/admin\/events(\/)?$/
+      );
+      await expect(rows(page, titleA), "event A was not published").toHaveCount(1);
+      await expect(rows(page, titleA)).not.toContainText(/· Draft/);
+
+      const sb = await adminClient();
+      const { data: aRows } = await sb
+        .from("events")
+        .select("id, title, slug, published")
+        .eq("title", titleA);
+      expect(aRows?.length, "event A must exist exactly once").toBe(1);
+      const idA = (aRows![0] as { id: string }).id;
+
+      // ── The new-event form starts clean ───────────────────────────────
+      await gotoClean(page, "/admin/events/new");
+      await expect(page.locator('input[name="title"]')).toHaveValue("");
+      await expect(page.locator('input[name="autosave_id"]')).toHaveValue("");
+
+      // ── Event B: published while the form is handed A's row id ────────
+      // That is what a stale recovery snapshot used to inject. The server
+      // must refuse to write INTO event A and produce its own row instead.
+      await page.locator('input[name="title"]').fill(titleB);
+      await expect(page.getByText(SAVED).first()).toBeVisible({ timeout: 30_000 });
+      await page
+        .locator('input[name="autosave_id"]')
+        .evaluate((el, id) => ((el as HTMLInputElement).value = id), idA);
+      await clickUntilNavigation(
+        page,
+        page.getByRole("button", { name: /^Publish$/ }),
+        /\/admin\/events(\/)?$/
+      );
+
+      // ── Event A is untouched; event B is its own published row ────────
+      const { data: afterA } = await sb
+        .from("events")
+        .select("id, title, published")
+        .eq("id", idA);
+      expect(afterA?.length, "event A was deleted").toBe(1);
+      expect(afterA![0].title, "event A's title was overwritten").toBe(titleA);
+      expect(afterA![0].published, "event A was unpublished").toBe(true);
+
+      const { data: afterB } = await sb
+        .from("events")
+        .select("id, title, published")
+        .eq("title", titleB);
+      expect(afterB?.length, "event B was not created exactly once").toBe(1);
+      expect(
+        (afterB![0] as { id: string }).id,
+        "event B reused event A's record"
+      ).not.toBe(idA);
+      expect(afterB![0].published, "event B was not published").toBe(true);
+
+      // ── Both events are listed in the admin ───────────────────────────
+      await gotoClean(page, "/admin/events");
+      await expect(rows(page, titleA)).toHaveCount(1);
+      await expect(rows(page, titleB)).toHaveCount(1);
+      await expect(rows(page, titleB)).not.toContainText(/· Draft/);
+
+      // ── Both appear on the public events page ─────────────────────────
+      await gotoClean(page, "/events");
+      await expect(
+        page.getByRole("heading", { name: titleA }),
+        "event A is missing from /events"
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: titleB }),
+        "event B is missing from /events"
+      ).toBeVisible();
+
+      // ── And both appear on the homepage events section ────────────────
+      // The section used to be capped at the 4 newest events, so publishing
+      // B pushed A off the homepage — which read as "the old event was
+      // deleted". The cap is gone; every homepage-ticked event shows.
+      await gotoClean(page, "/");
+      const homeEvents = page
+        .locator("section")
+        .filter({ hasText: "Upcoming & recent events" });
+      await expect(
+        homeEvents.getByRole("heading", { name: titleA }),
+        "event A is missing from the homepage events section"
+      ).toBeVisible();
+      await expect(
+        homeEvents.getByRole("heading", { name: titleB }),
+        "event B is missing from the homepage events section"
+      ).toBeVisible();
+    } finally {
+      // Scoped delete: the shared deleteByTitle helper matches `li, div`,
+      // whose first match on this page is the container holding every row.
+      for (const title of [titleA, titleB]) {
+        try {
+          await gotoClean(page, "/admin/events");
+          if (/\/admin\/login/.test(page.url())) {
+            await login(page);
+            await gotoClean(page, "/admin/events");
+          }
+          const row = rows(page, title);
+          if (!(await row.count())) continue;
+          page.once("dialog", (d) => d.accept());
+          await row.first().getByRole("button", { name: /^Delete$/ }).click();
+          await expect(rows(page, title)).toHaveCount(0, { timeout: 20_000 });
+        } catch {
+          // best effort only — cleanup must never mask a result
+        }
+      }
+    }
+  });
 });

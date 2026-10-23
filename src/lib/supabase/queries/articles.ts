@@ -136,7 +136,12 @@ function articleVisibleOn(row: ArticleRow, page: PageKey): boolean {
 }
 
 export interface ArticleQueryOptions {
-  /** Restrict to articles the admin allowed on this page (see page-visibility). */
+  /**
+   * Restrict to articles the admin allowed on this page (see
+   * page-visibility). Only the issues listing passes this now — the
+   * /articles archive deliberately lists every published article
+   * unconditionally (see the listing page).
+   */
   page?: PageKey;
 }
 
@@ -162,19 +167,32 @@ export async function getArticles(
   supabase: UntypedSupabaseClient,
   options?: ArticleQueryOptions
 ): Promise<Article[]> {
-  const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("status", "published")
-    .order("page_number", { ascending: true, nullsFirst: false });
+  // Hosted PostgREST caps any unbounded SELECT at 1000 rows (the platform
+  // default `db-max-rows`), so one plain query would silently truncate the
+  // article archive at exactly the size the /articles page promises to show
+  // in full. Page through the table in batches until a short page comes
+  // back, so the listing keeps its "all articles, even a thousand" promise.
+  const BATCH = 1000;
+  const rows: ArticleRow[] = [];
+  for (let from = 0; ; from += BATCH) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select("*")
+      .eq("status", "published")
+      .order("page_number", { ascending: true, nullsFirst: false })
+      .range(from, from + BATCH - 1);
 
-  if (error || !data) return [];
-  let rows = data as ArticleRow[];
+    if (error || !data) return [];
+    rows.push(...(data as ArticleRow[]));
+    if (data.length < BATCH) break;
+  }
+
+  let visible = rows;
   if (options?.page) {
     const page = options.page;
-    rows = rows.filter((row) => articleVisibleOn(row, page));
+    visible = rows.filter((row) => articleVisibleOn(row, page));
   }
-  return mapRows(supabase, rows);
+  return mapRows(supabase, visible);
 }
 
 // Every homepage section below reads the same show_on_pages gate: the admin

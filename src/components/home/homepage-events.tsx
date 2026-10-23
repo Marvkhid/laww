@@ -15,7 +15,10 @@ import { Reveal } from "@/components/motion/reveal";
  */
 export async function HomepageEvents() {
   const supabase = createSupabaseServerClient();
-  const events = await getHomepageEvents(supabase, 4);
+  // No limit: every event ticked for the homepage is shown. A cap here made
+  // each newly published event push the oldest one off the page, which read
+  // as "adding an event deleted the previous one".
+  const events = await getHomepageEvents(supabase);
 
   if (events.length === 0) return null;
 

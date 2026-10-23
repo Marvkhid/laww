@@ -18,7 +18,14 @@ export const metadata: Metadata = {
 export default async function ArticlesPage() {
   const supabase = createSupabaseServerClient();
   const [articles, issueMeta] = await Promise.all([
-    getArticles(supabase, { page: "articles" }),
+    // Every published article, unconditionally — this page is the site's
+    // full article archive (the "Latest" nav entry). Page-targeting
+    // ("Display On") used to filter this listing, so any article whose
+    // stored show_on_pages lacked the "articles" key silently vanished from
+    // here while still being live elsewhere — publishing a new story then
+    // looked like it had replaced the archive. Homepage and issue
+    // placement are still governed by that same column on their own pages.
+    getArticles(supabase),
     getCurrentIssue(supabase),
   ]);
 

@@ -9,17 +9,15 @@ function eventVisibleOn(row: EventRow, page: PageKey): boolean {
 
 async function getEventsForPage(
   supabase: UntypedSupabaseClient,
-  page: PageKey,
-  limit?: number
+  page: PageKey
 ): Promise<Event[]> {
-  let query = supabase
+  // No row limit anywhere in this module: the public listings promise every
+  // published event, so nothing here may silently truncate them.
+  const { data, error } = await supabase
     .from("events")
     .select("*")
     .eq("published", true)
     .order("event_date", { ascending: false, nullsFirst: false });
-  if (limit) query = query.limit(limit);
-
-  const { data, error } = await query;
   if (error || !data) return [];
 
   return (data as EventRow[])
@@ -46,12 +44,17 @@ export async function getEvents(
  * Events the admin allowed on the homepage — the homepage reads the same
  * show_on_pages column the admin form writes, so "Show on Homepage" is
  * honoured end to end instead of living in a separate hard-coded list.
+ *
+ * No cap: this used to silently limit the section to the 4 newest events, so
+ * publishing a new event pushed the oldest homepage event off the page — the
+ * admin experienced that as "adding an event removed the previous one". The
+ * section is a grid that wraps, so it now grows with however many events the
+ * admin has ticked for the homepage.
  */
 export async function getHomepageEvents(
-  supabase: UntypedSupabaseClient,
-  limit = 4
+  supabase: UntypedSupabaseClient
 ): Promise<Event[]> {
-  return getEventsForPage(supabase, "homepage", limit);
+  return getEventsForPage(supabase, "homepage");
 }
 
 export async function getEventBySlug(

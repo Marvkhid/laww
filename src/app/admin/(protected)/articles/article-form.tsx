@@ -306,7 +306,7 @@ export function ArticleForm({
       {pageTargeting ? (
         <FormSection
           title="Display On"
-          subtitle="Where this story is allowed to appear. The homepage only shows it when Homepage is ticked."
+          subtitle="Where this story is placed. Every published story always appears on the Articles (Latest) page; tick Homepage to feature it on the front page, and Issues to list it inside the current issue."
           accent="left"
         >
           <PageVisibilityField
