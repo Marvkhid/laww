@@ -30,7 +30,6 @@ export function SponsorForm({
     SponsorRow,
     | "id"
     | "name"
-    | "logo_url"
     | "website_url"
     | "tier"
     | "placement"
@@ -45,7 +44,6 @@ export function SponsorForm({
 }) {
   const [state, formAction, isPending] = useActionState(action, { error: null });
   const formRef = useRef<HTMLFormElement>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(initial?.logo_url ?? null);
   const [imagePreview, setImagePreview] = useState<string | null>(initial?.image_url ?? null);
 
   const autosave = useAutosave({
@@ -144,27 +142,6 @@ export function SponsorForm({
         <p className="font-admin text-xs text-stone">
           JPEG, PNG, WEBP, or GIF, up to 5MB.{" "}
           {initial?.image_url ? "Leave empty to keep the current image." : "This is the artwork readers see in the ad slot."}
-        </p>
-      </FormSection>
-
-      <FormSection
-        title="Logo (optional)"
-        subtitle="Small brand mark used in the Supporting Law Digest strip."
-        accent="left"
-      >
-        <ImageUploadZone
-          name="logo_file"
-          label={logoPreview ? "Replace logo" : "Upload logo"}
-          existingHiddenName="existing_logo_url"
-          existingValue={initial?.logo_url ?? ""}
-          initialPreview={logoPreview}
-          previewAspect="aspect-[16/9]"
-          compact
-          onFilesSelected={(files) => setLogoPreview(URL.createObjectURL(files[0]))}
-          upload={uploadSponsorImage}
-        />
-        <p className="font-admin text-xs text-stone">
-          {initial?.logo_url ? "Leave empty to keep the current logo." : "JPEG, PNG, WEBP, or GIF, up to 5MB."}
         </p>
       </FormSection>
 

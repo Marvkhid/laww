@@ -29,9 +29,10 @@ export async function getSponsorByIdForAdmin(id: string): Promise<SponsorRow | n
   return data as SponsorRow;
 }
 
+// logo_url is intentionally absent: the admin form no longer uploads a logo,
+// so writes never touch that column and existing logos survive a save.
 export type SponsorInput = {
   name: string;
-  logo_url: string | null;
   website_url: string | null;
   tier: string | null;
   image_url: string | null;

@@ -60,11 +60,14 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
     return { input: null, error: "Page number must be a whole number." };
   }
 
-  // Logo and banner URLs come from the hidden existing_* fields, which the
-  // upload zones fill on selection. No server action reads file bytes: a File
-  // in an action body is the request the host rejects with 413
+  // The advert artwork URL comes from the hidden existing_image_url field,
+  // which the upload zone fills on selection. No server action reads file
+  // bytes: a File in an action body is the request the host rejects with 413
   // (see src/lib/request-limits.ts).
-  const logo_url: string | null = optional("existing_logo_url");
+  //
+  // logo_url is deliberately not read: the form no longer offers a logo
+  // upload, so it is never written and an existing logo is left untouched
+  // rather than being wiped on every save.
   const image_url: string | null = optional("existing_image_url");
 
   // "Display On" — null when the group was not rendered (migration 0025
@@ -77,7 +80,6 @@ async function readInput(formData: FormData): Promise<{ input: SponsorInput | nu
   return {
     input: {
       name,
-      logo_url,
       image_url,
       website_url: optional("website_url"),
       tier: optional("tier"),
@@ -158,7 +160,6 @@ async function findSponsorForAdoption(input: SponsorInput) {
     (s) =>
       s.name === input.name &&
       s.image_url === input.image_url &&
-      s.logo_url === input.logo_url &&
       s.website_url === input.website_url &&
       s.tier === input.tier &&
       s.display_order === input.display_order &&
