@@ -41,6 +41,68 @@ function mapSponsorWithId(row: SponsorRow): SponsorWithId {
 }
 
 /**
+ * Identity of one advert. Two rows with the same key are the SAME advert
+ * stored twice — the duplicate rows the old create path produced — and must
+ * never be rendered (or listed in the admin) twice.
+ *
+ * The key is the full placement tuple, not the name: this schema permits two
+ * different adverts to share a name / sponsor, and collapsing them would hide
+ * a real record. `active` is deliberately excluded — the duplicate pair is
+ * usually one inactive draft plus the live row that replaced it.
+ *
+ * Mirrors `findSponsorForAdoption()` in the admin actions and the expression
+ * index in `0028_sponsor_dedupe.sql`.
+ */
+export function sponsorIdentityKey(
+  row: Pick<
+    SponsorRow,
+    | "name"
+    | "logo_url"
+    | "image_url"
+    | "website_url"
+    | "tier"
+    | "placement"
+    | "show_on_pages"
+    | "display_order"
+    | "page_number"
+  >
+): string {
+  const pages =
+    pagesForRow(row.show_on_pages) ?? pagesFromLegacyPlacement(row.placement);
+  return [
+    row.name.trim().toLowerCase(),
+    row.logo_url ?? "",
+    row.image_url ?? "",
+    row.website_url ?? "",
+    row.tier ?? "",
+    String(row.display_order),
+    row.page_number === null ? "" : String(row.page_number),
+    [...pages].sort().join(","),
+  ].join("\u0000");
+}
+
+/**
+ * Collapse duplicate advert rows: keep one row per identity.
+ *
+ * A live row always wins over a draft duplicate, so hiding a duplicate can
+ * never hide the advert the public site is actually serving. Insertion order
+ * is preserved, so callers keep their `display_order` ordering.
+ */
+export function dedupeSponsorRows(rows: SponsorRow[]): SponsorRow[] {
+  const kept = new Map<string, SponsorRow>();
+  for (const row of rows) {
+    const key = sponsorIdentityKey(row);
+    const existing = kept.get(key);
+    if (!existing) {
+      kept.set(key, row);
+    } else if (!existing.active && row.active) {
+      kept.set(key, row);
+    }
+  }
+  return [...kept.values()];
+}
+
+/**
  * Where is this advert allowed to show?
  *
  * Reads show_on_pages (written by the admin's "Display On" checkboxes).
@@ -66,7 +128,7 @@ export async function getSponsorsForPage(
     .order("display_order", { ascending: true });
 
   if (error || !data) return [];
-  return (data as SponsorRow[])
+  return dedupeSponsorRows(data as SponsorRow[])
     .filter((row) => advertVisibleOn(row, page))
     .map(mapSponsorWithId);
 }

@@ -1,6 +1,15 @@
 import { requireAdmin } from "@/lib/supabase/admin/require-admin";
+import { dedupeSponsorRows } from "@/lib/supabase/queries/sponsors";
 import type { SponsorRow } from "@/lib/supabase/types";
 
+/**
+ * Every advert, one row per identity.
+ *
+ * Duplicate rows (the same advert stored twice by the old create path) are
+ * collapsed here, so the admin list and the public site can never render one
+ * advert twice. A live row wins over a draft duplicate. Applied to this shared
+ * read helper rather than at each call site so no view can regress.
+ */
 export async function listSponsorsForAdmin(): Promise<SponsorRow[]> {
   const supabase = await requireAdmin();
   const { data, error } = await supabase
@@ -9,7 +18,7 @@ export async function listSponsorsForAdmin(): Promise<SponsorRow[]> {
     .order("display_order", { ascending: true });
 
   if (error || !data) return [];
-  return data as SponsorRow[];
+  return dedupeSponsorRows(data as SponsorRow[]);
 }
 
 export async function getSponsorByIdForAdmin(id: string): Promise<SponsorRow | null> {

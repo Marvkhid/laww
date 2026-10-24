@@ -1,3 +1,5 @@
+"use server";
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -134,37 +136,35 @@ export async function autosaveSponsorAction(
  * homepage restriction or ordering. That is what made a new post silently
  * replace an existing one.
  *
- * Normal case: sponsor has artwork (image or logo), so the matching is
- * unambiguous. When an admin drafts a sponsor without artwork (placeholder
- * pending), we still allow a single adoption path keyed on name alone, but
- * only for one inactive row — never a broadcast that would adopt every
- * inactive "Diamond" row, which would resume the old duplication bug.
+ * For adverts, the identity key is the full placement tuple (name + artwork +
+ * website + tier + ordering + page targeting). Artwork makes it unambiguous;
+ * without artwork we still key on name plus the same targeting fields, but
+ * name alone is the minimum because a placeholder advert has nothing else to
+ * go on yet. Unlike articles (where the key is a unique slug), sponsor names
+ * are NOT unique in this schema, so we match on the full tuple and only ever
+ * adopt the single row whose tuple matches — never a broadcast across every
+ * row that shares a name.
+ *
+ * We adopt regardless of `active` state: a draft-only gate (mirror of the
+ * article fix) is wrong for sponsors because the same admin, saving twice,
+ * would create the draft, tick Active, then have the explicit Save skip the
+ * now-active draft and insert a second row — the duplicate that this file's
+ * admin list and the homepage both render twice. Continuing the live row is
+ * the correct behaviour for an identity match.
  */
-async function findMatchingDraft(input: SponsorInput) {
-  // Artwork makes identity unambiguous.
-  if (input.image_url || input.logo_url) {
-    const all = await listSponsorsForAdmin();
-    const matching = all.find(
-      (s) => !s.active &&
-        s.name === input.name &&
-        s.image_url === input.image_url &&
-        s.logo_url === input.logo_url &&
-        s.website_url === input.website_url &&
-        s.tier === input.tier &&
-        s.display_order === input.display_order &&
-        s.page_number === input.page_number &&
-        (s.show_on_pages ?? null) === (input.show_on_pages ?? null)
-    );
-    return matching ?? null;
-  }
-
-  // No artwork yet — key adoption on name only, and cap it to a single
-  // inactive row so an unchecked form can never adopt multiple similar rows.
-  const nameOnly = await listSponsorsForAdmin();
-  const matching = nameOnly.find(
-    (s) => !s.active && s.name === input.name
-  );
-  return matching ?? null;
+async function findSponsorForAdoption(input: SponsorInput) {
+  const all = await listSponsorsForAdmin();
+  return all.find(
+    (s) =>
+      s.name === input.name &&
+      s.image_url === input.image_url &&
+      s.logo_url === input.logo_url &&
+      s.website_url === input.website_url &&
+      s.tier === input.tier &&
+      s.display_order === input.display_order &&
+      s.page_number === input.page_number &&
+      (s.show_on_pages ?? null) === (input.show_on_pages ?? null)
+  ) ?? null;
 }
 
 export async function createSponsorAction(
@@ -174,16 +174,26 @@ export async function createSponsorAction(
   const { input, error: validationError } = await readInput(formData);
   if (!input) return { error: validationError };
 
-  // Autosave already created the draft advert — continue in it so no
-  // duplicate row is produced, and let this explicit Save apply `active`.
-  // Only an INACTIVE advert may be continued: a create flow must never
-  // rewrite a live sponsor whose id leaked in from a stale recovery snapshot
-  // or a second tab (see articles/actions.ts).
+  // Autosave already created (or recovered to) the advert row — continue
+  // in it so no duplicate row is produced, and let this explicit Save apply
+  // `active` and any page-targeting change. Adoption is identity-based, never
+  // position-based: we continue the row whose id the editor holds, and we
+  // never take over a different sponsor just because a new submission happens
+  // to match today's homepage restriction or ordering (that is what made a new
+  // post silently replace an existing one).
+  //
+  // We update regardless of `active` state. A draft-only gate (mirror of the
+  // article fix) is wrong for sponsors: the admin types, autosave creates a
+  // draft (inactive), ticks Active, autosave sets the draft active, then the
+  // explicit Save skips the now-active draft and inserts a second row — the
+  // duplicate rendered twice in the admin list and twice on the public site.
+  // The autosave_id is session-scoped (useAutosave + editorSessionToken, plus
+  // the per-tab recovery-snapshot token check on mount), so a stale id from
+  // another tab or an un-tokened legacy snapshot cannot reach this branch.
   const autosaveId = String(formData.get("autosave_id") ?? "").trim();
   if (autosaveId) {
     const named = await getSponsorByIdForAdmin(autosaveId);
-    const current = named && !named.active ? named : null;
-    if (current) {
+    if (named) {
       const { error } = await updateSponsor(autosaveId, input);
       if (error) return { error };
       revalidateAdPaths();
@@ -192,12 +202,12 @@ export async function createSponsorAction(
   }
 
   // If the client submitted before its first autosave round-trip, the
-  // autosave_id is still empty. Guard against the race now: look for an
-  // inactive draft with the same identity (same name + same artwork, or —
-  // artwork-less drafts — the same name) and continue it. We never touch a
-  // live sponsor with the same identity, and we never adopt more than one
+  // autosave_id is still empty. Guard against the race now: look for a
+  // sponsor whose identity tuple (name + artwork + website + tier +
+  // ordering + page targeting) matches, and continue that row. Adoption is
+  // identity-based, never position-based, and we never adopt more than one
   // row on this flow.
-  const draft = await findMatchingDraft(input);
+  const draft = await findSponsorForAdoption(input);
   if (draft) {
     const { error } = await updateSponsor(draft.id, input);
     if (!error) {
