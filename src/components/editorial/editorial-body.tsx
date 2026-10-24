@@ -52,6 +52,83 @@ function isEmbeddedImage(block: JSONContent): boolean {
   return block.type === "image";
 }
 
+/**
+ * Longest run of text an image placement may sit inside before the paragraph
+ * is split. Only layout uses this: the editor's paragraph is still rendered as
+ * one continuous block of prose (see `__continued` below).
+ */
+const LAYOUT_CHUNK_CHARS = 700;
+
+/**
+ * Give a single long paragraph several layout points.
+ *
+ * The band system places an image by cumulative character position, but that
+ * only works when the body is made of several blocks. An article written as
+ * ONE paragraph is a single text item, so "top", "centre" and "bottom" all
+ * resolve to the same index, every image is clamped to the block before the
+ * last one, and the renderer — with no text left to wrap beside them — falls
+ * back to stacking all four images full-width above the prose. That is the
+ * "images ignored their position" failure in the admin's Image 1–4 panel.
+ *
+ * Splitting an oversized paragraph into sentence-aligned chunks gives each band
+ * a real place to sit. The chunks after the first are marked `__continued`,
+ * which the renderer uses to drop the paragraph's top margin, so the reader
+ * still sees one continuous paragraph rather than a series of stubs.
+ */
+function splitForLayout(block: JSONContent): JSONContent[] {
+  if (block.type !== "paragraph" || !Array.isArray(block.content)) return [block];
+  if (nodeChars(block) <= LAYOUT_CHUNK_CHARS) return [block];
+
+  const chunks: JSONContent[][] = [];
+  let current: JSONContent[] = [];
+  let currentChars = 0;
+
+  for (const inline of block.content) {
+    if (inline.type !== "text" || typeof inline.text !== "string") {
+      // Marks that are not plain text (hard breaks, mentions) stay with the
+      // chunk they were written in.
+      current.push(inline);
+      continue;
+    }
+
+    let remaining = inline.text;
+    while (remaining.length > 0) {
+      const room = LAYOUT_CHUNK_CHARS - currentChars;
+      if (remaining.length <= room) {
+        current.push({ ...inline, text: remaining });
+        currentChars += remaining.length;
+        break;
+      }
+
+      // Prefer a sentence end, then a word boundary, so a chunk never starts
+      // or ends mid-word.
+      const window = remaining.slice(0, room);
+      const sentence = Math.max(
+        window.lastIndexOf(". "),
+        window.lastIndexOf("! "),
+        window.lastIndexOf("? ")
+      );
+      const space = window.lastIndexOf(" ");
+      const cut = sentence >= 0 ? sentence + 2 : space > 0 ? space + 1 : room;
+
+      current.push({ ...inline, text: remaining.slice(0, cut) });
+      chunks.push(current);
+      current = [];
+      currentChars = 0;
+      remaining = remaining.slice(cut).replace(/^\s+/, "");
+    }
+  }
+
+  if (current.some((node) => nodeChars(node) > 0)) chunks.push(current);
+  if (chunks.length <= 1) return [block];
+
+  return chunks.map((content, index) =>
+    index === 0
+      ? { ...block, content }
+      : { ...block, content, attrs: { ...(block.attrs ?? {}), __continued: true } }
+  );
+}
+
 function isFullWidthPosition(position?: string | null): boolean {
   return parseImagePosition(position).span === "full";
 }
@@ -102,7 +179,7 @@ export function planEditorialLayout(
         embedded: true,
       });
     } else {
-      textItems.push(block);
+      textItems.push(...splitForLayout(block));
     }
   }
 
@@ -271,6 +348,21 @@ export function EditorialBody({
 
   const segments = planEditorialLayout(blocks, images ?? []);
 
+  // A chunk continuing an earlier paragraph keeps the prose continuous: it is
+  // one paragraph to the reader, only interrupted where an image sits.
+  const renderBlocks = (nodes: JSONContent[], keyPrefix: string) =>
+    nodes.map((node, j) => {
+      const rendered = render(node, j);
+      const key = `${keyPrefix}-b${j}`;
+      return node.attrs && node.attrs.__continued === true ? (
+        <div key={key} className="editorial-continuation">
+          {rendered}
+        </div>
+      ) : (
+        <Fragment key={key}>{rendered}</Fragment>
+      );
+    });
+
   return (
     <div className={`editorial-body ${className ?? ""}`}>
       {segments.map((seg, i) => {
@@ -278,11 +370,7 @@ export function EditorialBody({
           case "text":
             return (
               <div key={`t${i}`} className="editorial-section">
-                <div className="prose-article">
-                  {seg.blocks.map((b, j) => (
-                    <Fragment key={`t${i}-b${j}`}>{render(b, j)}</Fragment>
-                  ))}
-                </div>
+                <div className="prose-article">{renderBlocks(seg.blocks, `t${i}`)}</div>
               </div>
             );
 
@@ -291,11 +379,7 @@ export function EditorialBody({
             if (!image.url) {
               return (
                 <div key={`u${i}`} className="editorial-section">
-                  <div className="prose-article">
-                    {unitBlocks.map((b, j) => (
-                      <Fragment key={`u${i}-b${j}`}>{render(b, j)}</Fragment>
-                    ))}
-                  </div>
+                  <div className="prose-article">{renderBlocks(unitBlocks, `u${i}`)}</div>
                 </div>
               );
             }
@@ -311,11 +395,7 @@ export function EditorialBody({
                   caption={null}
                   floatSide={side}
                 />
-                <div className="prose-article">
-                  {unitBlocks.map((b, j) => (
-                    <Fragment key={`u${i}-b${j}`}>{render(b, j)}</Fragment>
-                  ))}
-                </div>
+                <div className="prose-article">{renderBlocks(unitBlocks, `u${i}`)}</div>
                 <div className="editorial-clear" aria-hidden="true" />
               </div>
             );

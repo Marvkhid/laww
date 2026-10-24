@@ -555,6 +555,17 @@ body {
   clear: both;
 }
 
+/* A paragraph continued after a positioned image.
+
+   `EditorialBody` splits an over-long paragraph into layout chunks so the
+   top / centre / bottom positions each have somewhere to sit, but the reader
+   is still reading ONE paragraph — so the continuation carries no paragraph
+   gap of its own. Without this the split showed up as a series of stubby
+   paragraphs with odd spacing. */
+.editorial-continuation p {
+  margin-top: 0;
+}
+
 /* Small screens: no floats, and every image is inset to a share of the
    column rather than filling it — noticeably smaller, still in document
    order, never reordered, never overflowing. The side the admin chose is
